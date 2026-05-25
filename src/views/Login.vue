@@ -4,7 +4,7 @@
       <!-- الشعار والعنوان -->
       <div class="brand-header">
         <div class="logo-wrapper">
-          <img :src="logo" class="luxury-logo" alt="Palm Treasure Logo" />
+          <img :src="logo" class="luxury-logo" alt="AI Logo" />
         </div>
       </div>
       <h2 class="title">تسجيل الدخول</h2>
