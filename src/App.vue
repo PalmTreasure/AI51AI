@@ -26,67 +26,18 @@
       <div class="notification-badge" v-if="hasNewOffer">3</div>
     </div>
 
-    <!-- زر الدعم الموحد -->
+    <!-- زر الدعم الموحد (تيليجرام فقط) -->
     <div 
       class="circle-btn support-btn" 
       ref="supportBtn"
-      @click="toggleSupportMenu" 
+      @click="openTelegram" 
       @mousedown="startDrag" 
       @touchstart="startDrag"
     >
-      <i class="fas fa-headset"></i>
+      <i class="fab fa-telegram"></i>
     </div>
 
-    <!-- زر انستغرام -->
-    <a 
-      class="circle-btn instagram-btn"
-      ref="instagramBtn"
-      href="https://www.instagram.com/palm__treasure?igsh=OXR1emp3N2k2d2Yz"
-      target="_blank"
-      @mousedown="startDrag"
-      @touchstart="startDrag"
-    >
-      <i class="fab fa-instagram"></i>
-    </a>
-
     <!-- ==================== القوائم المنبثقة ==================== -->
-
-    <!-- قائمة الدعم -->
-    <transition name="fade">
-      <div v-if="showSupportMenu" class="support-menu" @click.stop>
-        <div class="support-menu-header">
-          <div class="header-title">
-            <i class="fas fa-headset"></i>
-            <span>{{ t('supportCenter') }}</span>
-          </div>
-          <button class="close-btn" @click.stop="closeSupportMenu">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="support-menu-body">
-          <div class="support-item" @click="openWhatsApp">
-            <div class="support-icon whatsapp">
-              <i class="fab fa-whatsapp"></i>
-            </div>
-            <div class="support-info">
-              <span class="support-name">واتساب</span>
-              <span class="support-desc">تواصل سريع</span>
-            </div>
-            <i class="fas fa-chevron-left support-arrow"></i>
-          </div>
-          <div class="support-item" @click="openTelegram">
-            <div class="support-icon telegram">
-              <i class="fab fa-telegram"></i>
-            </div>
-            <div class="support-info">
-              <span class="support-name">تيليجرام</span>
-              <span class="support-desc">مجموعة الدعم</span>
-            </div>
-            <i class="fas fa-chevron-left support-arrow"></i>
-          </div>
-        </div>
-      </div>
-    </transition>
 
     <!-- قائمة اللغات -->
     <transition name="fade">
@@ -115,15 +66,12 @@
     <transition name="modal">
       <div v-if="showBlockedModal" class="modal-overlay" @click.self="handleBlockedModalClose">
         <div class="modal-container blocked-modal" @click.stop>
-          <!-- الرأس -->
           <div class="blocked-header">
             <div class="blocked-icon">
               <i class="fas fa-lock"></i>
             </div>
             <h2>تم حظر الحساب</h2>
           </div>
-
-          <!-- المحتوى -->
           <div class="blocked-body">
             <div class="blocked-message">
               <i class="fas fa-exclamation-triangle"></i>
@@ -139,13 +87,11 @@
 
             <div class="blocked-actions">
               <button class="support-btn-action" @click="contactSupportFromBlocked">
-                <i class="fab fa-whatsapp"></i>
+                <i class="fab fa-telegram"></i>
                 <span>التواصل مع الدعم</span>
               </button>
             </div>
           </div>
-
-          <!-- التذييل -->
           <div class="blocked-footer">
             <button class="btn-primary" @click="handleBlockedModalClose">
               <i class="fas fa-sign-out-alt"></i>
@@ -160,12 +106,11 @@
     <transition name="modal">
       <div v-if="showOfferMessage" class="modal-overlay" @click="closeOfferMessage">
         <div class="modal-container offer-modal" @click.stop>
-          <!-- الرأس -->
           <div class="modal-header">
             <div class="sender-info">
-              <div class="sender-avatar">🎁</div>
+              <div class="sender-avatar">🤖</div>
               <div class="sender-details">
-                <div class="sender-name">Palm Treasure 🌴</div>
+                <div class="sender-name">AI 🤖</div>
                 <div class="sender-time">{{ t('specialOffer') }}</div>
               </div>
             </div>
@@ -173,8 +118,6 @@
               <i class="fas fa-times"></i>
             </button>
           </div>
-
-          <!-- المحتوى -->
           <div class="modal-body">
             <div class="offer-content">
               <div class="offer-title">
@@ -228,8 +171,6 @@
               </div>
             </div>
           </div>
-
-          <!-- التذييل -->
           <div class="modal-footer">
             <button class="btn-primary" @click.stop="closeOfferMessage">
               <i class="fas fa-check-circle"></i>
@@ -244,21 +185,17 @@
     <transition name="modal">
       <div v-if="showAd" class="modal-overlay ad-overlay" @click.self="closeAd">
         <div class="modal-container ad-container" @click.stop>
-          <!-- الرأس -->
           <div class="ad-header">
             <div class="ad-title">
               <i class="fas fa-crown"></i>
-              <span>Palm Treasure 🌴</span>
+              <span>AI 🤖</span>
               <i class="fas fa-crown"></i>
             </div>
             <button class="ad-close" @click.stop="closeAd">
               <i class="fas fa-times"></i>
             </button>
           </div>
-
-          <!-- المحتوى -->
           <div class="ad-body">
-            <!-- رسالة الشركة -->
             <div class="company-message">
               <div class="message-header">
                 <i class="fas fa-building"></i>
@@ -266,8 +203,8 @@
               </div>
               <div class="message-content">
                 <p>
-                  مرحباً بالجميع 🌟<br><br>
-                  يسرّنا أن نعرّفكم بشركة <strong>Palm Treasure</strong> التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية.<br><br>
+                  مرحباً بالجميع 🤖<br><br>
+                  يسرّنا أن نعرفكم بشركة <strong>AI</strong> التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية.<br><br>
                   
                   تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
                   
@@ -277,26 +214,24 @@
                   
                   وقد تحقق هذا المشروع بجهود كبيرة من الفريق التقني تحت إشراف المهندس أليكس ديروب، الذي لعب دوراً أساسياً في تطوير النظام التقني للشركة. وتقديراً لجهوده المميزة ومساهمته في نجاح هذا المشروع، تمت ترقيته إلى منصب نائب المدير.<br><br>
                   
-                  نحن في Palm Treasure نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
+                  نحن في AI نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
                   
                   ولهذا السبب تم وضع نظام واضح وقوانين عادلة تضمن حماية حقوق الموظفين والأعضاء قبل حقوق المستثمرين، مع مراعاة الظروف الاقتصادية والاجتماعية في المجتمعات العربية.<br><br>
                   
                   وسيتم تطبيق هذا النظام المبرمج في معظم الدول العربية ابتداءً من 1 مارس 2026 وحتى نهاية عام 2028، وخلال هذه الفترة سيتم تقييم الأداء والنتائج. وبعد ذلك قد يتم تطوير النظام وإجراء بعض التعديلات بناءً على كفاءة الأعضاء وجهودهم وإخلاصهم في العمل.<br><br>
                   
-                  كما نعمل منذ الآن على التخطيط لمجموعة من الفرص المستقبلية والمشاريع الجديدة التي ستوفر مزيداً من الإمكانيات لأعضاء الشركة في السنوات القادمة.<br><br>
+                  كما نعمل منذ الآن على التخطيط لمجموعة من الفرص المستقبلية والمشاريع الجديدة التي ستوفر المزيد من الإمكانيات لأعضاء الشركة في السنوات القادمة.<br><br>
                   
-                  نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع Palm Treasure 🌴
+                  نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع AI 🤖
                 </p>
               </div>
             </div>
 
-            <!-- الشراكات -->
             <div class="partnerships">
               <i class="fas fa-handshake"></i>
               <span>{{ t('globalPartnerships') }}</span>
             </div>
 
-            <!-- خطط VIP -->
             <div class="vip-section">
               <h3>📊 {{ t('membershipPlans') }}</h3>
               <div class="vip-grid">
@@ -326,7 +261,6 @@
               </div>
             </div>
 
-            <!-- نظام العمولات -->
             <div class="commission-box">
               <h4>🤝 {{ t('commissionSystem') }}</h4>
               <div class="commission-row">
@@ -336,8 +270,6 @@
               </div>
             </div>
           </div>
-
-          <!-- التذييل -->
           <div class="ad-footer">
             <button class="btn-primary" @click.stop="closeAd">
               <i class="fas fa-check-circle"></i>
@@ -386,7 +318,6 @@ export default {
 
       // القوائم
       showLangMenu: false,
-      showSupportMenu: false,
       showAd: false,
       showOfferMessage: false,
       hasNewOffer: true,
@@ -394,14 +325,8 @@ export default {
 
       // اللغة الحالية
       currentLang: "AR",
-      // بيانات الدعم
-      whatsappNumbers: {
-        support: {
-          number: "447348577110",
-          message: "مرحباً، أحتاج مساعدة من الدعم الفني"
-        }
-      },
-      telegramLink: "https://t.me/Palm_Treasure",
+      // بيانات الدعم (تيليجرام فقط)
+      telegramLink: "https://t.me/AI51AI",
 
       // خطط VIP
       vipPlans: [
@@ -490,9 +415,9 @@ export default {
           selectLanguage: 'اختر اللغة',
           specialOffer: 'عرض خاص',
           joinOurTeam: 'انضم إلى فريقنا وابدأ ببناء نجاحك اليوم',
-          offerDescription1: 'نحن نقدم لك فرصة حقيقية لتكون جزءًا من فريق طموح ومتطور. يمكنك الآن دعوة أعضاء جدد إلى فريقك عبر رابط الإحالة الخاص بك والعمل معهم لتحقيق النجاح المشترك.',
+          offerDescription1: 'نحن نقدم لك فرصة حقيقية لتكون جزءاً من فريق طموح ومتطور. يمكنك الآن دعوة أعضاء جدد إلى فريقك عبر رابط الإحالة الخاص بك والعمل معهم لتحقيق النجاح المشترك.',
           rewardsSystem: 'نظام المكافآت: كلما توسع فريقك وزاد عدد الأعضاء فيه، زادت فرصك للحصول على مكافآت مالية مجزية.',
-          offerDescription2: 'عند انضمامك إلينا، ستحصل على فرصة لتصبح مشرفًا على فريقك الخاص، حيث يمكنك إدارة فريقك وتنميته من خلال دعوة أعضاء جدد عبر رابط الإحالة الخاص بك.',
+          offerDescription2: 'عند انضمامك إلينا، ستحصل على فرصة لتصبح مشرفاً على فريقك الخاص، حيث يمكنك إدارة فريقك وتنميته من خلال دعوة أعضاء جدد عبر رابط الإحالة الخاص بك.',
           monthlyRewardsTable: 'جدول المكافآت الشهرية',
           numberOfPeople: 'عدد الأشخاص',
           salaryValue: 'قيمة الراتب',
@@ -501,7 +426,7 @@ export default {
           growthOpportunities: 'فرص نمو مستمرة',
           importantNote: 'ملاحظة مهمة',
           vip2Required: 'يجب على كل عضو ينضم إلى فريقك شراء مستوى VIP 2 حتى يتم احتسابه ضمن أعضاء فريقك في نظام المكافآت.',
-          understoodThanks: 'فهمت وشكرًا',
+          understoodThanks: 'فهمت وشكراً',
           aboutCompany: 'عن الشركة',
           globalPartnerships: 'شراكات عالمية مع Amazon, eBay, TikTok, Aliexpress, Alibaba, Shopee',
           membershipPlans: 'خطط العضوية والأرباح',
@@ -574,13 +499,13 @@ export default {
       this.authLoaded = true;
       
       if (user) {
-        // بدء مراقبة حالة الحظر للمستخدم المسجل
+        // بدأ مراقبة حالة الحظر للمستخدم المسجل
         this.monitorBlockStatus(user.uid);
         
         // تسوية أرباح VIP فور تسجيل الدخول
         this.settleAndReward(user.uid);
         
-        // بدء المؤقت لتحديث الأرباح كل دقيقة
+        // بدأ المؤقت لتحديث الأرباح كل دقيقة
         this.startVipProfitInterval(user.uid);
         
         // عرض الإعلان بعد ثانية
@@ -695,17 +620,15 @@ export default {
     },
 
     contactSupportFromBlocked() {
-      const dept = this.whatsappNumbers.support;
-      if (dept) {
-        const message = encodeURIComponent("مرحباً، حسابي محظور وأحتاج مساعدة من الدعم الفني");
-        const url = `https://wa.me/${dept.number}?text=${message}`;
-        window.open(url, '_blank');
+      // فتح تيليجرام للدعم
+      if (this.telegramLink) {
+        window.open(this.telegramLink, '_blank');
       }
     },
 
     // ==================== نظام أرباح VIP ====================
     
-    // بدء مؤقت تحديث أرباح VIP
+    // بدأ مؤقت تحديث أرباح VIP
     startVipProfitInterval(userId) {
       this.stopVipProfitInterval();
       
@@ -809,45 +732,13 @@ export default {
         return;
       }
       this.showLangMenu = !this.showLangMenu;
-      if (this.showLangMenu) {
-        this.showSupportMenu = false;
-      }
     },
 
-    // تبديل قائمة الدعم
-    toggleSupportMenu() {
-      if (this.hasDragged) {
-        this.hasDragged = false;
-        return;
-      }
-      this.showSupportMenu = !this.showSupportMenu;
-      if (this.showSupportMenu) {
-        this.showLangMenu = false;
-      }
-    },
-
-    // إغلاق قائمة الدعم
-    closeSupportMenu() {
-      this.showSupportMenu = false;
-    },
-
-    // فتح واتساب
-    openWhatsApp() {
-      const dept = this.whatsappNumbers.support;
-      if (dept) {
-        const message = encodeURIComponent(dept.message);
-        const url = `https://wa.me/${dept.number}?text=${message}`;
-        window.open(url, '_blank');
-      }
-      this.showSupportMenu = false;
-    },
-
-    // فتح تيليجرام
+    // فتح تيليجرام (دعم موحد)
     openTelegram() {
       if (this.telegramLink) {
         window.open(this.telegramLink, '_blank');
       }
-      this.showSupportMenu = false;
     },
 
     // تعيين اللغة
@@ -903,7 +794,7 @@ export default {
       return 'vip-elite';
     },
 
-    // بدء السحب
+    // بدأ السحب
     startDrag(event) {
       this.hasDragged = false;
       
@@ -1004,9 +895,6 @@ export default {
     handleClickOutside(event) {
       if (!event.target.closest('.lang-menu') && !event.target.closest('.lang-btn')) {
         this.showLangMenu = false;
-      }
-      if (!event.target.closest('.support-menu') && !event.target.closest('.support-btn')) {
-        this.showSupportMenu = false;
       }
     }
   }
@@ -1157,17 +1045,7 @@ body {
   font-size: 18px;
 }
 
-.instagram-btn {
-  right: 160px;
-  bottom: 95px;
-}
-
-.instagram-btn i {
-  font-size: 18px;
-}
-
 /* ==================== القوائم المنبثقة ==================== */
-.support-menu,
 .lang-menu {
   position: fixed;
   background: linear-gradient(135deg, #11151C, #1A1F2A);
@@ -1190,17 +1068,11 @@ body {
   }
 }
 
-.support-menu {
-  bottom: 145px;
-  right: 60px;
-}
-
 .lang-menu {
   bottom: 145px;
   right: 10px;
 }
 
-.support-menu-header,
 .lang-menu-header {
   padding: 18px;
   background: linear-gradient(135deg, #D4AF37, #F6E27A);
@@ -1212,94 +1084,13 @@ body {
   gap: 10px;
 }
 
-.support-menu-header i,
 .lang-menu-header i {
   font-size: 20px;
 }
 
-.close-btn {
-  background: rgba(10, 12, 16, 0.2);
-  border: none;
-  color: #0A0C10;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.close-btn:hover {
-  background: rgba(10, 12, 16, 0.4);
-  transform: rotate(90deg);
-}
-
-.support-menu-body,
 .lang-menu-body {
   max-height: 300px;
   overflow-y: auto;
-}
-
-.support-item {
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
-}
-
-.support-item:last-child {
-  border-bottom: none;
-}
-
-.support-item:hover {
-  background: rgba(212, 175, 55, 0.1);
-}
-
-.support-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.support-icon.whatsapp {
-  background: linear-gradient(135deg, #25D366, #128C7E);
-  color: white;
-}
-
-.support-icon.telegram {
-  background: linear-gradient(135deg, #0088cc, #0066aa);
-  color: white;
-}
-
-.support-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.support-name {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.support-desc {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.support-arrow {
-  color: #D4AF37;
-  font-size: 12px;
 }
 
 .lang-item {
@@ -1471,7 +1262,7 @@ body {
 .support-btn-action {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #25D366, #128C7E);
+  background: linear-gradient(135deg, #0088cc, #0066aa);
   color: white;
   border: none;
   border-radius: 12px;
@@ -1487,7 +1278,7 @@ body {
 
 .support-btn-action:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 136, 204, 0.4);
 }
 
 .support-btn-action i {
@@ -2046,13 +1837,6 @@ body {
   .lang-btn { right: 8px; bottom: 90px; }
   .offer-btn { right: 55px; bottom: 90px; }
   .support-btn { right: 100px; bottom: 90px; }
-  .instagram-btn { right: 145px; bottom: 90px; }
-
-  .support-menu {
-    right: 55px;
-    bottom: 140px;
-    min-width: 220px;
-  }
 
   .lang-menu {
     right: 8px;
@@ -2090,7 +1874,6 @@ body {
   .lang-btn { right: 5px; bottom: 85px; }
   .offer-btn { right: 48px; bottom: 85px; }
   .support-btn { right: 90px; bottom: 85px; }
-  .instagram-btn { right: 132px; bottom: 85px; }
 
   .circle-btn {
     width: 38px;
