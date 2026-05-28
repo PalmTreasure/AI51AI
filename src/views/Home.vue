@@ -386,7 +386,7 @@ export default {
       currentLang: localStorage.getItem("app_language") || "AR",
 
       // ==================== إحصائيات ثابتة ====================
-      totalPaid: 55000000,
+      totalPaid: 150000000,
       activeMembers: 370000,
 
       // ==================== نظام الإشعارات ====================
