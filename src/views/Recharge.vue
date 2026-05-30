@@ -62,8 +62,9 @@
         </div>
       </div>
 
-      <!-- Deposit Details Card -->
+      <!-- Deposit Details Card - محسن بشكل كبير -->
       <div class="deposit-card">
+        <!-- QR Section - مكبر ومحسن -->
         <div class="qr-section">
           <div class="qr-frame">
             <img :src="getQr(network)" :alt="network" class="qr-code">
@@ -71,9 +72,10 @@
               <i class="fas fa-spinner fa-spin"></i>
             </div>
           </div>
-          <p class="qr-tip">حفظ رمز QR</p>
+          <p class="qr-tip">امسح رمز QR للإيداع</p>
         </div>
 
+        <!-- Address Section - محسن بشكل كبير -->
         <div class="address-section">
           <div class="label-row">
             <span class="addr-label">عنوان الإيداع</span>
@@ -83,10 +85,11 @@
             <div class="address-text">{{ getAddress(network) }}</div>
             <button class="copy-icon-btn" @click="copyAddress">
               <i :class="copied ? 'fas fa-check' : 'far fa-copy'"></i>
+              <span class="copy-text">{{ copied ? 'تم النسخ' : 'نسخ' }}</span>
             </button>
           </div>
           <transition name="fade">
-            <div v-if="copied" class="copy-toast">تم النسخ بنجاح</div>
+            <div v-if="copied" class="copy-toast">تم نسخ العنوان بنجاح</div>
           </transition>
         </div>
       </div>
@@ -257,50 +260,51 @@ export default {
 }
 
 .main-content {
-  max-width: 500px;
+  max-width: 550px;
   margin: 0 auto;
-  padding: 12px 16px;
+  padding: 16px 20px;
 }
 
-/* Asset Card - مصغر */
+/* Asset Card */
 .asset-card {
   background: #1e2329;
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-radius: 16px;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #2b2f36;
 }
 
 .asset-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .coin-logo-real {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: contain;
 }
 
 .net-icon-real {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   object-fit: contain;
 }
 
 .coin-symbol {
   display: block;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .coin-name {
-  font-size: 11px;
+  font-size: 12px;
   color: #848e9c;
 }
 
@@ -310,26 +314,27 @@ export default {
 
 .balance-info .label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   color: #848e9c;
 }
 
 .balance-info .value {
   font-weight: 700;
   color: #fcd535;
-  font-size: 14px;
+  font-size: 18px;
 }
 
-/* Dropdown - مسافات أقل */
+/* Dropdown */
 .input-section {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .section-label {
   display: block;
-  font-size: 13px;
-  color: #848e9c;
-  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #eaecef;
+  margin-bottom: 8px;
 }
 
 .dropdown-container {
@@ -338,9 +343,9 @@ export default {
 }
 
 .dropdown-selected {
-  background: #2b2f36;
-  border-radius: 10px;
-  padding: 10px 14px;
+  background: #1e2329;
+  border-radius: 12px;
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -350,32 +355,27 @@ export default {
 
 .dropdown-selected.is-open {
   border-color: #fcd535;
-  box-shadow: 0 0 5px rgba(252, 213, 53, 0.5);
+  box-shadow: 0 0 8px rgba(252, 213, 53, 0.3);
 }
 
 .selected-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.net-icon {
-  width: 22px;
-  height: 22px;
+  gap: 10px;
 }
 
 .net-name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .dropdown-list {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: #2b2f36;
-  border-radius: 10px;
+  background: #1e2329;
+  border-radius: 12px;
   overflow: hidden;
   z-index: 100;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -383,7 +383,7 @@ export default {
 }
 
 .dropdown-item {
-  padding: 12px 14px;
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -391,7 +391,7 @@ export default {
 }
 
 .dropdown-item:hover {
-  background: #3b3f46;
+  background: #2b2f36;
 }
 
 .dropdown-item.active {
@@ -401,17 +401,17 @@ export default {
 .item-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .net-title {
   display: block;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .net-desc {
-  font-size: 10px;
+  font-size: 11px;
   color: #848e9c;
 }
 
@@ -419,44 +419,56 @@ export default {
   color: #fcd535;
 }
 
-/* Deposit Card - مصغر */
+/* Deposit Card - محسن بشكل كبير */
 .deposit-card {
   background: #181a20;
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 24px;
+  padding: 24px;
   border: 1px solid #2b2f36;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
+/* QR Section - مكبر */
 .qr-section {
   text-align: center;
-  margin-bottom: 14px;
+  margin-bottom: 32px;
 }
 
 .qr-frame {
   display: inline-block;
-  background: #fff;
-  padding: 6px;
-  border-radius: 10px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 20px;
   position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .qr-code {
-  width: 100px;
-  height: 100px;
+  width: 200px;
+  height: 200px;
   display: block;
 }
 
-.qr-tip {
-  margin-top: 6px;
-  font-size: 11px;
-  color: #848e9c;
+@media (min-width: 480px) {
+  .qr-code {
+    width: 240px;
+    height: 240px;
+  }
 }
 
+.qr-tip {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #848e9c;
+  font-weight: 500;
+}
+
+/* Address Section - محسن */
 .address-section {
-  background: #2b2f36;
-  border-radius: 10px;
-  padding: 10px 12px;
+  background: #0b0e11;
+  border-radius: 16px;
+  padding: 18px 20px;
   position: relative;
   border: 1px solid #fcd535;
 }
@@ -464,20 +476,22 @@ export default {
 .label-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .addr-label {
-  font-size: 11px;
-  color: #848e9c;
+  font-size: 13px;
+  font-weight: 600;
+  color: #eaecef;
 }
 
 .network-tag {
-  font-size: 9px;
-  background: rgba(252, 213, 53, 0.1);
+  font-size: 11px;
+  background: rgba(252, 213, 53, 0.15);
   color: #fcd535;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
   font-weight: 700;
 }
 
@@ -485,69 +499,139 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  background: #0b0e11;
+  border-radius: 12px;
 }
 
 .address-text {
-  font-family: monospace;
-  font-size: 12px;
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: 15px;
+  font-weight: 600;
   word-break: break-all;
   color: #eaecef;
-  line-height: 1.3;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+  flex: 1;
+  background: #0b0e11;
+  padding: 4px 0;
+}
+
+@media (min-width: 480px) {
+  .address-text {
+    font-size: 16px;
+  }
 }
 
 .copy-icon-btn {
-  background: none;
-  border: none;
+  background: rgba(252, 213, 53, 0.15);
+  border: 1px solid rgba(252, 213, 53, 0.3);
   color: #fcd535;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 4px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  min-width: 80px;
+  justify-content: center;
+}
+
+.copy-icon-btn:hover {
+  background: rgba(252, 213, 53, 0.25);
+  border-color: #fcd535;
+  transform: scale(1.02);
+}
+
+.copy-icon-btn i {
+  font-size: 16px;
+}
+
+.copy-text {
+  font-size: 13px;
 }
 
 .copy-toast {
   position: absolute;
-  bottom: -20px;
-  right: 12px;
-  font-size: 10px;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
   color: #0ecb81;
+  background: #1e2329;
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  font-weight: 600;
 }
 
-/* Tips */
+/* Tips Box */
 .tips-box {
   background: rgba(252, 213, 53, 0.05);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 16px 20px;
   border: 1px solid rgba(252, 213, 53, 0.1);
 }
 
 .tips-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: #fcd535;
   font-weight: 700;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: 12px;
+  font-size: 14px;
 }
 
 .tips-list {
   margin: 0;
-  padding-right: 18px;
-  font-size: 11px;
+  padding-right: 20px;
+  font-size: 12px;
   color: #848e9c;
-  line-height: 1.7;
+  line-height: 1.8;
+}
+
+.tips-list li {
+  margin-bottom: 6px;
+}
+
+.tips-list strong {
+  color: #fcd535;
 }
 
 /* Responsive */
 @media (max-width: 480px) {
   .main-content {
-    padding: 10px 12px;
+    padding: 12px 16px;
+  }
+  
+  .deposit-card {
+    padding: 20px;
   }
   
   .qr-code {
-    width: 80px;
-    height: 80px;
+    width: 160px;
+    height: 160px;
+  }
+  
+  .address-text {
+    font-size: 13px;
+  }
+  
+  .copy-icon-btn {
+    padding: 8px 12px;
+    min-width: 70px;
+  }
+  
+  .copy-text {
+    font-size: 11px;
+  }
+  
+  .copy-icon-btn i {
+    font-size: 14px;
   }
 }
 
