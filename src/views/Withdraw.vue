@@ -23,21 +23,16 @@
       </div>
 
       <!-- حالة VIP -->
-      <div v-if="userVipLevel" class="vip-status-box">
+      <div class="vip-status-box">
         <div class="vip-badge">
           <i class="fas fa-crown"></i>
-          مستوى VIP {{ userVipLevel }}
+          مستوى VIP {{ userVipLevel || 'غير مفعل' }}
         </div>
         <div class="user-contact">
           <i class="fas fa-phone" v-if="userPhone"></i>
           <i class="fas fa-envelope" v-else></i>
           {{ userContact }}
         </div>
-      </div>
-
-      <div v-else class="vip-status-box error">
-        <i class="fas fa-exclamation-triangle"></i>
-        <p>يجب أن يكون لديك اشتراك VIP للسحب</p>
       </div>
 
       <!-- مبلغ السحب -->
@@ -170,7 +165,7 @@
         
         <div class="summary-item">
           <span>مستوى VIP:</span>
-          <span class="summary-value">{{ userVipLevel || 'لا يوجد' }}</span>
+          <span class="summary-value">{{ userVipLevel || 'غير مفعل' }}</span>
         </div>
         
         <div class="summary-item">
@@ -214,7 +209,7 @@
         <i class="fas fa-lock"></i>
         <div class="restriction-text">
           <p class="main-message">⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.</p>
-          <p class="amount-message">المبلغ المطلوب سحبه: <strong>{{ Number(amount) || 0 }} USDT</strong></p>
+          <p class="amount-message">المبلغ المطلوب سحبه: <strong>{{ (Number(amount) || 0).toFixed(2) }} USDT</strong></p>
         </div>
       </div>
 
@@ -227,7 +222,7 @@
         </div>
       </div>
 
-      <!-- زر السحب - يظهر رسالة المنع بدلاً من تنفيذ السحب -->
+      <!-- زر السحب -->
       <button 
         class="gold-button" 
         @click="showWithdrawRestriction"
@@ -311,14 +306,13 @@ export default {
         this.wallet && 
         !this.walletError &&
         this.password &&
-        this.userVipLevel &&
         Number(this.amount) > 0 &&
         this.balance >= Number(this.amount)
       );
     },
 
     showSummary() {
-      return this.amount && this.network && this.wallet && this.userVipLevel;
+      return this.amount && this.network && this.wallet;
     },
 
     userContact() {
@@ -636,12 +630,6 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.vip-status-box.error {
-  background: rgba(220, 38, 38, 0.08);
-  border-color: rgba(220, 38, 38, 0.2);
-  color: #dc2626;
 }
 
 .vip-badge {
