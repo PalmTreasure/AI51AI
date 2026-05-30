@@ -114,6 +114,42 @@
     </div>
 
     <button class="btn-back" @click="$router.push('/home')">عودة</button>
+
+    <!-- ==================== CUSTOM MODAL SYSTEM ==================== -->
+    <transition name="modal-fade-scale">
+      <div v-if="modal.visible" class="custom-modal-overlay" @click.self="closeModal">
+        <div class="custom-modal-container" :class="modal.size">
+          <div class="custom-modal-header" :class="modal.type">
+            <div class="header-icon">
+              <i :class="modal.icon"></i>
+            </div>
+            <h3>{{ modal.title }}</h3>
+            <button class="modal-close-btn" @click="closeModal">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="custom-modal-body">
+            <p>{{ modal.message }}</p>
+            <div v-if="modal.type === 'confirm'" class="confirm-options">
+              <button class="modal-btn modal-btn-cancel" @click="closeModal">
+                <i class="fas fa-times"></i> {{ modal.cancelText || 'إلغاء' }}
+              </button>
+              <button class="modal-btn modal-btn-confirm" @click="handleConfirm">
+                <i class="fas fa-check"></i> {{ modal.confirmText || 'تأكيد' }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="custom-modal-footer" v-if="modal.type !== 'confirm'">
+            <button class="modal-btn modal-btn-primary" @click="closeModal">
+              {{ modal.buttonText || 'حسناً' }}
+            </button>
+          </div>
+          <div class="modal-gold-line"></div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -155,6 +191,20 @@ export default {
         l2: { count: 0, earnings: 0 },
         l3: { count: 0, earnings: 0 },
       },
+
+      // ==================== CUSTOM MODAL SYSTEM ====================
+      modal: {
+        visible: false,
+        type: 'info',
+        title: '',
+        message: '',
+        icon: 'fas fa-info-circle',
+        buttonText: '',
+        confirmText: '',
+        cancelText: '',
+        size: 'small',
+        callback: null
+      }
     };
   },
 
@@ -189,15 +239,79 @@ export default {
   },
 
   methods: {
+    // ==================== CUSTOM MODAL METHODS ====================
+    showModal(options) {
+      this.modal = {
+        visible: true,
+        type: options.type || 'info',
+        title: options.title || '',
+        message: options.message || '',
+        icon: this.getIconByType(options.type),
+        buttonText: options.buttonText || 'حسناً',
+        confirmText: options.confirmText || 'تأكيد',
+        cancelText: options.cancelText || 'إلغاء',
+        size: options.size || 'small',
+        callback: options.callback || null
+      };
+      document.body.style.overflow = 'hidden';
+    },
+
+    getIconByType(type) {
+      switch(type) {
+        case 'success': return 'fas fa-check-circle';
+        case 'error': return 'fas fa-exclamation-circle';
+        case 'confirm': return 'fas fa-question-circle';
+        default: return 'fas fa-info-circle';
+      }
+    },
+
+    closeModal() {
+      this.modal.visible = false;
+      document.body.style.overflow = 'auto';
+      this.modal.callback = null;
+    },
+
+    handleConfirm() {
+      if (this.modal.callback) {
+        this.modal.callback();
+      }
+      this.closeModal();
+    },
+
+    showSuccessMessage(message) {
+      this.showModal({
+        type: 'success',
+        title: 'تم بنجاح',
+        message: message,
+        buttonText: 'حسناً',
+        size: 'small'
+      });
+    },
+
+    showErrorMessage(message) {
+      this.showModal({
+        type: 'error',
+        title: 'خطأ',
+        message: message,
+        buttonText: 'حسناً',
+        size: 'small'
+      });
+    },
+
+    // ==================== COPY METHODS ====================
     copyText(text) {
       if (!text) {
-        alert("لا يوجد شيء للنسخ");
+        this.showErrorMessage("لا يوجد شيء للنسخ");
         return;
       }
       navigator.clipboard
         .writeText(text)
-        .then(() => alert("تم النسخ"))
-        .catch(() => alert("فشل النسخ — انسخ يدويًا"));
+        .then(() => {
+          this.showSuccessMessage("تم النسخ بنجاح ✓");
+        })
+        .catch(() => {
+          this.showErrorMessage("فشل النسخ — انسخ يدويًا");
+        });
     },
 
     // دالة مشاركة عبر واتساب
@@ -205,6 +319,7 @@ export default {
       const message = `انضم إلى فريقي في Palm Treasure باستخدام رابط الدعوة الخاص بي: ${this.inviteLink}`;
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
+      this.showSuccessMessage("تم فتح واتساب للمشاركة");
     },
 
     // دالة مشاركة عبر تليجرام
@@ -212,6 +327,7 @@ export default {
       const message = `انضم إلى فريقي في Palm Treasure باستخدام رابط الدعوة الخاص بي: ${this.inviteLink}`;
       const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(this.inviteLink)}&text=${encodeURIComponent(message)}`;
       window.open(telegramUrl, '_blank');
+      this.showSuccessMessage("تم فتح تليجرام للمشاركة");
     },
 
     chunkArray(arr, size = 10) {
@@ -623,6 +739,208 @@ h2 {
   color: #ff6b6b;
 }
 
+/* ==================== CUSTOM MODAL SYSTEM ==================== */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.custom-modal-container {
+  background: linear-gradient(145deg, rgba(26, 31, 46, 0.98), rgba(15, 20, 25, 0.98));
+  border-radius: 28px;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2);
+  animation: modalFloatIn 0.35s cubic-bezier(0.21, 1.11, 0.35, 1);
+}
+
+@keyframes modalFloatIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-fade-scale-enter-active,
+.modal-fade-scale-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-fade-scale-enter-from,
+.modal-fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.custom-modal-header {
+  padding: 22px 24px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.custom-modal-header .header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.custom-modal-header.info .header-icon {
+  background: rgba(33, 150, 243, 0.15);
+  color: #2196F3;
+}
+
+.custom-modal-header.success .header-icon {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+}
+
+.custom-modal-header.error .header-icon {
+  background: rgba(244, 67, 54, 0.15);
+  color: #F44336;
+}
+
+.custom-modal-header.confirm .header-icon {
+  background: rgba(212, 175, 55, 0.15);
+  color: #D4AF37;
+}
+
+.custom-modal-header h3 {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #F6E27A;
+}
+
+.modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.custom-modal-body {
+  padding: 24px;
+}
+
+.custom-modal-body p {
+  margin: 0;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  text-align: center;
+}
+
+.confirm-options {
+  display: flex;
+  gap: 15px;
+  margin-top: 28px;
+  justify-content: center;
+}
+
+.custom-modal-footer {
+  padding: 16px 24px 24px;
+}
+
+.modal-btn {
+  padding: 12px 28px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.modal-btn-primary {
+  background: linear-gradient(135deg, #D4AF37, #F6E27A);
+  color: #0f1419;
+  font-weight: 700;
+}
+
+.modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.35);
+}
+
+.modal-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.modal-btn-confirm {
+  background: linear-gradient(135deg, #D4AF37, #F6E27A);
+  color: #0f1419;
+  flex: 1;
+}
+
+.modal-btn-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  flex: 1;
+}
+
+.modal-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.modal-gold-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #D4AF37, #F6E27A, #D4AF37, transparent);
+  animation: goldShine 2s linear infinite;
+}
+
+@keyframes goldShine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 /* تحسينات للشاشات الصغيرة */
 @media (max-width: 480px) {
   .stats-row {
@@ -665,6 +983,18 @@ h2 {
     width: 35px;
     height: 35px;
     font-size: 18px;
+  }
+  
+  .custom-modal-container {
+    max-width: 90%;
+  }
+  
+  .custom-modal-header h3 {
+    font-size: 18px;
+  }
+  
+  .custom-modal-body p {
+    font-size: 14px;
   }
 }
 
