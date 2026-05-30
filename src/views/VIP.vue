@@ -174,7 +174,7 @@
                 </div>
               </div>
 
-              <!-- زر VIP 1 الخاص (استلام الهدية) - يظهر فقط إذا لم يتم استلام المكافأة -->
+              <!-- زر VIP 1 الخاص (استلام الهدية) -->
               <button
                 v-if="plan.level === 1 && !hasClaimedWelcomeBonus && !isClaimingBonus"
                 class="btn-action btn-welcome"
@@ -185,7 +185,6 @@
                 {{ processingClaim ? 'جاري الاستلام...' : '🎁 استلم هديتك 6 USDT' }}
               </button>
               
-              <!-- زر معطل بعد الاستلام (لم يعد يظهر لأن الشرط يمنع ظهوره) -->
               <!-- باقي المستويات -->
               <button
                 v-else-if="plan.level > 1 && !isActivePlan(plan)"
@@ -714,13 +713,95 @@ export default {
         }
       } catch (error) {
         console.error("Error checking welcome bonus:", error);
+        this.hasClaimedWelcomeBonus = false;
       }
     },
 
+    // ====================== الدالة المعدلة لاستلام المكافأة ======================
     async claimWelcomeBonus() {
-      // ظهور خطأ "أذونات مفقودة أو غير كافية" فوراً
-      this.showError("أذونات مفقودة أو غير كافية");
-      return;
+      // منع الضغط المتكرر
+      if (this.processingClaim || this.isClaimingBonus) {
+        return;
+      }
+      
+      // منع الاستلام إذا تم استلام المكافأة سابقاً
+      if (this.hasClaimedWelcomeBonus) {
+        this.showError("لقد قمت بالفعل باستلام المكافأة الترحيبية");
+        return;
+      }
+      
+      this.processingClaim = true;
+      this.isClaimingBonus = true;
+      
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          this.showError("يرجى تسجيل الدخول أولاً");
+          return;
+        }
+        
+        const userId = user.uid;
+        const userRef = doc(db, "users", userId);
+        const welcomeBonusRef = doc(db, "users", userId, "bonus", "welcome");
+        
+        await runTransaction(db, async (transaction) => {
+          // التحقق من عدم استلام المكافأة سابقاً
+          const bonusSnap = await transaction.get(welcomeBonusRef);
+          
+          if (bonusSnap.exists() && bonusSnap.data().claimed === true) {
+            throw new Error("لقد قمت بالفعل باستلام المكافأة الترحيبية");
+          }
+          
+          // جلب بيانات المستخدم الحالية
+          const userSnap = await transaction.get(userRef);
+          if (!userSnap.exists()) {
+            throw new Error("المستخدم غير موجود");
+          }
+          
+          // حساب الرصيد الجديد (إضافة 6 USDT)
+          const currentBalance = userSnap.data().balance || 0;
+          const newBalance = currentBalance + 6;
+          
+          // تحديث رصيد المستخدم
+          transaction.update(userRef, { balance: newBalance });
+          
+          // إنشاء سجل المكافأة في users/{uid}/bonus/welcome
+          transaction.set(welcomeBonusRef, {
+            claimed: true,
+            amount: 6,
+            claimedAt: serverTimestamp(),
+            type: "welcome_bonus",
+            userId: userId
+          });
+          
+          // تسجيل المعاملة في سجل المعاملات الرئيسي
+          const logRef = doc(collection(db, "transactions"));
+          transaction.set(logRef, {
+            userId: userId,
+            type: "welcome_bonus",
+            amount: 6,
+            status: "completed",
+            description: "مكافأة ترحيبية VIP 1",
+            createdAt: serverTimestamp()
+          });
+        });
+        
+        // تحديث الحالة المحلية
+        this.hasClaimedWelcomeBonus = true;
+        
+        // إظهار رسالة النجاح
+        this.showSuccess("✅ تم استلام مكافأة 6 USDT بنجاح");
+        
+        // تحديث الرصيد المعروض في الواجهة
+        await this.refreshBalance();
+        
+      } catch (err) {
+        console.error("Error claiming welcome bonus:", err);
+        this.showError(err.message || "حدث خطأ أثناء استلام المكافأة");
+      } finally {
+        this.processingClaim = false;
+        this.isClaimingBonus = false;
+      }
     },
     
     async refreshBalance() {
