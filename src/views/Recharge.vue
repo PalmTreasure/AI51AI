@@ -75,7 +75,7 @@
           <p class="qr-tip">امسح رمز QR للإيداع</p>
         </div>
 
-        <!-- Address Section - محسن بشكل كبير -->
+        <!-- Address Section - محسن مع خط عادي -->
         <div class="address-section">
           <div class="label-row">
             <span class="addr-label">عنوان الإيداع</span>
@@ -232,7 +232,7 @@ export default {
   background: #0b0e11;
   color: #eaecef;
   direction: rtl;
-  font-family: 'Cairo', sans-serif;
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Top Nav */
@@ -464,7 +464,7 @@ export default {
   font-weight: 500;
 }
 
-/* Address Section - محسن */
+/* Address Section - محسن مع خط عادي */
 .address-section {
   background: #0b0e11;
   border-radius: 16px;
@@ -504,17 +504,20 @@ export default {
   border-radius: 12px;
 }
 
+/* عنوان المحفظة بخط عادي ومتناسق */
 .address-text {
-  font-family: 'Courier New', 'Monaco', monospace;
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-all;
   color: #eaecef;
   line-height: 1.5;
-  letter-spacing: 0.5px;
+  letter-spacing: normal;
   flex: 1;
   background: #0b0e11;
   padding: 4px 0;
+  direction: ltr;
+  text-align: left;
 }
 
 @media (min-width: 480px) {
@@ -538,6 +541,7 @@ export default {
   font-weight: 600;
   min-width: 80px;
   justify-content: center;
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .copy-icon-btn:hover {
