@@ -323,21 +323,21 @@ export default {
       selectedPlan: null,
 
       plans: [
-        { level: 1, name: "VIP 1", price: 0, tasks: 1, daily: 0.15, durationSeconds: 365 * 86400 },
-        { level: 2, name: "VIP 2", price: 10, tasks: 1, daily: 0.35, durationSeconds: 365 * 86400 },
-        { level: 3, name: "VIP 3", price: 50, tasks: 1, daily: 1.60, durationSeconds: 365 * 86400 },
-        { level: 4, name: "VIP 4", price: 100, tasks: 1, daily: 3.25, durationSeconds: 365 * 86400 },
-        { level: 5, name: "VIP 5", price: 300, tasks: 1, daily: 10, durationSeconds: 365 * 86400 },
-        { level: 6, name: "VIP 6", price: 900, tasks: 1, daily: 33, durationSeconds: 365 * 86400 },
-        { level: 7, name: "VIP 7", price: 1350, tasks: 1, daily: 51, durationSeconds: 365 * 86400 },
-        { level: 8, name: "VIP 8", price: 1800, tasks: 1, daily: 70, durationSeconds: 365 * 86400 },
-        { level: 9, name: "VIP 9", price: 3600, tasks: 1, daily: 150, durationSeconds: 365 * 86400 },
-        { level: 10, name: "VIP 10", price: 7200, tasks: 1, daily: 330, durationSeconds: 365 * 86400 },
-        { level: 11, name: "VIP 11", price: 14400, tasks: 1, daily: 700, durationSeconds: 365 * 86400 },
-        { level: 12, name: "VIP 12", price: 18800, tasks: 1, daily: 1600, durationSeconds: 365 * 86400 },
-        { level: 13, name: "VIP 13", price: 37600, tasks: 1, daily: 3500, durationSeconds: 365 * 86400 },
-        { level: 14, name: "VIP 14", price: 75200, tasks: 1, daily: 7500, durationSeconds: 365 * 86400 },
-        { level: 15, name: "VIP 15", price: 150400, tasks: 1, daily: 16000, durationSeconds: 365 * 86400 },
+        { level: 1, name: "VIP 1", price: 0, tasks: 1, daily: 0, durationSeconds: 365 * 86400, firstReward: 6 },
+        { level: 2, name: "VIP 2", price: 15, tasks: 1, daily: 10.5, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 3, name: "VIP 3", price: 30, tasks: 1, daily: 21, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 4, name: "VIP 4", price: 60, tasks: 1, daily: 42, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 5, name: "VIP 5", price: 120, tasks: 1, daily: 84, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 6, name: "VIP 6", price: 240, tasks: 1, daily: 168, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 7, name: "VIP 7", price: 480, tasks: 1, daily: 336, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 8, name: "VIP 8", price: 960, tasks: 1, daily: 672, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 9, name: "VIP 9", price: 1920, tasks: 1, daily: 1344, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 10, name: "VIP 10", price: 3840, tasks: 1, daily: 2688, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 11, name: "VIP 11", price: 7680, tasks: 1, daily: 5376, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 12, name: "VIP 12", price: 15360, tasks: 1, daily: 10752, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 13, name: "VIP 13", price: 30720, tasks: 1, daily: 21504, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 14, name: "VIP 14", price: 61440, tasks: 1, daily: 43008, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 15, name: "VIP 15", price: 122880, tasks: 1, daily: 86016, durationSeconds: 365 * 86400, firstReward: 0 },
       ],
       
       globalCycleHourUTC: 3,
@@ -689,9 +689,20 @@ export default {
           
           const lastCycle = this.getLastCompletedCycle(now);
           
-          const newBalanceAfterPurchase = balance - this.selectedPlan.price;
-          const firstReward = this.selectedPlan.daily;
-          const finalBalance = newBalanceAfterPurchase + firstReward;
+          // حساب المكافأة الأولى
+          let firstRewardAmount = 0;
+          let finalBalance = balance - this.selectedPlan.price;
+          
+          // إذا كان VIP 1، أضف المكافأة 6 USDT مرة واحدة فقط
+          if (this.selectedPlan.level === 1 && this.selectedPlan.firstReward > 0) {
+            firstRewardAmount = this.selectedPlan.firstReward;
+            finalBalance = finalBalance + firstRewardAmount;
+          } 
+          // باقي المستويات: أضف الربح اليومي كمكافأة فورية
+          else if (this.selectedPlan.daily > 0) {
+            firstRewardAmount = this.selectedPlan.daily;
+            finalBalance = finalBalance + firstRewardAmount;
+          }
           
           transaction.update(userRef, { balance: finalBalance });
           
@@ -710,7 +721,7 @@ export default {
 
           const firstRewardRef = doc(collection(db, "users", user.uid, "rewards_history"));
           transaction.set(firstRewardRef, {
-            amount: firstReward,
+            amount: firstRewardAmount,
             level: this.selectedPlan.level,
             type: "first_reward",
             cycles: 0,
@@ -723,13 +734,17 @@ export default {
             userId: user.uid,
             type: "vip_purchase",
             amount: this.selectedPlan.price,
-            firstReward: firstReward,
+            firstReward: firstRewardAmount,
             createdAt: serverTimestamp(),
             status: "completed"
           });
         });
 
-        this.showSuccess(`تم تفعيل VIP ${this.selectedPlan.level} بنجاح! +${this.formatNumberEnglish(this.selectedPlan.daily)} USDT ربح فوري`);
+        if (this.selectedPlan.level === 1 && this.selectedPlan.firstReward > 0) {
+          this.showSuccess(`تم تفعيل VIP ${this.selectedPlan.level} بنجاح! +${this.formatNumberEnglish(this.selectedPlan.firstReward)} USDT مكافأة ترحيبية فورية!`);
+        } else {
+          this.showSuccess(`تم تفعيل VIP ${this.selectedPlan.level} بنجاح! +${this.formatNumberEnglish(this.selectedPlan.daily)} USDT ربح فوري`);
+        }
         await this.init();
       } catch (err) {
         this.showError(err.message);
