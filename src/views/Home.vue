@@ -1,7 +1,116 @@
 <template>
   <div class="home-container" :dir="currentLang === 'AR' ? 'rtl' : 'ltr'">
 
-    <!-- ==================== حاوية الإشعارات المنبثقة ==================== -->
+    <!-- ==================== CUSTOM MODAL SYSTEM ==================== -->
+    <transition name="modal-fade-scale">
+      <div v-if="modal.visible" class="custom-modal-overlay" @click.self="closeModal">
+        <div class="custom-modal-container" :class="modal.size">
+          <div class="custom-modal-header" :class="modal.type">
+            <div class="header-icon">
+              <i :class="modal.icon"></i>
+            </div>
+            <h3>{{ modal.title }}</h3>
+            <button class="modal-close-btn" @click="closeModal">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="custom-modal-body">
+            <p>{{ modal.message }}</p>
+            <div v-if="modal.type === 'confirm'" class="confirm-options">
+              <button class="modal-btn modal-btn-cancel" @click="closeModal">
+                <i class="fas fa-times"></i> {{ modal.cancelText || 'إلغاء' }}
+              </button>
+              <button class="modal-btn modal-btn-confirm" @click="handleConfirm">
+                <i class="fas fa-check"></i> {{ modal.confirmText || 'تأكيد' }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="custom-modal-footer" v-if="modal.type !== 'confirm'">
+            <button class="modal-btn modal-btn-primary" @click="closeModal">
+              {{ modal.buttonText || 'فهمت' }}
+            </button>
+          </div>
+          <div class="modal-gold-line"></div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ==================== REVIEW MODAL (نافذة التقييم) ==================== -->
+    <transition name="modal-fade-scale">
+      <div v-if="showReviewModal" class="custom-modal-overlay" @click.self="closeReviewModal">
+        <div class="custom-modal-container review-modal">
+          <div class="custom-modal-header success">
+            <div class="header-icon">
+              <i class="fas fa-star"></i>
+            </div>
+            <h3>قيم المنصة</h3>
+            <button class="modal-close-btn" @click="closeReviewModal">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="custom-modal-body">
+            <div class="rating-stars">
+              <span 
+                v-for="star in 5" 
+                :key="star"
+                class="star"
+                :class="{ active: star <= reviewData.rating }"
+                @click="reviewData.rating = star"
+              >
+                ★
+              </span>
+            </div>
+            
+            <div class="review-message-input">
+              <textarea 
+                v-model="reviewData.message" 
+                placeholder="اكتب تقييمك للمنصة..."
+                rows="4"
+                class="gold-input-field"
+              ></textarea>
+            </div>
+            
+            <button 
+              class="submit-review-btn" 
+              @click="submitReview" 
+              :disabled="reviewData.rating === 0 || isSubmittingReview"
+            >
+              <i class="fas fa-paper-plane"></i> 
+              {{ isSubmittingReview ? 'جاري الإرسال...' : 'إرسال التقييم' }}
+            </button>
+            
+            <div class="previous-reviews">
+              <h4>آخر التقييمات <i class="fas fa-comments"></i></h4>
+              <div class="reviews-list">
+                <div v-for="(review, index) in fakeReviews" :key="index" class="review-item">
+                  <div class="review-avatar">
+                    {{ review.name.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="review-content">
+                    <div class="review-header">
+                      <span class="review-name">{{ review.name }}</span>
+                      <span class="review-country">{{ review.flag }}</span>
+                      <span class="review-time">{{ review.time }}</span>
+                    </div>
+                    <div class="review-stars">
+                      <span v-for="s in 5" :key="s" class="small-star" :class="{ active: s <= review.rating }">★</span>
+                    </div>
+                    <p class="review-text">{{ review.message }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-gold-line"></div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ==================== TOAST NOTIFICATION SYSTEM ==================== -->
     <transition-group 
       name="toast" 
       tag="div" 
@@ -23,7 +132,7 @@
               {{ toast.type === 'deposit' ? '💰' : '💸' }}
             </span>
             <span class="toast-flag">{{ toast.flag }}</span>
-            <span class="toast-time">{{ toast.timestamp }}</span>
+            <span class="toast-time">{{ toast.timestampEn }}</span>
           </div>
           
           <div class="toast-body">
@@ -45,12 +154,12 @@
       </div>
     </transition-group>
 
-    <!-- ==================== عنصر الصوت المخفي ==================== -->
+    <!-- ==================== HIDDEN AUDIO ELEMENT ==================== -->
     <audio ref="notificationSound" preload="auto">
       <source src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-click-234.mp3" type="audio/mpeg">
     </audio>
 
-    <!-- ==================== الهيدر ==================== -->
+    <!-- ==================== HEADER ==================== -->
     <header class="app-header">
       <div class="header-top">
         <button class="menu-btn" @click="toggleSidebar">
@@ -80,7 +189,7 @@
       </div>
     </header>
 
-    <!-- ==================== شريط البحث ==================== -->
+    <!-- ==================== SEARCH SECTION ==================== -->
     <div class="search-section">
       <div class="search-box">
         <i class="fas fa-search"></i>
@@ -89,13 +198,13 @@
           :placeholder="t('searchPlaceholder')"
           v-model="searchQuery"
         >
-        <button class="filter-btn">
+        <button class="filter-btn" @click="showInfoMessage(t('searchFeatureMessage'))">
           <i class="fas fa-filter"></i>
         </button>
       </div>
     </div>
 
-    <!-- ==================== البطاقات السريعة ==================== -->
+    <!-- ==================== QUICK ACTIONS CARDS ==================== -->
     <div class="quick-actions">
       <div class="action-card deposit" @click="navigateTo('/recharge')">
         <div class="action-icon">
@@ -138,13 +247,13 @@
       </div>
     </div>
 
-    <!-- ==================== شريط الإعلان ==================== -->
-    <div class="promo-banner">
+    <!-- ==================== PROMO BANNER ==================== -->
+    <div class="promo-banner" @click="openReviewModal">
       <span class="banner-emoji">🤖</span>
-      <span class="banner-text">{{ t('globalPartnerships') }}</span>
+      <span class="banner-text">شراكة عالمية مع Amazon, eBay, TikTok, AliExpress, Alibaba, Shopee</span>
     </div>
 
-    <!-- ==================== القائمة الرئيسية ==================== -->
+    <!-- ==================== MAIN MENU ==================== -->
     <div class="main-menu">
       <div 
         v-for="item in menuItems" 
@@ -178,18 +287,18 @@
       </div>
     </div>
 
-    <!-- ==================== إحصائيات سريعة (ثابتة) ==================== -->
+    <!-- ==================== QUICK STATS SECTION ==================== -->
     <div class="stats-section">
       <h3 class="section-title">{{ t('quickStats') }}</h3>
       <div class="stats-grid">
-        <div class="stat-card gold-border">
+        <div class="stat-card gold-border" @click="showTotalPaidInfo">
           <div class="stat-icon">$</div>
           <div class="stat-value">
             <span>+${{ formatLargeNumber(totalPaid) }}</span>
           </div>
           <div class="stat-label">{{ t('totalPaid') }}</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" @click="showActiveMembersInfo">
           <div class="stat-icon"><i class="fas fa-users"></i></div>
           <div class="stat-value">
             <span>+{{ formatLargeNumber(activeMembers) }}</span>
@@ -197,13 +306,13 @@
           <div class="stat-label">{{ t('activeMembers') }}</div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card" @click="openReviewModal">
           <div class="stat-icon"><i class="fas fa-star"></i></div>
-          <div class="stat-value">4.9</div>
+          <div class="stat-value">{{ averageRating }}</div>
           <div class="stat-label">{{ t('rating') }}</div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card" @click="showCountriesInfo">
           <div class="stat-icon"><i class="fas fa-globe"></i></div>
           <div class="stat-value">+150</div>
           <div class="stat-label">{{ t('countries') }}</div>
@@ -211,12 +320,12 @@
       </div>
     </div>
 
-    <!-- ==================== Modal: الشركة ==================== -->
+    <!-- ==================== MODAL: COMPANY INFO ==================== -->
     <transition name="modal">
       <div v-if="showCompany" class="modal-overlay" @click.self="closeCompanyModal">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
-            <h3>🤖 AI 🤖</h3>
+            <h3>🌴 Palm Treasure</h3>
             <button class="close-btn" @click="closeCompanyModal">
               <i class="fas fa-times"></i>
             </button>
@@ -225,16 +334,16 @@
           <div class="modal-body">
             <div class="company-text">
               <p>
-                مرحباً بالجميع 🤖<br><br>
-                يسرّنا أن نعرفكم بشركة AI التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
+                مرحباً بالجميع 🌟<br><br>
+                يسرّنا أن نعرفكم بشركة Palm Treasure التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
                 وانطلاقاً من رؤيتنا للتوسع وبناء شبكة تعاون واسعة، قمنا بإنشاء فروع ووكالات في عدد من الدول العربية مثل لبنان، الجزائر، ليبيا، والعراق، ونسعى خلال المرحلة القادمة إلى توسيع نشاطنا وانتشارنا في مختلف دول الشرق الأوسط.<br><br>
                 لقد جاء تأسيس هذه الشركة بعد دراسة عميقة لما حدث خلال عامي 2024 و2025، حيث ظهرت العديد من المنصات الوهمية التي خدعت الكثير من الناس ولم تستمر طويلاً. ومن هنا كان هدفنا واضحاً: تحويل هذا المجال إلى منصة حقيقية وموثوقة يستفيد منها الأعضاء كما تستفيد منها الشركة، ضمن نظام عادل وشفاف.<br><br>
                 وقد تحقق هذا المشروع بجهود كبيرة من الفريق التقني تحت إشراف المهندس أليكس ديروب، الذي لعب دوراً أساسياً في تطوير النظام التقني للشركة. وتقديراً لجهوده المميزة ومساهمته في نجاح هذا المشروع، تمت ترقيته إلى منصب نائب المدير.<br><br>
-                نحن في AI نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
+                نحن في Palm Treasure نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
                 ولهذا السبب تم وضع نظام واضح وقوانين عادلة تضمن حماية حقوق الموظفين والأعضاء قبل حقوق المستثمرين، مع مراعاة الظروف الاقتصادية والاجتماعية في المجتمعات العربية.<br><br>
                 وسيتم تطبيق هذا النظام المبرمج في معظم الدول العربية ابتداءً من 1 مارس 2026 وحتى نهاية عام 2028، وخلال هذه الفترة سيتم تقييم الأداء والنتائج. وبعد ذلك قد يتم تطوير النظام وإجراء بعض التعديلات بناءً على كفاءة الأعضاء وجهودهم وإخلاصهم في العمل.<br><br>
                 كما نعمل منذ الآن على التخطيط لمجموعة من الفرص المستقبلية والمشاريع الجديدة التي ستوفر المزيد من الإمكانيات لأعضاء الشركة في السنوات القادمة.<br><br>
-                نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع AI 🤖
+                نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع Palm Treasure 🌴
               </p>
             </div>
 
@@ -277,7 +386,7 @@
       </div>
     </transition>
 
-    <!-- ==================== Modal: الشروط ==================== -->
+    <!-- ==================== MODAL: TERMS & CONDITIONS ==================== -->
     <transition name="modal">
       <div v-if="showTerms" class="modal-overlay" @click.self="closeTermsModal">
         <div class="modal-content" @click.stop>
@@ -313,17 +422,29 @@
                 </div>
               </div>
 
-              <h4>📢 {{ t('vipWithdrawalSchedule') }}</h4>
-              <div class="schedule-list">
-                <div v-for="day in withdrawalDays" :key="day.id" class="schedule-item">
-                  <span class="day">{{ day.day }}</span>
-                  <span class="vips">{{ day.vips }}</span>
+              <h4>👑 مميزات VIP 8 فأعلى</h4>
+              <div class="vip-features">
+                <div class="feature-item">
+                  <i class="fas fa-check-circle"></i>
+                  <span>يمكن السحب في أي وقت - لا يوجد يوم محدد</span>
+                </div>
+                <div class="feature-item">
+                  <i class="fas fa-check-circle"></i>
+                  <span>يمكن سحب أي مبلغ - لا يوجد حد أدنى</span>
+                </div>
+                <div class="feature-item">
+                  <i class="fas fa-check-circle"></i>
+                  <span>أولوية معالجة طلبات السحب</span>
+                </div>
+                <div class="feature-item">
+                  <i class="fas fa-check-circle"></i>
+                  <span>دعم فني على مدار الساعة</span>
                 </div>
               </div>
 
-              <div class="important-note">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>{{ t('importantWithdrawalNote') }}</p>
+              <div class="info-note">
+                <i class="fas fa-info-circle"></i>
+                <p>ملاحظة: يستطيع أعضاء VIP 8 فأعلى سحب أرباحهم في أي وقت وأي مبلغ يريدونه دون التقيد بيوم محدد أو حد أدنى للسحب.</p>
               </div>
             </div>
           </div>
@@ -335,14 +456,14 @@
       </div>
     </transition>
 
-    <!-- ==================== القائمة الجانبية ==================== -->
+    <!-- ==================== SIDEBAR ==================== -->
     <transition name="slide">
       <div v-if="sidebarOpen" class="sidebar-overlay" @click="toggleSidebar"></div>
     </transition>
     <transition name="slide">
       <aside v-if="sidebarOpen" class="sidebar">
         <div class="sidebar-header">
-          <span>🤖 AI 🤖</span>
+          <span>🌴 Palm Treasure</span>
           <button @click="toggleSidebar"><i class="fas fa-times"></i></button>
         </div>
         <nav class="sidebar-nav">
@@ -372,7 +493,7 @@ export default {
 
   data() {
     return {
-      username: "جاري التحميل...",
+      username: "جار التحميل...",
       balance: 0,
       currentUserUid: null,
       unsubscribeUser: null,
@@ -385,11 +506,57 @@ export default {
       unreadCount: 3,
       currentLang: localStorage.getItem("app_language") || "AR",
 
-      // ==================== إحصائيات ثابتة ====================
-      totalPaid: 150000000,
-      activeMembers: 370000,
+      // ==================== REVIEW SYSTEM ====================
+      showReviewModal: false,
+      isSubmittingReview: false,
+      reviewData: {
+        rating: 0,
+        message: ""
+      },
+      fakeReviews: [],
+      
+      reviewsList: [
+        { name: "أحمد محمد", country: "🇸🇦", rating: 5, message: "منصة رائعة جداً، أرباح يومية ممتازة وسحب فوري" },
+        { name: "سارة خالد", country: "🇪🇬", rating: 5, message: "تجربة ممتازة، دعم فني متجاوب وفريق محترم" },
+        { name: "محمد علي", country: "🇦🇪", rating: 4, message: "منصة موثوقة وأرباحها حقيقية، أنصح بها الجميع" },
+        { name: "نورة عبدالله", country: "🇰🇼", rating: 5, message: "أفضل منصة استثمارية جربتها، أرباح يومية ثابتة" },
+        { name: "عمر سعيد", country: "🇶🇦", rating: 5, message: "سحبت أرباحي بكل سهولة، شكراً لفريق Palm Treasure" },
+        { name: "فاطمة الزهراء", country: "🇲🇦", rating: 5, message: "منصة مذهلة وسهلة الاستخدام، أرباح رائعة" },
+        { name: "يوسف حسن", country: "🇯🇴", rating: 4, message: "تجربة ممتازة وسحب سريع، أنصح بالاستثمار" },
+        { name: "ليلى عماد", country: "🇱🇧", rating: 5, message: "أفضل قرار استثماري اتخذته، شكراً لكم" },
+        { name: "عبدالله سعد", country: "🇧🇭", rating: 5, message: "منصة تستحق الثقة، أرباح يومية مضمونة" },
+        { name: "منى حسين", country: "🇩🇿", rating: 4, message: "تجربة جميلة وسهلة، أنصح الجميع بالتسجيل" },
+        { name: "خالد العتيبي", country: "🇸🇦", rating: 5, message: "أفضل منصة في الوطن العربي، شكراً لكم" },
+        { name: "ريم حسام", country: "🇪🇬", rating: 5, message: "سحبت أرباحي خلال دقائق، منصة موثوقة 100%" },
+        { name: "سيف الدين", country: "🇸🇾", rating: 4, message: "منصة ممتازة وأداء رائع، أنصح بها" },
+        { name: "هدى ناصر", country: "🇮🇶", rating: 5, message: "تجربة فريدة من نوعها، أرباح حقيقية وليست وهمية" },
+        { name: "وليد السعيد", country: "🇱🇾", rating: 5, message: "الحمد لله وجدت منصة موثوقة، ألف شكر لكم" },
+        { name: "أمل السالم", country: "🇹🇳", rating: 4, message: "منصة تستحق التقدير، دعم فني رائع" },
+        { name: "ناصر القحطاني", country: "🇸🇦", rating: 5, message: "أفضل قرار استثماري في حياتي" },
+        { name: "مها السيد", country: "🇪🇬", rating: 5, message: "منصة مذهلة وسحب فوري، أنصح الجميع بالتسجيل" }
+      ],
+      
+      timesList: ["الآن", "قبل دقيقة", "قبل 5 دقائق", "قبل ساعة", "قبل ساعتين", "قبل 3 ساعات", "قبل 5 ساعات", "قبل يوم", "قبل يومين", "قبل 3 أيام"],
 
-      // ==================== نظام الإشعارات ====================
+      // ==================== CUSTOM MODAL SYSTEM ====================
+      modal: {
+        visible: false,
+        type: 'info',
+        title: '',
+        message: '',
+        icon: 'fas fa-info-circle',
+        buttonText: '',
+        confirmText: '',
+        cancelText: '',
+        size: 'small',
+        callback: null
+      },
+
+      // ==================== STATIC STATS ====================
+      totalPaid: 35000000,
+      activeMembers: 250000,
+
+      // ==================== TOAST NOTIFICATION SYSTEM ====================
       toasts: [],
       toastInterval: null,
       audioEnabled: false,
@@ -403,9 +570,8 @@ export default {
       ],
       
       flags: [
-        '🇸🇦', '🇪🇬', '🇩🇿', '🇲🇦', '🇮🇶', '🇯🇴', '🇱🇧', '🇵🇸', '🇦🇪', '🇶🇦', '🇰🇼', '🇴🇲',
-        '🇧🇭', '🇾🇪', '🇱🇾', '🇸🇩', '🇹🇳', '🇲🇷', '🇸🇾', '🇩🇯', '🇸🇴', '🇰🇲', '🇺🇸', '🇬🇧',
-        '🇫🇷', '🇩🇪', '🇨🇦', '🇦🇺', '🇹🇷', '🇵🇰', '🇮🇳', '🇧🇩', '🇮🇩', '🇲🇾', '🇷🇺', '🇨🇳'
+        '🇸🇦', '🇪🇬', '🇩🇿', '🇲🇦', '🇮🇶', '🇸🇩', '🇯🇴', '🇱🇧', '🇵🇸', '🇦🇪', '🇶🇦', '🇰🇼',
+        '🇧🇭', '🇴🇲', '🇾🇪', '🇱🇾', '🇹🇳', '🇲🇷', '🇸🇴', '🇩🇯', '🇰🇲', '🇺🇸', '🇬🇧', '🇫🇷'
       ],
       
       amounts: [
@@ -414,16 +580,6 @@ export default {
         6000, 7000, 8000, 9000, 10000, 12000, 15000, 18000, 20000,
         25000, 30000, 35000, 40000, 45000, 50000, 60000, 70000, 80000,
         90000, 100000, 120000, 150000
-      ],
-
-      withdrawalDays: [
-        { id: 1, day: "السبت", vips: "VIP1 - VIP2 - VIP3" },
-        { id: 2, day: "الأحد", vips: "VIP4 - VIP5" },
-        { id: 3, day: "الاثنين", vips: "VIP6 - VIP7" },
-        { id: 4, day: "الثلاثاء", vips: "VIP8 - VIP9" },
-        { id: 5, day: "الأربعاء", vips: "VIP10 - VIP11" },
-        { id: 6, day: "الخميس", vips: "VIP12 - VIP13" },
-        { id: 7, day: "الجمعة", vips: "VIP14 - VIP15" }
       ],
 
       vipPlans: [
@@ -457,6 +613,7 @@ export default {
           totalBalance: 'الرصيد الإجمالي',
           welcome: 'مرحباً',
           searchPlaceholder: 'ابحث عن ميزة...',
+          searchFeatureMessage: 'ميزة البحث قيد التطوير قريباً',
           deposit: 'تعبئة رصيد',
           addFunds: 'أضف أموال',
           withdraw: 'سحب',
@@ -476,8 +633,6 @@ export default {
           level3: 'المستوى 3',
           understood: 'فهمت',
           businessContracts: 'عقود رجال الأعمال',
-          vipWithdrawalSchedule: 'مواعيد سحب الرواتب',
-          importantWithdrawalNote: 'يرجى الالتزام باليوم المحدد لمستواك',
           iAccept: 'أوافق',
           home: 'الرئيسية',
           vip: 'VIP',
@@ -489,12 +644,22 @@ export default {
           rating: 'التقييم',
           countries: 'الدول',
           agency: 'وكالة',
-          program: 'تحميل التطبيق'
+          program: 'تحميل التطبيق',
+          totalPaidInfo: 'إجمالي المدفوعات: $35,000,000',
+          activeMembersInfo: 'عدد الأعضاء النشطين: 250,000 عضو',
+          countriesInfo: 'عدد الدول: أكثر من 150 دولة حول العالم',
+          termsAccepted: 'تمت الموافقة على الشروط والأحكام بنجاح ✓',
+          balanceUpdated: 'تم تحديث الرصيد بنجاح ✓',
+          refreshError: 'حدث خطأ في تحديث الرصيد، حاول مرة أخرى',
+          languageChanged: 'تم تغيير اللغة بنجاح',
+          reviewSubmitted: 'تم إرسال تقييمك بنجاح! شكراً لك على مشاركتنا رأيك',
+          pleaseSelectRating: 'الرجاء اختيار تقييم بالنجوم أولاً'
         },
         EN: {
           totalBalance: 'Total Balance',
           welcome: 'Welcome',
-          searchPlaceholder: 'Search...',
+          searchPlaceholder: 'Search feature...',
+          searchFeatureMessage: 'Search feature coming soon',
           deposit: 'Deposit',
           addFunds: 'Add Funds',
           withdraw: 'Withdraw',
@@ -514,8 +679,6 @@ export default {
           level3: 'Level 3',
           understood: 'Understood',
           businessContracts: 'Business Contracts',
-          vipWithdrawalSchedule: 'Withdrawal Schedule',
-          importantWithdrawalNote: 'Please adhere to your designated day',
           iAccept: 'I Accept',
           home: 'Home',
           vip: 'VIP',
@@ -527,15 +690,33 @@ export default {
           rating: 'Rating',
           countries: 'Countries',
           agency: 'Agency',
-          program: 'Download App'
+          program: 'Download App',
+          totalPaidInfo: 'Total Paid: $35,000,000',
+          activeMembersInfo: 'Active Members: 250,000 members',
+          countriesInfo: 'Countries: More than 150 countries worldwide',
+          termsAccepted: 'Terms and conditions accepted successfully ✓',
+          balanceUpdated: 'Balance updated successfully ✓',
+          refreshError: 'Error refreshing balance, please try again',
+          languageChanged: 'Language changed successfully',
+          reviewSubmitted: 'Your review has been submitted successfully! Thank you for sharing your feedback',
+          pleaseSelectRating: 'Please select a star rating first'
         }
       }
     };
   },
 
+  computed: {
+    averageRating() {
+      if (this.fakeReviews.length === 0) return "0";
+      const sum = this.fakeReviews.reduce((acc, r) => acc + r.rating, 0);
+      return (sum / this.fakeReviews.length).toFixed(1);
+    }
+  },
+
   created() {
     this.initAuth();
     this.initToastSystem();
+    this.loadDailyReviews();
   },
 
   mounted() {
@@ -555,6 +736,196 @@ export default {
   },
 
   methods: {
+    getDailyRandomReviews() {
+      const today = new Date().toDateString();
+      const savedDate = localStorage.getItem('reviews_date');
+      let reviews = localStorage.getItem('daily_reviews');
+      
+      if (savedDate !== today || !reviews) {
+        const shuffled = [...this.reviewsList];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        reviews = shuffled.slice(0, 8).map((item) => ({
+          name: item.name,
+          flag: item.country,
+          rating: item.rating,
+          message: item.message,
+          time: this.timesList[Math.floor(Math.random() * this.timesList.length)]
+        }));
+        
+        localStorage.setItem('daily_reviews', JSON.stringify(reviews));
+        localStorage.setItem('reviews_date', today);
+      } else {
+        reviews = JSON.parse(reviews);
+      }
+      
+      return reviews;
+    },
+    
+    loadDailyReviews() {
+      this.fakeReviews = this.getDailyRandomReviews();
+      
+      const savedUserReviews = localStorage.getItem('user_reviews');
+      if (savedUserReviews) {
+        const userReviews = JSON.parse(savedUserReviews);
+        this.fakeReviews = [...userReviews, ...this.fakeReviews];
+      }
+    },
+    
+    openReviewModal() {
+      this.showReviewModal = true;
+      this.reviewData = { rating: 0, message: "" };
+      this.isSubmittingReview = false;
+      document.body.style.overflow = 'hidden';
+    },
+
+    closeReviewModal() {
+      this.showReviewModal = false;
+      document.body.style.overflow = 'auto';
+    },
+
+    async submitReview() {
+      if (this.reviewData.rating === 0) {
+        this.showErrorMessage(this.t('pleaseSelectRating'));
+        return;
+      }
+      
+      this.isSubmittingReview = true;
+      
+      let userName = this.username || "مستخدم";
+      
+      if (this.currentUserUid) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", this.currentUserUid));
+          if (userSnap.exists() && userSnap.data().username) {
+            userName = userSnap.data().username;
+          }
+        } catch (e) {
+          console.log("Could not fetch username:", e);
+        }
+      }
+      
+      const newReview = {
+        name: userName,
+        flag: "⭐",
+        rating: this.reviewData.rating,
+        message: this.reviewData.message || "منصة رائعة! أنصح بها الجميع",
+        time: "الآن"
+      };
+      
+      const savedUserReviews = localStorage.getItem('user_reviews');
+      let userReviews = savedUserReviews ? JSON.parse(savedUserReviews) : [];
+      userReviews.unshift(newReview);
+      localStorage.setItem('user_reviews', JSON.stringify(userReviews));
+      
+      this.fakeReviews = [...userReviews, ...this.getDailyRandomReviews()];
+      
+      this.isSubmittingReview = false;
+      this.closeReviewModal();
+      this.showSuccessMessage(this.t('reviewSubmitted'));
+    },
+
+    showTotalPaidInfo() {
+      this.showModal({
+        type: 'info',
+        title: this.t('totalPaid'),
+        message: this.t('totalPaidInfo'),
+        buttonText: this.t('understood'),
+        size: 'small'
+      });
+    },
+
+    showActiveMembersInfo() {
+      this.showModal({
+        type: 'info',
+        title: this.t('activeMembers'),
+        message: this.t('activeMembersInfo'),
+        buttonText: this.t('understood'),
+        size: 'small'
+      });
+    },
+
+    showCountriesInfo() {
+      this.showModal({
+        type: 'info',
+        title: this.t('countries'),
+        message: this.t('countriesInfo'),
+        buttonText: this.t('understood'),
+        size: 'small'
+      });
+    },
+
+    showModal(options) {
+      this.modal = {
+        visible: true,
+        type: options.type || 'info',
+        title: options.title || '',
+        message: options.message || '',
+        icon: this.getIconByType(options.type),
+        buttonText: options.buttonText || 'فهمت',
+        confirmText: options.confirmText || 'تأكيد',
+        cancelText: options.cancelText || 'إلغاء',
+        size: options.size || 'small',
+        callback: options.callback || null
+      };
+      document.body.style.overflow = 'hidden';
+    },
+
+    getIconByType(type) {
+      switch(type) {
+        case 'success': return 'fas fa-check-circle';
+        case 'error': return 'fas fa-exclamation-circle';
+        case 'confirm': return 'fas fa-question-circle';
+        default: return 'fas fa-info-circle';
+      }
+    },
+
+    closeModal() {
+      this.modal.visible = false;
+      document.body.style.overflow = 'auto';
+      this.modal.callback = null;
+    },
+
+    handleConfirm() {
+      if (this.modal.callback) {
+        this.modal.callback();
+      }
+      this.closeModal();
+    },
+
+    showInfoMessage(message) {
+      this.showModal({
+        type: 'info',
+        title: 'معلومات',
+        message: message,
+        buttonText: 'فهمت',
+        size: 'small'
+      });
+    },
+
+    showSuccessMessage(message) {
+      this.showModal({
+        type: 'success',
+        title: 'تم بنجاح',
+        message: message,
+        buttonText: 'حسناً',
+        size: 'small'
+      });
+    },
+
+    showErrorMessage(message) {
+      this.showModal({
+        type: 'error',
+        title: 'خطأ',
+        message: message,
+        buttonText: 'حسناً',
+        size: 'small'
+      });
+    },
+
     t(key) {
       return this.translations[this.currentLang]?.[key] || this.translations['AR'][key] || key;
     },
@@ -589,6 +960,11 @@ export default {
       return Math.floor(Math.random() * 1000) + 2000;
     },
 
+    getCurrentTimeEnglish() {
+      const now = new Date();
+      return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    },
+
     generateRandomToast() {
       const types = ['deposit', 'withdraw'];
       const type = types[Math.floor(Math.random() * types.length)];
@@ -600,7 +976,7 @@ export default {
         email: this.generateRandomEmail(),
         amount: amount,
         flag: this.getRandomFlag(),
-        timestamp: this.getCurrentTime(),
+        timestampEn: this.getCurrentTimeEnglish(),
         actionLabel: type === 'deposit' ? this.t('deposit') : this.t('withdraw'),
         progress: 100,
         duration: this.getRandomDuration(),
@@ -611,11 +987,6 @@ export default {
       };
       
       this.showToast(toast);
-    },
-
-    getCurrentTime() {
-      const now = new Date();
-      return now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     },
 
     showToast(toast) {
@@ -783,7 +1154,7 @@ export default {
       this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          this.username = data.phoneNumber || data.email || "User";
+          this.username = data.username || data.email || "User";
           this.balance = typeof data.balance === 'number' ? data.balance : 0;
         }
       }, (error) => {
@@ -800,9 +1171,11 @@ export default {
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
           this.balance = docSnap.data().balance || 0;
+          this.showSuccessMessage(this.t('balanceUpdated'));
         }
       } catch (error) {
         console.error("Refresh error:", error);
+        this.showErrorMessage(this.t('refreshError'));
       } finally {
         setTimeout(() => { this.refreshing = false; }, 500);
       }
@@ -830,6 +1203,7 @@ export default {
       localStorage.setItem('app_language', this.currentLang);
       document.documentElement.dir = this.currentLang === 'AR' ? 'rtl' : 'ltr';
       document.documentElement.lang = this.currentLang.toLowerCase();
+      this.showSuccessMessage(this.t('languageChanged'));
     },
     
     showNotifications() {
@@ -857,27 +1231,399 @@ export default {
     },
 
     acceptTerms() {
-      this.$toast?.success?.('تمت الموافقة') || alert('Terms accepted');
       this.closeTermsModal();
+      this.showSuccessMessage(this.t('termsAccepted'));
     }
   }
 };
 </script>
 
 <style scoped>
-/* ==================== الأساسيات ==================== */
+/* ==================== BASE STYLES ==================== */
 .home-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
   color: #ffffff;
   font-family: 'Cairo', sans-serif;
   padding-bottom: 80px;
-  direction: rtl;
   position: relative;
   overflow-x: hidden;
 }
 
-/* ==================== نظام الإشعارات المنبثقة ==================== */
+/* ==================== CUSTOM MODAL SYSTEM ==================== */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.custom-modal-container {
+  background: linear-gradient(145deg, rgba(26, 31, 46, 0.98), rgba(15, 20, 25, 0.98));
+  border-radius: 28px;
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(212, 175, 55, 0.2);
+  animation: modalFloatIn 0.35s cubic-bezier(0.21, 1.11, 0.35, 1);
+}
+
+.custom-modal-container.small {
+  max-width: 400px;
+}
+
+.custom-modal-container.review-modal {
+  max-width: 500px;
+}
+
+@keyframes modalFloatIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-fade-scale-enter-active,
+.modal-fade-scale-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-fade-scale-enter-from,
+.modal-fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.custom-modal-header {
+  padding: 22px 24px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.custom-modal-header .header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.custom-modal-header.info .header-icon {
+  background: rgba(33, 150, 243, 0.15);
+  color: #2196F3;
+}
+
+.custom-modal-header.success .header-icon {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+}
+
+.custom-modal-header.error .header-icon {
+  background: rgba(244, 67, 54, 0.15);
+  color: #F44336;
+}
+
+.custom-modal-header.confirm .header-icon {
+  background: rgba(212, 175, 55, 0.15);
+  color: #D4AF37;
+}
+
+.custom-modal-header h3 {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #F6E27A;
+}
+
+.modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.custom-modal-body {
+  padding: 24px;
+}
+
+.custom-modal-body p {
+  margin: 0;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  text-align: center;
+}
+
+.confirm-options {
+  display: flex;
+  gap: 15px;
+  margin-top: 28px;
+  justify-content: center;
+}
+
+.custom-modal-footer {
+  padding: 16px 24px 24px;
+}
+
+.modal-btn {
+  padding: 12px 28px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.modal-btn-primary {
+  background: linear-gradient(135deg, #D4AF37, #F6E27A);
+  color: #0f1419;
+  font-weight: 700;
+}
+
+.modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.35);
+}
+
+.modal-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.modal-btn-confirm {
+  background: linear-gradient(135deg, #D4AF37, #F6E27A);
+  color: #0f1419;
+  flex: 1;
+}
+
+.modal-btn-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  flex: 1;
+}
+
+.modal-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.modal-gold-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #D4AF37, #F6E27A, #D4AF37, transparent);
+  animation: goldShine 2s linear infinite;
+}
+
+@keyframes goldShine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ==================== RATING STARS ==================== */
+.rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.star {
+  font-size: 40px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.2s;
+}
+
+.star.active {
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.star:hover {
+  transform: scale(1.1);
+  color: #FFD700;
+}
+
+.review-message-input {
+  margin-bottom: 20px;
+}
+
+.review-message-input textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  color: #ffffff;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.review-message-input textarea:focus {
+  outline: none;
+  border-color: #D4AF37;
+}
+
+.submit-review-btn {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #D4AF37, #F6E27A);
+  border: none;
+  border-radius: 50px;
+  color: #0f1419;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  margin: 20px 0;
+  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+}
+
+.submit-review-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(212, 175, 55, 0.5);
+}
+
+.submit-review-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.previous-reviews {
+  margin-top: 20px;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  padding-top: 15px;
+}
+
+.previous-reviews h4 {
+  color: #D4AF37;
+  font-size: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reviews-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.review-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.review-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #D4AF37, #F6E27A);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #0f1419;
+  flex-shrink: 0;
+}
+
+.review-content {
+  flex: 1;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.review-name {
+  font-weight: 600;
+  color: #D4AF37;
+}
+
+.review-country {
+  font-size: 12px;
+}
+
+.review-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.review-stars {
+  margin-bottom: 5px;
+}
+
+.small-star {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.small-star.active {
+  color: #FFD700;
+}
+
+.review-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+/* ==================== TOAST NOTIFICATION SYSTEM ==================== */
 .toast-container {
   position: fixed;
   top: 50%;
@@ -1144,7 +1890,7 @@ export default {
   color: #ffffff;
 }
 
-/* ==================== إحصائيات سريعة (ثابتة) ==================== */
+/* ==================== QUICK STATS SECTION ==================== */
 .stats-section {
   padding: 0 16px;
   margin-bottom: 20px;
@@ -1171,6 +1917,7 @@ export default {
   padding: 20px;
   text-align: center;
   transition: all 0.3s;
+  cursor: pointer;
 }
 
 .stat-card.gold-border {
@@ -1205,7 +1952,55 @@ export default {
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* ==================== باقي الأنماط (كما هي) ==================== */
+/* VIP Features in Terms */
+.vip-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #F6E27A;
+}
+
+.feature-item i {
+  color: #4CAF50;
+  font-size: 14px;
+}
+
+.info-note {
+  background: rgba(33, 150, 243, 0.1);
+  border-right: 3px solid #2196F3;
+  border-radius: 10px;
+  padding: 14px;
+  margin: 20px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.info-note i {
+  color: #2196F3;
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.info-note p {
+  margin: 0;
+  color: #64B5F6;
+  font-size: 13px;
+}
+
+/* ==================== REST OF STYLES ==================== */
 .app-header {
   background: linear-gradient(135deg, #1a1f2e, #0f1419);
   padding: 16px;
@@ -1229,6 +2024,12 @@ export default {
   padding: 8px;
   border-radius: 10px;
   position: relative;
+  transition: all 0.2s;
+}
+
+.menu-btn:hover,
+.notif-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
 }
 
 .balance-display {
@@ -1273,6 +2074,16 @@ export default {
   color: #D4AF37;
   cursor: pointer;
   padding: 4px;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  transform: rotate(180deg);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .notif-badge {
@@ -1345,6 +2156,11 @@ export default {
   border: none;
   color: #D4AF37;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  transform: scale(1.1);
 }
 
 .quick-actions {
@@ -1413,6 +2229,13 @@ export default {
   justify-content: center;
   gap: 10px;
   box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.promo-banner:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.4);
 }
 
 .banner-emoji {
@@ -1581,6 +2404,12 @@ export default {
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(15, 20, 25, 0.4);
+  transform: rotate(90deg);
 }
 
 .modal-body {
@@ -1700,54 +2529,6 @@ export default {
   font-weight: 700;
 }
 
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.schedule-item {
-  background: rgba(212, 175, 55, 0.05);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 10px;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-}
-
-.schedule-item .day {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.schedule-item .vips {
-  color: #D4AF37;
-  font-weight: 600;
-}
-
-.important-note {
-  background: rgba(255, 59, 48, 0.1);
-  border-right: 3px solid #ff3b30;
-  border-radius: 10px;
-  padding: 14px;
-  margin: 20px 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.important-note i {
-  color: #ff6b6b;
-  font-size: 18px;
-  margin-top: 2px;
-}
-
-.important-note p {
-  margin: 0;
-  color: #ff6b6b;
-  font-size: 13px;
-}
-
 .modal-footer {
   padding: 16px 20px;
   border-top: 1px solid rgba(212, 175, 55, 0.2);
@@ -1813,6 +2594,7 @@ export default {
   background: linear-gradient(135deg, #D4AF37, #F6E27A);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .sidebar-header button {
@@ -1821,6 +2603,11 @@ export default {
   color: #D4AF37;
   font-size: 20px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-header button:hover {
+  transform: rotate(90deg);
 }
 
 .sidebar-nav {
@@ -1847,6 +2634,11 @@ export default {
 .sidebar-nav a:hover {
   background: rgba(212, 175, 55, 0.1);
   color: #D4AF37;
+  transform: translateX(-5px);
+}
+
+.home-container[dir="rtl"] .sidebar-nav a:hover {
+  transform: translateX(5px);
 }
 
 .sidebar-footer {
@@ -1867,6 +2659,12 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  transition: all 0.2s;
+}
+
+.sidebar-footer button:hover {
+  background: rgba(212, 175, 55, 0.2);
+  transform: translateY(-2px);
 }
 
 .modal-enter-active,
@@ -1969,6 +2767,14 @@ export default {
     right: auto;
     left: 10px;
   }
+  
+  .custom-modal-container.review-modal {
+    max-width: 95%;
+  }
+  
+  .rating-stars .star {
+    font-size: 30px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1996,10 +2802,24 @@ export default {
   .action-amount {
     font-size: 12px;
   }
+  
+  .custom-modal-header h3 {
+    font-size: 18px;
+  }
+  
+  .custom-modal-body p {
+    font-size: 14px;
+  }
+  
+  .rating-stars .star {
+    font-size: 25px;
+    gap: 8px;
+  }
 }
 
 @media print {
-  .toast-container {
+  .toast-container,
+  .custom-modal-overlay {
     display: none !important;
   }
 }
