@@ -91,49 +91,6 @@
         </div>
       </div>
 
-      <!-- Warning Box - مباشرة بعد عنوان الإيداع -->
-      <div class="warning-box">
-        <div class="warning-icon-circle">
-          <span class="warning-icon">⚠️</span>
-        </div>
-        <div class="warning-content">
-          <span class="warning-title">تنبيه مهم</span>
-          <p class="warning-description">
-            لن يتم إضافة الرصيد تلقائيًا قبل إرسال طلب تأكيد الإيداع يرجى إدخال المبلغ المرسل ثم الضغط على زر "تأكيد الإيداع".
-          </p>
-        </div>
-        <span class="arrow-down">⬇️</span>
-      </div>
-
-      <!-- Form Inputs -->
-      <div class="form-section">
-        <div class="input-group">
-          <div class="input-field">
-            <input type="number" v-model.number="amount" placeholder="أدخل المبلغ الذي أرسلته إلى حسابك">
-            <span class="suffix">USDT</span>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>ملاحظة (اختياري)</label>
-          <div class="input-field">
-            <input type="text" v-model="txid" placeholder="اكتب ملاحظة">
-          </div>
-        </div>
-
-        <button class="main-btn" @click="submit" :disabled="loading">
-          <span v-if="!loading">تأكيد الإيداع</span>
-          <i v-else class="fas fa-circle-notch fa-spin"></i>
-        </button>
-
-        <transition name="fade">
-          <div v-if="message" :class="['alert', messageType]">
-            <i :class="messageType === 'error' ? 'fas fa-times-circle' : 'fas fa-check-circle'"></i>
-            {{ message }}
-          </div>
-        </transition>
-      </div>
-
       <!-- Instructions -->
       <div class="tips-box">
         <div class="tips-header">
@@ -153,7 +110,7 @@
 
 <script>
 import { getAuth } from "firebase/auth";
-import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 export default {
@@ -177,12 +134,8 @@ export default {
     return {
       network: "TRC20",
       isDropdownOpen: false,
-      amount: null,
-      txid: "",
       copied: false,
       loading: false,
-      message: "",
-      messageType: "info",
       addresses: {
         TRC20: "TNabUE7114PbHQ4PYK4y53fMBANQ6Q837R",
         ERC20: "0x8A52D2e160DD3F2AC524e2c60acb9cA990c5A070",
@@ -264,44 +217,6 @@ export default {
         setTimeout(() => (this.copied = false), 2000);
       } catch (err) {
         console.error("Copy failed");
-      }
-    },
-    async submit() {
-      if (!this.amount || this.amount <= 0) {
-        this.message = "يرجى إدخال مبلغ صحيح";
-        this.messageType = "error";
-        return;
-      }
-      this.loading = true;
-      try {
-        await addDoc(collection(db, "payments"), {
-          userId: this.userId,
-          email: this.userEmail,
-          amount: this.amount,
-          txid: this.txid,
-          network: this.network,
-          status: "pending",
-          createdAt: serverTimestamp(),
-        });
-        await addDoc(collection(db, "transactions"), {
-          userId: this.userId,
-          email: this.userEmail,
-          type: "recharge",
-          amount: this.amount,
-          network: this.network,
-          txid: this.txid,
-          status: "pending",
-          createdAt: serverTimestamp(),
-        });
-        this.message = "تم إرسال الطلب بنجاح";
-        this.messageType = "success";
-        this.amount = null;
-        this.txid = "";
-      } catch (e) {
-        this.message = "حدث خطأ في الإرسال";
-        this.messageType = "error";
-      } finally {
-        this.loading = false;
       }
     }
   }
@@ -598,148 +513,6 @@ export default {
   color: #0ecb81;
 }
 
-/* Warning Box - أعلى الصفحة مباشرة */
-.warning-box {
-  background: rgba(252, 213, 53, 0.08);
-  border: 1px solid rgba(252, 213, 53, 0.3);
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  position: relative;
-  backdrop-filter: blur(5px);
-}
-
-.warning-icon-circle {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  background: rgba(252, 213, 53, 0.15);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.warning-icon {
-  font-size: 14px;
-}
-
-.warning-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.warning-title {
-  color: #fcd535;
-  font-size: 12px;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 2px;
-}
-
-.warning-description {
-  color: #f6465d;
-  font-size: 11px;
-  line-height: 1.4;
-  margin: 0;
-}
-
-.arrow-down {
-  font-size: 16px;
-  min-width: 18px;
-  animation: bounce 2s infinite;
-  margin-top: 3px;
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(5px);
-  }
-}
-
-/* Form Section */
-.form-section {
-  margin-bottom: 16px;
-}
-
-.input-group {
-  margin-bottom: 8px;
-}
-
-.input-group label {
-  display: block;
-  font-size: 13px;
-  margin-bottom: 6px;
-  color: #848e9c;
-}
-
-.input-field {
-  background: #2b2f36;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border: 1px solid #fcd535;
-}
-
-.input-field:focus-within {
-  border-color: #fcd535;
-  box-shadow: 0 0 5px rgba(252, 213, 53, 0.5);
-}
-
-.input-field input {
-  flex: 1;
-  background: none;
-  border: none;
-  padding: 12px 0;
-  color: #fff;
-  font-size: 15px;
-  outline: none;
-}
-
-.suffix {
-  color: #848e9c;
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.main-btn {
-  width: 100%;
-  background: #fcd535;
-  color: #0b0e11;
-  border: none;
-  padding: 14px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: opacity 0.2s;
-}
-
-.main-btn:disabled {
-  opacity: 0.5;
-}
-
-.alert {
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.alert.success { background: rgba(14, 203, 129, 0.1); color: #0ecb81; }
-.alert.error { background: rgba(246, 70, 93, 0.1); color: #f6465d; }
-
 /* Tips */
 .tips-box {
   background: rgba(252, 213, 53, 0.05);
@@ -766,38 +539,10 @@ export default {
   line-height: 1.7;
 }
 
-/* Responsive Warning Box */
+/* Responsive */
 @media (max-width: 480px) {
   .main-content {
     padding: 10px 12px;
-  }
-  
-  .warning-box {
-    padding: 8px;
-    gap: 6px;
-  }
-  
-  .warning-icon-circle {
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-  }
-  
-  .warning-icon {
-    font-size: 12px;
-  }
-  
-  .warning-title {
-    font-size: 11px;
-  }
-  
-  .warning-description {
-    font-size: 10px;
-  }
-  
-  .arrow-down {
-    font-size: 14px;
-    min-width: 16px;
   }
   
   .qr-code {
