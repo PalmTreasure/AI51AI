@@ -94,7 +94,8 @@
             :key="plan.level"
             :class="{ 
               'is-active': userVip && userVip.level === plan.level,
-              'elite-card': plan.level >= 8
+              'elite-card': plan.level >= 8,
+              'welcome-card': plan.level === 1 && !hasClaimedWelcomeBonus
             }"
           >
             <!-- شريط النخبة للمستويات 8+ -->
@@ -104,16 +105,22 @@
               <i class="fas fa-star"></i>
             </div>
             
-            <div class="item-header-row" :class="{ 'elite-header': plan.level >= 8 }">
+            <!-- شريط الترحيب لـ VIP 1 -->
+            <div class="welcome-ribbon" v-if="plan.level === 1 && !hasClaimedWelcomeBonus">
+              🎁 مكافأة ترحيبية
+            </div>
+            
+            <div class="item-header-row" :class="{ 'elite-header': plan.level >= 8, 'welcome-header': plan.level === 1 }">
               <div class="item-medal-right">
-                <span v-if="plan.level === 1">🥉</span>
+                <span v-if="plan.level === 1">🎁</span>
                 <span v-else-if="plan.level === 2">🥈</span>
                 <span v-else-if="plan.level === 3">🥇</span>
                 <span v-else-if="plan.level >= 8" class="elite-medal">👑</span>
                 <span v-else>💎</span>
               </div>
-              <div class="item-title-left" :class="{ 'elite-title': plan.level >= 8 }">
-                VIP {{ plan.level }}
+              <div class="item-title-left" :class="{ 'elite-title': plan.level >= 8, 'welcome-title': plan.level === 1 }">
+                <span v-if="plan.level === 1">VIP 1 - مكافأة ترحيبية</span>
+                <span v-else>VIP {{ plan.level }}</span>
                 <span v-if="plan.level >= 8" class="star-icon">⭐</span>
               </div>
             </div>
@@ -121,11 +128,24 @@
             <div class="item-body">
               <div class="subscription-row">
                 <span class="label">الاشتراك</span>
-                <span class="value" :class="{ 'elite-value': plan.level >= 8 }">USDT {{ formatNumberEnglishWithCommas(plan.price) }}</span>
+                <span class="value" :class="{ 'elite-value': plan.level >= 8, 'welcome-value': plan.level === 1 }">
+                  <span v-if="plan.level === 1">🎁 مجاني بالكامل</span>
+                  <span v-else>USDT {{ formatNumberEnglishWithCommas(plan.price) }}</span>
+                </span>
+              </div>
+
+              <!-- نص توضيحي لـ VIP 1 -->
+              <div class="welcome-message" v-if="plan.level === 1 && !hasClaimedWelcomeBonus">
+                <i class="fas fa-gift"></i>
+                سجل الآن واحصل على 6 USDT هدية ترحيبية فورية!
+              </div>
+              <div class="welcome-message claimed" v-else-if="plan.level === 1 && hasClaimedWelcomeBonus">
+                <i class="fas fa-check-circle"></i>
+                ✅ تم استلام مكافأتك الترحيبية 6 USDT
               </div>
 
               <!-- مؤشر العائد على الاستثمار ROI -->
-              <div class="roi-display" :class="{ 'elite-roi': plan.level >= 8 }" v-if="plan.price > 0">
+              <div class="roi-display" :class="{ 'elite-roi': plan.level >= 8 }" v-if="plan.level > 1 && plan.price > 0">
                 <i class="fas fa-chart-line"></i>
                 العائد السنوي: {{ formatNumberEnglish(getROI(plan), 1) }}%
               </div>
@@ -153,10 +173,31 @@
                 </div>
               </div>
 
+              <!-- زر VIP 1 الخاص (استلام الهدية) -->
               <button
+                v-if="plan.level === 1 && !hasClaimedWelcomeBonus && !isClaimingBonus"
+                class="btn-action btn-welcome"
+                @click="claimWelcomeBonus"
+                :disabled="processingClaim"
+              >
+                <i class="fas fa-gift"></i>
+                {{ processingClaim ? 'جاري الاستلام...' : '🎁 استلم هديتك 6 USDT' }}
+              </button>
+              
+              <button
+                v-else-if="plan.level === 1 && hasClaimedWelcomeBonus"
+                class="btn-action active btn-welcome-claimed"
+                disabled
+              >
+                <i class="fas fa-check-circle"></i>
+                ✅ تم استلام المكافأة
+              </button>
+              
+              <!-- باقي المستويات -->
+              <button
+                v-else-if="plan.level > 1 && !isActivePlan(plan)"
                 class="btn-action"
                 :class="{ 'elite-btn': plan.level >= 8 }"
-                v-if="!isActivePlan(plan)"
                 @click="openConfirmModal(plan)"
                 :disabled="processing"
               >
@@ -164,17 +205,23 @@
                 <i v-else class="fas fa-crown"></i>
                 {{ processing && buyingPlan === plan.level ? 'جاري الشراء...' : 'اشترِ الآن' }}
               </button>
-              <button class="btn-action active" :class="{ 'elite-btn-active': plan.level >= 8 }" v-else disabled>
+              
+              <button
+                v-else-if="plan.level > 1 && isActivePlan(plan)"
+                class="btn-action active"
+                :class="{ 'elite-btn-active': plan.level >= 8 }"
+                disabled
+              >
                 <i class="fas fa-check-circle"></i>
                 مفعل
               </button>
             </div>
 
-            <!-- علامة مميزة للخطط النشطة من النخبة -->
+            <!-- علامة مميزة للخطط النشطة -->
             <div class="active-ribbon" v-if="userVip && userVip.level === plan.level && plan.level >= 8">
               👑 نخبة نشط 👑
             </div>
-            <div class="active-ribbon basic" v-else-if="userVip && userVip.level === plan.level">
+            <div class="active-ribbon basic" v-else-if="userVip && userVip.level === plan.level && plan.level > 1">
               نشط الآن
             </div>
           </div>
@@ -309,6 +356,7 @@ export default {
     return {
       loading: true,
       processing: false,
+      processingClaim: false,
       buyingPlan: null,
       userVip: null,
       remainingMs: 0,
@@ -321,6 +369,8 @@ export default {
       currentPage: 1,
       showConfirmModal: false,
       selectedPlan: null,
+      hasClaimedWelcomeBonus: false,
+      isClaimingBonus: false,
 
       plans: [
         { level: 1, name: "VIP 1", price: 0, tasks: 1, daily: 0, durationSeconds: 365 * 86400, firstReward: 6 },
@@ -396,6 +446,7 @@ export default {
         return;
       }
       await this.init();
+      await this.checkWelcomeBonusStatus();
     });
   },
 
@@ -427,7 +478,6 @@ export default {
       let numValue = Number(value);
       if (isNaN(numValue)) return '0';
       
-      // استخدام toLocaleString مع en-US لضمان الفواصل الإنجليزية
       return numValue.toLocaleString('en-US');
     },
 
@@ -657,13 +707,109 @@ export default {
       this.showConfirmModal = false;
     },
 
+    async checkWelcomeBonusStatus() {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        
+        const welcomeBonusRef = doc(db, "users", user.uid, "bonus", "welcome");
+        const bonusSnap = await getDoc(welcomeBonusRef);
+        
+        if (bonusSnap.exists() && bonusSnap.data().claimed === true) {
+          this.hasClaimedWelcomeBonus = true;
+        } else {
+          this.hasClaimedWelcomeBonus = false;
+        }
+      } catch (error) {
+        console.error("Error checking welcome bonus:", error);
+      }
+    },
+
+    async claimWelcomeBonus() {
+      if (this.processingClaim || this.isClaimingBonus) return;
+      
+      this.processingClaim = true;
+      this.isClaimingBonus = true;
+      
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          this.showError("يرجى تسجيل الدخول أولاً");
+          return;
+        }
+        
+        const userRef = doc(db, "users", user.uid);
+        const welcomeBonusRef = doc(db, "users", user.uid, "bonus", "welcome");
+        
+        await runTransaction(db, async (transaction) => {
+          const bonusSnap = await transaction.get(welcomeBonusRef);
+          
+          if (bonusSnap.exists() && bonusSnap.data().claimed === true) {
+            throw new Error("لقد قمت بالفعل باستلام المكافأة الترحيبية");
+          }
+          
+          const userSnap = await transaction.get(userRef);
+          if (!userSnap.exists()) {
+            throw new Error("المستخدم غير موجود");
+          }
+          
+          const currentBalance = userSnap.data().balance || 0;
+          const newBalance = currentBalance + 6;
+          
+          transaction.update(userRef, { balance: newBalance });
+          
+          transaction.set(welcomeBonusRef, {
+            claimed: true,
+            amount: 6,
+            claimedAt: Timestamp.now(),
+            type: "welcome_bonus"
+          });
+          
+          const logRef = doc(collection(db, "transactions"));
+          transaction.set(logRef, {
+            userId: user.uid,
+            type: "welcome_bonus",
+            amount: 6,
+            createdAt: serverTimestamp(),
+            status: "completed"
+          });
+        });
+        
+        this.hasClaimedWelcomeBonus = true;
+        this.showSuccess("🎁 تم استلام هديتك الترحيبية 6 USDT! تمت الإضافة إلى رصيدك");
+        
+        await this.refreshBalance();
+        
+      } catch (err) {
+        console.error("Error claiming bonus:", err);
+        this.showError(err.message);
+      } finally {
+        this.processingClaim = false;
+        this.isClaimingBonus = false;
+      }
+    },
+    
+    async refreshBalance() {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        
+        const userRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+          const newBalance = docSnap.data().balance || 0;
+          this.$emit('balance-updated', newBalance);
+        }
+      } catch (error) {
+        console.error("Refresh balance error:", error);
+      }
+    },
+
     async executePurchase() {
       if (!this.selectedPlan) return;
       
-      // إغلاق النافذة أولاً
       this.showConfirmModal = false;
       
-      // ثم تنفيذ عملية الشراء
       this.processing = true;
       this.buyingPlan = this.selectedPlan.level;
       
@@ -689,16 +835,13 @@ export default {
           
           const lastCycle = this.getLastCompletedCycle(now);
           
-          // حساب المكافأة الأولى
           let firstRewardAmount = 0;
           let finalBalance = balance - this.selectedPlan.price;
           
-          // إذا كان VIP 1، أضف المكافأة 6 USDT مرة واحدة فقط
           if (this.selectedPlan.level === 1 && this.selectedPlan.firstReward > 0) {
             firstRewardAmount = this.selectedPlan.firstReward;
             finalBalance = finalBalance + firstRewardAmount;
           } 
-          // باقي المستويات: أضف الربح اليومي كمكافأة فورية
           else if (this.selectedPlan.daily > 0) {
             firstRewardAmount = this.selectedPlan.daily;
             finalBalance = finalBalance + firstRewardAmount;
@@ -987,6 +1130,12 @@ export default {
   background: linear-gradient(90deg, #fcd535, #ffed8a, #fcd535);
 }
 
+.vip-card-item.welcome-card {
+  border: 2px solid #4CAF50;
+  background: linear-gradient(135deg, #181a20, #1a2a1a);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+}
+
 /* شريط النخبة */
 .elite-ribbon {
   position: absolute;
@@ -1005,6 +1154,24 @@ export default {
   gap: 5px;
 }
 
+/* شريط الترحيب */
+.welcome-ribbon {
+  position: absolute;
+  top: 12px;
+  right: -25px;
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: #fff;
+  padding: 4px 30px;
+  transform: rotate(45deg);
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .item-header-row {
   padding: 12px 15px;
   display: flex;
@@ -1015,6 +1182,10 @@ export default {
 }
 .item-header-row.elite-header {
   background: linear-gradient(135deg, rgba(252, 213, 53, 0.15), rgba(255, 237, 138, 0.05));
+}
+.item-header-row.welcome-header {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(102, 187, 106, 0.05));
+  border-bottom: 1px solid rgba(76, 175, 80, 0.3);
 }
 .item-medal-right { font-size: 20px; }
 .elite-medal {
@@ -1033,6 +1204,10 @@ export default {
   font-size: 18px;
   text-shadow: 0 0 5px rgba(252, 213, 53, 0.5);
 }
+.item-title-left.welcome-title {
+  color: #66BB6A;
+  font-size: 16px;
+}
 .star-icon {
   font-size: 14px;
 }
@@ -1044,6 +1219,34 @@ export default {
 .subscription-row .value.elite-value {
   color: #fcd535;
   font-size: 16px;
+}
+.subscription-row .value.welcome-value {
+  color: #66BB6A;
+  font-size: 14px;
+}
+
+/* رسالة الترحيب */
+.welcome-message {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #66BB6A;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.welcome-message.claimed {
+  background: rgba(76, 175, 80, 0.08);
+  color: #4CAF50;
+}
+.welcome-message i {
+  font-size: 14px;
 }
 
 /* مؤشر ROI */
@@ -1130,6 +1333,24 @@ export default {
   background: linear-gradient(135deg, rgba(252, 213, 53, 0.25), rgba(255, 237, 138, 0.15));
   border: 1px solid #fcd535;
   box-shadow: 0 0 10px rgba(252, 213, 53, 0.2);
+}
+
+/* زر الترحيب الخاص */
+.btn-welcome {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.4);
+}
+.btn-welcome:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(76, 175, 80, 0.5);
+}
+.btn-welcome-claimed {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+  border: 1px solid #4CAF50;
 }
 
 /* علامة النشط */
@@ -1414,6 +1635,12 @@ export default {
     font-size: 9px;
     padding: 3px 25px;
     left: -20px;
+  }
+  
+  .welcome-ribbon {
+    font-size: 9px;
+    padding: 3px 25px;
+    right: -20px;
   }
   
   .elite-info-box {
