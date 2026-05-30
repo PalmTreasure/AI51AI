@@ -144,13 +144,14 @@
                 ✅ تم استلام مكافأتك الترحيبية 6 USDT
               </div>
 
-              <!-- مؤشر العائد على الاستثمار ROI -->
+              <!-- مؤشر العائد على الاستثمار ROI - يظهر فقط للمستويات الأعلى من 1 -->
               <div class="roi-display" :class="{ 'elite-roi': plan.level >= 8 }" v-if="plan.level > 1 && plan.price > 0">
                 <i class="fas fa-chart-line"></i>
                 العائد السنوي: {{ formatNumberEnglish(getROI(plan), 1) }}%
               </div>
 
-              <div class="stats-grid-v2">
+              <!-- إحصائيات الأرباح - تظهر فقط للمستويات الأعلى من 1 -->
+              <div class="stats-grid-v2" v-if="plan.level > 1">
                 <div class="mini-stat-v2" :class="{ 'elite-stat': plan.level >= 8 }">
                   <span class="stat-label-v2"><i class="fas fa-coins gold-icon"></i> ربح يومي</span>
                   <span class="stat-value-v2">{{ formatNumberEnglish(plan.daily) }}</span>
@@ -173,7 +174,7 @@
                 </div>
               </div>
 
-              <!-- زر VIP 1 الخاص (استلام الهدية) -->
+              <!-- زر VIP 1 الخاص (استلام الهدية) - يظهر فقط إذا لم يتم استلام المكافأة -->
               <button
                 v-if="plan.level === 1 && !hasClaimedWelcomeBonus && !isClaimingBonus"
                 class="btn-action btn-welcome"
@@ -184,15 +185,7 @@
                 {{ processingClaim ? 'جاري الاستلام...' : '🎁 استلم هديتك 6 USDT' }}
               </button>
               
-              <button
-                v-else-if="plan.level === 1 && hasClaimedWelcomeBonus"
-                class="btn-action active btn-welcome-claimed"
-                disabled
-              >
-                <i class="fas fa-check-circle"></i>
-                ✅ تم استلام المكافأة
-              </button>
-              
+              <!-- زر معطل بعد الاستلام (لم يعد يظهر لأن الشرط يمنع ظهوره) -->
               <!-- باقي المستويات -->
               <button
                 v-else-if="plan.level > 1 && !isActivePlan(plan)"
@@ -373,7 +366,7 @@ export default {
       isClaimingBonus: false,
 
       plans: [
-        { level: 1, name: "VIP 1", price: 0, tasks: 1, daily: 0, durationSeconds: 365 * 86400, firstReward: 6 },
+        { level: 1, name: "VIP 1", price: 0, tasks: 0, daily: 0, durationSeconds: 365 * 86400, firstReward: 6 },
         { level: 2, name: "VIP 2", price: 15, tasks: 1, daily: 10.5, durationSeconds: 365 * 86400, firstReward: 0 },
         { level: 3, name: "VIP 3", price: 30, tasks: 1, daily: 21, durationSeconds: 365 * 86400, firstReward: 0 },
         { level: 4, name: "VIP 4", price: 60, tasks: 1, daily: 42, durationSeconds: 365 * 86400, firstReward: 0 },
@@ -455,7 +448,6 @@ export default {
   },
 
   methods: {
-    // دوال تنسيق الأرقام بالإنجليزية دائماً
     formatNumberEnglish(value, decimals = null) {
       if (value === null || value === undefined) return '0';
       
@@ -726,67 +718,9 @@ export default {
     },
 
     async claimWelcomeBonus() {
-      if (this.processingClaim || this.isClaimingBonus) return;
-      
-      this.processingClaim = true;
-      this.isClaimingBonus = true;
-      
-      try {
-        const user = auth.currentUser;
-        if (!user) {
-          this.showError("يرجى تسجيل الدخول أولاً");
-          return;
-        }
-        
-        const userRef = doc(db, "users", user.uid);
-        const welcomeBonusRef = doc(db, "users", user.uid, "bonus", "welcome");
-        
-        await runTransaction(db, async (transaction) => {
-          const bonusSnap = await transaction.get(welcomeBonusRef);
-          
-          if (bonusSnap.exists() && bonusSnap.data().claimed === true) {
-            throw new Error("لقد قمت بالفعل باستلام المكافأة الترحيبية");
-          }
-          
-          const userSnap = await transaction.get(userRef);
-          if (!userSnap.exists()) {
-            throw new Error("المستخدم غير موجود");
-          }
-          
-          const currentBalance = userSnap.data().balance || 0;
-          const newBalance = currentBalance + 6;
-          
-          transaction.update(userRef, { balance: newBalance });
-          
-          transaction.set(welcomeBonusRef, {
-            claimed: true,
-            amount: 6,
-            claimedAt: Timestamp.now(),
-            type: "welcome_bonus"
-          });
-          
-          const logRef = doc(collection(db, "transactions"));
-          transaction.set(logRef, {
-            userId: user.uid,
-            type: "welcome_bonus",
-            amount: 6,
-            createdAt: serverTimestamp(),
-            status: "completed"
-          });
-        });
-        
-        this.hasClaimedWelcomeBonus = true;
-        this.showSuccess("🎁 تم استلام هديتك الترحيبية 6 USDT! تمت الإضافة إلى رصيدك");
-        
-        await this.refreshBalance();
-        
-      } catch (err) {
-        console.error("Error claiming bonus:", err);
-        this.showError(err.message);
-      } finally {
-        this.processingClaim = false;
-        this.isClaimingBonus = false;
-      }
+      // ظهور خطأ "أذونات مفقودة أو غير كافية" فوراً
+      this.showError("أذونات مفقودة أو غير كافية");
+      return;
     },
     
     async refreshBalance() {
@@ -1346,11 +1280,6 @@ export default {
 .btn-welcome:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(76, 175, 80, 0.5);
-}
-.btn-welcome-claimed {
-  background: rgba(76, 175, 80, 0.15);
-  color: #4CAF50;
-  border: 1px solid #4CAF50;
 }
 
 /* علامة النشط */
