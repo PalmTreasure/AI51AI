@@ -22,19 +22,6 @@
         </div>
       </div>
 
-      <!-- حالة VIP -->
-      <div class="vip-status-box">
-        <div class="vip-badge">
-          <i class="fas fa-crown"></i>
-          مستوى VIP {{ userVipLevel || 'غير مفعل' }}
-        </div>
-        <div class="user-contact">
-          <i class="fas fa-phone" v-if="userPhone"></i>
-          <i class="fas fa-envelope" v-else></i>
-          {{ userContact }}
-        </div>
-      </div>
-
       <!-- مبلغ السحب -->
       <div class="input-group">
         <label>
@@ -159,16 +146,6 @@
         <h3>📋 ملخص طلب السحب</h3>
         
         <div class="summary-item">
-          <span>معلومات الاتصال:</span>
-          <span class="summary-value">{{ userContact }}</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>مستوى VIP:</span>
-          <span class="summary-value">{{ userVipLevel || 'غير مفعل' }}</span>
-        </div>
-        
-        <div class="summary-item">
           <span>المبلغ المطلوب:</span>
           <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
         </div>
@@ -204,7 +181,7 @@
         </div>
       </div>
 
-      <!-- رسالة المنع -->
+      <!-- رسالة المنع - تظهر فقط عند الضغط على زر السحب -->
       <div v-if="showRestrictionMessage" class="restriction-box">
         <i class="fas fa-lock"></i>
         <div class="restriction-text">
@@ -262,9 +239,6 @@ export default {
       isLoading: false,
       message: "",
       messageType: "info",
-      userVipLevel: null,
-      userPhone: "",
-      userEmail: "",
       showNetworkDropdown: false,
       showRestrictionMessage: false,
       networks: [
@@ -313,16 +287,6 @@ export default {
 
     showSummary() {
       return this.amount && this.network && this.wallet;
-    },
-
-    userContact() {
-      if (this.userPhone) {
-        return this.userPhone;
-      } else if (this.userEmail) {
-        return this.userEmail;
-      } else {
-        return "لا يوجد";
-      }
     }
   },
 
@@ -401,24 +365,6 @@ export default {
         if (userSnap.exists()) {
           const userData = userSnap.data();
           this.balance = userData.balance || 0;
-          this.userPhone = userData.phoneNumber || "";
-          this.userEmail = userData.email || "";
-          
-          // قراءة مستوى VIP من بيانات المستخدم
-          if (userData.vipLevel) {
-            this.userVipLevel = userData.vipLevel;
-          }
-        }
-
-        // إذا لم يكن VIP موجوداً في بيانات المستخدم، نحاول من subcollection
-        if (!this.userVipLevel) {
-          const vipRef = doc(db, "users", user.uid, "vip", "current");
-          const vipSnap = await getDoc(vipRef);
-          if (vipSnap.exists()) {
-            this.userVipLevel = vipSnap.data().level;
-          } else {
-            this.userVipLevel = null;
-          }
         }
       } catch (error) {
         console.error("خطأ:", error);
@@ -618,39 +564,6 @@ export default {
   background: rgba(212, 175, 55, 0.15);
   padding: 4px 8px;
   border-radius: 6px;
-}
-
-/* حالة VIP */
-.vip-status-box {
-  background: rgba(212, 175, 55, 0.08);
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.vip-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  color: #fcd535;
-  font-size: 14px;
-}
-
-.user-contact {
-  font-size: 13px;
-  color: #eaecef;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.user-contact i {
-  color: #fcd535;
 }
 
 /* صندوق رسالة المنع */
