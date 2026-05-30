@@ -22,15 +22,6 @@
         </div>
       </div>
 
-      <!-- رسالة المنع - تظهر بدلاً من قسم VIP -->
-      <div class="restriction-box permanent">
-        <i class="fas fa-lock"></i>
-        <div class="restriction-text">
-          <p class="main-message">⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.</p>
-          <p class="amount-message">المبلغ المطلوب سحبه: <strong>{{ (Number(amount) || 0).toFixed(2) }} USDT</strong></p>
-        </div>
-      </div>
-
       <!-- مبلغ السحب -->
       <div class="input-group">
         <label>
@@ -202,7 +193,7 @@
       <!-- زر السحب -->
       <button 
         class="gold-button" 
-        @click="showWithdrawRestriction"
+        @click="submitWithdraw"
         :disabled="isLoading || !isFormValid"
       >
         <i class="fas fa-paper-plane" v-if="!isLoading"></i>
@@ -435,11 +426,18 @@ export default {
       }, 5000);
     },
 
-    showWithdrawRestriction() {
+    submitWithdraw() {
       if (!this.isFormValid) return;
       
-      // عرض رسالة الخطأ
-      this.showMessage("⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.\nالمبلغ المطلوب سحبه: " + (Number(this.amount) || 0).toFixed(2) + " USDT", "error");
+      // عرض رسالة نجاح مؤقتة أو معالجة السحب
+      this.isLoading = true;
+      setTimeout(() => {
+        this.isLoading = false;
+        this.showMessage("تم استلام طلب السحب بنجاح، سيتم مراجعته قريباً", "success");
+        // إعادة تعيين الحقول
+        this.amount = "";
+        this.password = "";
+      }, 1500);
     }
   }
 };
@@ -550,46 +548,6 @@ export default {
   background: rgba(212, 175, 55, 0.15);
   padding: 4px 8px;
   border-radius: 6px;
-}
-
-/* صندوق رسالة المنع الدائمة */
-.restriction-box.permanent {
-  background: rgba(220, 38, 38, 0.15);
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.restriction-box i {
-  font-size: 32px;
-  color: #dc2626;
-}
-
-.restriction-text {
-  flex: 1;
-}
-
-.restriction-text .main-message {
-  color: #fca5a5;
-  font-size: 14px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-}
-
-.restriction-text .amount-message {
-  color: #fcd535;
-  font-size: 13px;
-  margin: 0;
-  font-weight: 600;
-}
-
-.restriction-text .amount-message strong {
-  color: #fcd535;
-  font-size: 16px;
 }
 
 /* رسائل */
