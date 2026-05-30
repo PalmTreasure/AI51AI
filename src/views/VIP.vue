@@ -789,6 +789,9 @@ export default {
         // تحديث الحالة المحلية
         this.hasClaimedWelcomeBonus = true;
         
+        // إعادة تحميل بيانات VIP لتحديث الواجهة وإخفاء الزر فوراً
+        await this.init();
+        
         // إظهار رسالة النجاح
         this.showSuccess("✅ تم استلام مكافأة 6 USDT بنجاح");
         
