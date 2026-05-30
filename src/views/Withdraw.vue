@@ -22,6 +22,15 @@
         </div>
       </div>
 
+      <!-- رسالة المنع - تظهر بدلاً من قسم VIP -->
+      <div class="restriction-box permanent">
+        <i class="fas fa-lock"></i>
+        <div class="restriction-text">
+          <p class="main-message">⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.</p>
+          <p class="amount-message">المبلغ المطلوب سحبه: <strong>{{ (Number(amount) || 0).toFixed(2) }} USDT</strong></p>
+        </div>
+      </div>
+
       <!-- مبلغ السحب -->
       <div class="input-group">
         <label>
@@ -181,15 +190,6 @@
         </div>
       </div>
 
-      <!-- رسالة المنع - تظهر فقط عند الضغط على زر السحب -->
-      <div v-if="showRestrictionMessage" class="restriction-box">
-        <i class="fas fa-lock"></i>
-        <div class="restriction-text">
-          <p class="main-message">⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.</p>
-          <p class="amount-message">المبلغ المطلوب سحبه: <strong>{{ (Number(amount) || 0).toFixed(2) }} USDT</strong></p>
-        </div>
-      </div>
-
       <!-- تحذيرات -->
       <div class="warning-box">
         <i class="fas fa-shield-alt"></i>
@@ -240,7 +240,6 @@ export default {
       message: "",
       messageType: "info",
       showNetworkDropdown: false,
-      showRestrictionMessage: false,
       networks: [
         { value: 'TRC20', label: 'Tron (TRC20)' },
         { value: 'ERC20', label: 'Ethereum (ERC20)' },
@@ -293,10 +292,6 @@ export default {
   watch: {
     amount() {
       this.validateAmount();
-      // إخفاء رسالة المنع عند تغيير المبلغ
-      if (this.showRestrictionMessage) {
-        this.showRestrictionMessage = false;
-      }
     },
     network() {
       this.validateNetwork();
@@ -440,20 +435,11 @@ export default {
       }, 5000);
     },
 
-    // عرض رسالة المنع بدلاً من تنفيذ السحب
     showWithdrawRestriction() {
       if (!this.isFormValid) return;
       
-      // إظهار رسالة المنع
-      this.showRestrictionMessage = true;
-      
-      // تمرير الصفحة إلى أعلى لرؤية الرسالة
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      
-      // إخفاء الرسالة بعد 5 ثواني
-      setTimeout(() => {
-        this.showRestrictionMessage = false;
-      }, 5000);
+      // عرض رسالة الخطأ
+      this.showMessage("⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.\nالمبلغ المطلوب سحبه: " + (Number(this.amount) || 0).toFixed(2) + " USDT", "error");
     }
   }
 };
@@ -566,8 +552,8 @@ export default {
   border-radius: 6px;
 }
 
-/* صندوق رسالة المنع */
-.restriction-box {
+/* صندوق رسالة المنع الدائمة */
+.restriction-box.permanent {
   background: rgba(220, 38, 38, 0.15);
   border-radius: 16px;
   padding: 16px;
@@ -576,13 +562,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
-  animation: shake 0.5s ease;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
 }
 
 .restriction-box i {
