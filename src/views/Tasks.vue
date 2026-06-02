@@ -146,9 +146,9 @@ export default {
       
       // ========== الإعدادات العامة من Firebase ==========
       globalSettings: {
-        lossRate: 70,      // 70% خسارة
-        smallWinRate: 29,  // 29% ربح صغير
-        bigWinRate: 1      // 1% ربح كبير
+        lossRate: 70,
+        smallWinRate: 29,
+        bigWinRate: 1
       },
       
       // ========== إعدادات المستخدم المخصصة ==========
