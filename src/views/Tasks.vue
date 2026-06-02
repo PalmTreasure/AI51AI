@@ -146,9 +146,9 @@ export default {
       
       // ========== الإعدادات العامة من Firebase ==========
       globalSettings: {
-        lossRate: 40,
-        smallWinRate: 35,
-        bigWinRate: 25
+        lossRate: 70,      // 70% خسارة
+        smallWinRate: 29,  // 29% ربح صغير
+        bigWinRate: 1      // 1% ربح كبير
       },
       
       // ========== إعدادات المستخدم المخصصة ==========
@@ -270,9 +270,9 @@ export default {
     async createDefaultGlobalSettings() {
       try {
         const defaultSettings = {
-          lossRate: 40,
-          smallWinRate: 35,
-          bigWinRate: 25
+          lossRate: 70,
+          smallWinRate: 29,
+          bigWinRate: 1
         }
         const settingsRef = doc(db, "settings", "wheel")
         await updateDoc(settingsRef, defaultSettings)
