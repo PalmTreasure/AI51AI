@@ -52,7 +52,6 @@
           </div>
           
           <div class="custom-modal-body">
-            <!-- تقييم بالنجوم -->
             <div class="rating-stars">
               <span 
                 v-for="star in 5" 
@@ -65,7 +64,6 @@
               </span>
             </div>
             
-            <!-- حقل كتابة الرسالة -->
             <div class="review-message-input">
               <textarea 
                 v-model="reviewData.message" 
@@ -75,7 +73,6 @@
               ></textarea>
             </div>
             
-            <!-- زر إرسال التقييم -->
             <button 
               class="submit-review-btn" 
               @click="submitReview" 
@@ -85,7 +82,6 @@
               {{ isSubmittingReview ? 'جاري الإرسال...' : 'إرسال التقييم' }}
             </button>
             
-            <!-- عرض التقييمات -->
             <div class="previous-reviews">
               <h4>آخر التقييمات <i class="fas fa-comments"></i></h4>
               <div class="reviews-list">
@@ -339,7 +335,7 @@
             <div class="company-text">
               <p>
                 مرحباً بالجميع 🌟<br><br>
-                يسرّنا أن نعرفكم بشركة AI Treasure التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية والذكاء الاصطناعي. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
+                يسرّنا أن نعرفكم بشركة AI Treasure التي تأسست في إنجلترا بتاريخ 10 مارس 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية والذكاء الاصطناعي. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
                 وانطلاقاً من رؤيتنا للتوسع وبناء شبكة تعاون واسعة، قمنا بإنشاء فروع ووكالات في عدد من الدول العربية مثل لبنان، الجزائر، ليبيا، والعراق، ونسعى خلال المرحلة القادمة إلى توسيع نشاطنا وانتشارنا في مختلف دول الشرق الأوسط.<br><br>
                 لقد جاء تأسيس هذه الشركة بعد دراسة عميقة لما حدث خلال عامي 2024 و2025، حيث ظهرت العديد من المنصات الوهمية التي خدعت الكثير من الناس ولم تستمر طويلاً. ومن هنا كان هدفنا واضحاً: تحويل هذا المجال إلى منصة حقيقية وموثوقة يستفيد منها الأعضاء كما تستفيد منها الشركة، ضمن نظام عادل وشفاف.<br><br>
                 وقد تحقق هذا المشروع بجهود كبيرة من الفريق التقني تحت إشراف المهندس أليكس ديروب، الذي لعب دوراً أساسياً في تطوير النظام التقني للشركة. وتقديراً لجهوده المميزة ومساهمته في نجاح هذا المشروع، تمت ترقيته إلى منصب نائب المدير.<br><br>
@@ -354,7 +350,7 @@
             <div class="vip-section">
               <h4>📊 {{ t('vipPlans') }}</h4>
               <div class="vip-list">
-                <div v-for="vip in vipPlans.slice(0, 4)" :key="vip.level" class="vip-item">
+                <div v-for="vip in vipPlans" :key="vip.level" class="vip-item">
                   <div class="vip-level">{{ vip.level }}</div>
                   <div class="vip-info">
                     <span>{{ vip.recharge }} USDT</span>
@@ -527,7 +523,6 @@ export default {
       },
       fakeReviews: [],
       
-      // قائمة الأسماء الوهمية للتقييمات اليومية
       reviewsList: [
         { name: "أحمد محمد", country: "🇸🇦", rating: 5, message: "منصة رائعة جداً، أرباح يومية ممتازة وسحب فوري" },
         { name: "سارة خالد", country: "🇪🇬", rating: 5, message: "تجربة ممتازة، دعم فني متجاوب وفريق محترم" },
@@ -549,7 +544,6 @@ export default {
         { name: "مها السيد", country: "🇪🇬", rating: 5, message: "منصة مذهلة وسحب فوري، أنصح الجميع بالتسجيل" }
       ],
       
-      // أوقات عشوائية
       timesList: ["الآن", "قبل دقيقة", "قبل 5 دقائق", "قبل ساعة", "قبل ساعتين", "قبل 3 ساعات", "قبل 5 ساعات", "قبل يوم", "قبل يومين", "قبل 3 أيام"],
 
       // ==================== CUSTOM MODAL SYSTEM ====================
@@ -566,9 +560,9 @@ export default {
         callback: null
       },
 
-      // ==================== STATIC STATS ====================
-      totalPaid: 35000000,
-      activeMembers: 250000,
+      // ==================== STATIC STATTS (تم التعديل) ====================
+      totalPaid: 75000000,
+      activeMembers: 400000,
 
       // ==================== TOAST NOTIFICATION SYSTEM ====================
       toasts: [],
@@ -602,17 +596,18 @@ export default {
         { id: 3, day: "الاثنين", vips: "VIP6 - VIP7" }
       ],
 
+      // ==================== VIP PLANS (تم التعديل) ====================
       vipPlans: [
-        { level: 'VIP 1', recharge: '0', daily: '0.15' },
-        { level: 'VIP 2', recharge: '10', daily: '0.35' },
-        { level: 'VIP 3', recharge: '50', daily: '1.60' },
-        { level: 'VIP 4', recharge: '100', daily: '3.25' },
-        { level: 'VIP 5', recharge: '300', daily: '10' },
-        { level: 'VIP 6', recharge: '900', daily: '33' },
-        { level: 'VIP 7', recharge: '1350', daily: '51' },
-        { level: 'VIP 8', recharge: '1800', daily: '70' },
-        { level: 'VIP 9', recharge: '3600', daily: '150' },
-        { level: 'VIP 10', recharge: '7200', daily: '330' }
+        { level: 'VIP 1', recharge: '0', daily: '0.10' },
+        { level: 'VIP 2', recharge: '10', daily: '0.50' },
+        { level: 'VIP 3', recharge: '50', daily: '3.00' },
+        { level: 'VIP 4', recharge: '100', daily: '6.00' },
+        { level: 'VIP 5', recharge: '300', daily: '16.00' },
+        { level: 'VIP 6', recharge: '900', daily: '45.00' },
+        { level: 'VIP 7', recharge: '1350', daily: '75.00' },
+        { level: 'VIP 8', recharge: '1800', daily: '110.00' },
+        { level: 'VIP 9', recharge: '3600', daily: '230.00' },
+        { level: 'VIP 10', recharge: '7200', daily: '480.00' }
       ],
 
       menuItems: [
@@ -666,8 +661,8 @@ export default {
           countries: 'الدول',
           agency: 'وكالة',
           program: 'تحميل التطبيق',
-          totalPaidInfo: 'إجمالي المدفوعات: $35,000,000',
-          activeMembersInfo: 'عدد الأعضاء النشطين: 250,000 عضو',
+          totalPaidInfo: 'إجمالي المدفوعات: $75,000,000',
+          activeMembersInfo: 'عدد الأعضاء النشطين: 400,000 عضو',
           countriesInfo: 'عدد الدول: أكثر من 150 دولة حول العالم',
           termsAccepted: 'تمت الموافقة على الشروط والأحكام بنجاح ✓',
           balanceUpdated: 'تم تحديث الرصيد بنجاح ✓',
@@ -713,8 +708,8 @@ export default {
           countries: 'Countries',
           agency: 'Agency',
           program: 'Download App',
-          totalPaidInfo: 'Total Paid: $35,000,000',
-          activeMembersInfo: 'Active Members: 250,000 members',
+          totalPaidInfo: 'Total Paid: $75,000,000',
+          activeMembersInfo: 'Active Members: 400,000 members',
           countriesInfo: 'Countries: More than 150 countries worldwide',
           termsAccepted: 'Terms and conditions accepted successfully ✓',
           balanceUpdated: 'Balance updated successfully ✓',
@@ -758,23 +753,18 @@ export default {
   },
 
   methods: {
-    // ==================== REVIEW SYSTEM METHODS ====================
-    
-    // جلب تقييمات عشوائية مختلفة كل يوم
     getDailyRandomReviews() {
       const today = new Date().toDateString();
       const savedDate = localStorage.getItem('reviews_date');
       let reviews = localStorage.getItem('daily_reviews');
       
       if (savedDate !== today || !reviews) {
-        // خلط الأسماء بشكل عشوائي
         const shuffled = [...this.reviewsList];
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         
-        // اختيار 8 تقييمات عشوائية وإضافة أوقات عشوائية
         reviews = shuffled.slice(0, 8).map((item) => ({
           name: item.name,
           flag: item.country,
@@ -794,14 +784,11 @@ export default {
     },
     
     loadDailyReviews() {
-      // جلب التقييمات اليومية العشوائية
       this.fakeReviews = this.getDailyRandomReviews();
       
-      // إضافة تقييمات المستخدمين السابقة إن وجدت
       const savedUserReviews = localStorage.getItem('user_reviews');
       if (savedUserReviews) {
         const userReviews = JSON.parse(savedUserReviews);
-        // إضافة تقييمات المستخدمين في الأعلى
         this.fakeReviews = [...userReviews, ...this.fakeReviews];
       }
     },
@@ -826,10 +813,8 @@ export default {
       
       this.isSubmittingReview = true;
       
-      // الحصول على اسم المستخدم الحقيقي
       let userName = this.username || "مستخدم";
       
-      // محاولة جلب اسم المستخدم من Firestore إذا كان متاحاً
       if (this.currentUserUid) {
         try {
           const userSnap = await getDoc(doc(db, "users", this.currentUserUid));
@@ -841,7 +826,6 @@ export default {
         }
       }
       
-      // إضافة التقييم الجديد
       const newReview = {
         name: userName,
         flag: "⭐",
@@ -850,13 +834,11 @@ export default {
         time: "الآن"
       };
       
-      // حفظ التقييمات في localStorage
       const savedUserReviews = localStorage.getItem('user_reviews');
       let userReviews = savedUserReviews ? JSON.parse(savedUserReviews) : [];
       userReviews.unshift(newReview);
       localStorage.setItem('user_reviews', JSON.stringify(userReviews));
       
-      // تحديث قائمة التقييمات المعروضة
       this.fakeReviews = [...userReviews, ...this.getDailyRandomReviews()];
       
       this.isSubmittingReview = false;
@@ -864,7 +846,6 @@ export default {
       this.showSuccessMessage(this.t('reviewSubmitted'));
     },
 
-    // ==================== STATS INFO METHODS ====================
     showTotalPaidInfo() {
       this.showModal({
         type: 'info',
@@ -895,7 +876,6 @@ export default {
       });
     },
 
-    // ==================== CUSTOM MODAL METHODS ====================
     showModal(options) {
       this.modal = {
         visible: true,
@@ -1192,7 +1172,6 @@ export default {
       this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // استخدام اسم المستخدم بدلاً من رقم الهاتف
           this.username = data.username || data.email || "User";
           this.balance = typeof data.balance === 'number' ? data.balance : 0;
         }
@@ -1545,7 +1524,6 @@ export default {
   border-color: #D4AF37;
 }
 
-/* ==================== زر إرسال التقييم ==================== */
 .submit-review-btn {
   width: 100%;
   padding: 14px 20px;
@@ -1576,7 +1554,6 @@ export default {
   transform: none;
 }
 
-/* ==================== التقييمات السابقة ==================== */
 .previous-reviews {
   margin-top: 20px;
   border-top: 1px solid rgba(212, 175, 55, 0.2);
