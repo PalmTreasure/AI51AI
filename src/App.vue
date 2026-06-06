@@ -204,7 +204,7 @@
               <div class="message-content">
                 <p>
                   مرحباً بالجميع 🤖<br><br>
-                  يسرّنا أن نعرفكم بشركة <strong>AI</strong> التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية.<br><br>
+                  يسرّنا أن نعرفكم بشركة <strong>AI</strong> التي تأسست في إنجلترا بتاريخ 10 مارس 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية.<br><br>
                   
                   تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
                   
@@ -328,23 +328,23 @@ export default {
       // بيانات الدعم (تيليجرام فقط)
       telegramLink: "https://t.me/AI51AI",
 
-      // خطط VIP
+      // ==================== خطط VIP (تم التعديل) ====================
       vipPlans: [
-        { level: 'VIP 1', recharge: '0', daily: '0.15', monthly: '4.5', percentage: null },
-        { level: 'VIP 2', recharge: '10', daily: '0.35', monthly: '10.5', percentage: '105% شهرياً' },
-        { level: 'VIP 3', recharge: '50', daily: '1.60', monthly: '48', percentage: '96% شهرياً' },
-        { level: 'VIP 4', recharge: '100', daily: '3.25', monthly: '97.5', percentage: '97.5% شهرياً' },
-        { level: 'VIP 5', recharge: '300', daily: '10', monthly: '300', percentage: '100% شهرياً' },
-        { level: 'VIP 6', recharge: '900', daily: '33', monthly: '990', percentage: '110% شهرياً' },
-        { level: 'VIP 7', recharge: '1350', daily: '51', monthly: '1530', percentage: '113% شهرياً' },
-        { level: 'VIP 8', recharge: '1800', daily: '70', monthly: '2100', percentage: '116% شهرياً' },
-        { level: 'VIP 9', recharge: '3600', daily: '150', monthly: '4500', percentage: '125% شهرياً' },
-        { level: 'VIP 10', recharge: '7200', daily: '330', monthly: '9900', percentage: '137% شهرياً' },
-        { level: 'VIP 11', recharge: '14400', daily: '700', monthly: '21000', percentage: '146% شهرياً' },
-        { level: 'VIP 12', recharge: '18800', daily: '1600', monthly: '48000', percentage: '255% شهرياً' },
-        { level: 'VIP 13', recharge: '37600', daily: '3500', monthly: '105000', percentage: '279% شهرياً' },
-        { level: 'VIP 14', recharge: '75200', daily: '7500', monthly: '225000', percentage: '299% شهرياً' },
-        { level: 'VIP 15', recharge: '150400', daily: '16000', monthly: '480000', percentage: '319% شهرياً' }
+        { level: 'VIP 1', recharge: '0', daily: '0.10', monthly: '3', percentage: null },
+        { level: 'VIP 2', recharge: '10', daily: '0.50', monthly: '15', percentage: '150% شهرياً' },
+        { level: 'VIP 3', recharge: '50', daily: '3.00', monthly: '90', percentage: '180% شهرياً' },
+        { level: 'VIP 4', recharge: '100', daily: '6.00', monthly: '180', percentage: '180% شهرياً' },
+        { level: 'VIP 5', recharge: '300', daily: '16.00', monthly: '480', percentage: '160% شهرياً' },
+        { level: 'VIP 6', recharge: '900', daily: '45.00', monthly: '1350', percentage: '150% شهرياً' },
+        { level: 'VIP 7', recharge: '1350', daily: '75.00', monthly: '2250', percentage: '166% شهرياً' },
+        { level: 'VIP 8', recharge: '1800', daily: '110.00', monthly: '3300', percentage: '183% شهرياً' },
+        { level: 'VIP 9', recharge: '3600', daily: '230.00', monthly: '6900', percentage: '191% شهرياً' },
+        { level: 'VIP 10', recharge: '7200', daily: '480.00', monthly: '14400', percentage: '200% شهرياً' },
+        { level: 'VIP 11', recharge: '14400', daily: '1000.00', monthly: '30000', percentage: '208% شهرياً' },
+        { level: 'VIP 12', recharge: '18800', daily: '2100.00', monthly: '63000', percentage: '335% شهرياً' },
+        { level: 'VIP 13', recharge: '37600', daily: '4400.00', monthly: '132000', percentage: '351% شهرياً' },
+        { level: 'VIP 14', recharge: '75200', daily: '9200.00', monthly: '276000', percentage: '367% شهرياً' },
+        { level: 'VIP 15', recharge: '150400', daily: '19000.00', monthly: '570000', percentage: '379% شهرياً' }
       ],
 
       // قائمة المكافآت
