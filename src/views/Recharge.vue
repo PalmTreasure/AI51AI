@@ -62,9 +62,8 @@
         </div>
       </div>
 
-      <!-- Deposit Details Card - محسن بشكل كبير -->
+      <!-- Deposit Details Card -->
       <div class="deposit-card">
-        <!-- QR Section - مكبر ومحسن -->
         <div class="qr-section">
           <div class="qr-frame">
             <img :src="getQr(network)" :alt="network" class="qr-code">
@@ -72,10 +71,9 @@
               <i class="fas fa-spinner fa-spin"></i>
             </div>
           </div>
-          <p class="qr-tip">امسح رمز QR للإيداع</p>
+          <p class="qr-tip">حفظ رمز QR</p>
         </div>
 
-        <!-- Address Section - محسن مع خط عادي -->
         <div class="address-section">
           <div class="label-row">
             <span class="addr-label">عنوان الإيداع</span>
@@ -85,13 +83,55 @@
             <div class="address-text">{{ getAddress(network) }}</div>
             <button class="copy-icon-btn" @click="copyAddress">
               <i :class="copied ? 'fas fa-check' : 'far fa-copy'"></i>
-              <span class="copy-text">{{ copied ? 'تم النسخ' : 'نسخ' }}</span>
             </button>
           </div>
           <transition name="fade">
-            <div v-if="copied" class="copy-toast">تم نسخ العنوان بنجاح</div>
+            <div v-if="copied" class="copy-toast">تم النسخ بنجاح</div>
           </transition>
         </div>
+      </div>
+
+      <!-- Warning Box - مباشرة بعد عنوان الإيداع -->
+      <div class="warning-box">
+        <div class="warning-icon-circle">
+          <span class="warning-icon">⚠️</span>
+        </div>
+        <div class="warning-content">
+          <span class="warning-title">تنبيه مهم</span>
+          <p class="warning-description">
+            لن يتم إضافة الرصيد تلقائيًا قبل إرسال طلب تأكيد الإيداع يرجى إدخال المبلغ المرسل ثم الضغط على زر "تأكيد الإيداع".
+          </p>
+        </div>
+        <span class="arrow-down">⬇️</span>
+      </div>
+
+      <!-- Form Inputs -->
+      <div class="form-section">
+        <div class="input-group">
+          <div class="input-field">
+            <input type="number" v-model.number="amount" placeholder="أدخل المبلغ الذي أرسلته إلى حسابك">
+            <span class="suffix">USDT</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>ملاحظة (اختياري)</label>
+          <div class="input-field">
+            <input type="text" v-model="txid" placeholder="اكتب ملاحظة">
+          </div>
+        </div>
+
+        <button class="main-btn" @click="submit" :disabled="loading">
+          <span v-if="!loading">تأكيد الإيداع</span>
+          <i v-else class="fas fa-circle-notch fa-spin"></i>
+        </button>
+
+        <transition name="fade">
+          <div v-if="message" :class="['alert', messageType]">
+            <i :class="messageType === 'error' ? 'fas fa-times-circle' : 'fas fa-check-circle'"></i>
+            {{ message }}
+          </div>
+        </transition>
       </div>
 
       <!-- Instructions -->
@@ -113,7 +153,7 @@
 
 <script>
 import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 export default {
@@ -137,13 +177,17 @@ export default {
     return {
       network: "TRC20",
       isDropdownOpen: false,
+      amount: null,
+      txid: "",
       copied: false,
       loading: false,
+      message: "",
+      messageType: "info",
       addresses: {
-        TRC20: "TNabUE7114PbHQ4PYK4y53fMBANQ6Q837R",
-        ERC20: "0x8A52D2e160DD3F2AC524e2c60acb9cA990c5A070",
-        BEP20: "0x8A52D2e160DD3F2AC524e2c60acb9cA990c5A070",
-        SOL: "4AKmCRQ5sewUiJ8YRqSbBjr817byg829hswXQ9pT7gW9",
+        TRC20: "TC9YKMxacLkvJLA6JbQVGofnjumTqkaUjD",
+        ERC20: "0x17e488f699CC96E4dd05e4E2c869789534E2F634",
+        BEP20: "0x17e488f699CC96E4dd05e4E2c869789534E2F634",
+        SOL: "GgVi3xNRUQeJrNqt8Hg3eBJx5B8yuyggjNvvHxxKVnTR",
       },
       userEmail: "",
       userId: "",
@@ -221,6 +265,44 @@ export default {
       } catch (err) {
         console.error("Copy failed");
       }
+    },
+    async submit() {
+      if (!this.amount || this.amount <= 0) {
+        this.message = "يرجى إدخال مبلغ صحيح";
+        this.messageType = "error";
+        return;
+      }
+      this.loading = true;
+      try {
+        await addDoc(collection(db, "payments"), {
+          userId: this.userId,
+          email: this.userEmail,
+          amount: this.amount,
+          txid: this.txid,
+          network: this.network,
+          status: "pending",
+          createdAt: serverTimestamp(),
+        });
+        await addDoc(collection(db, "transactions"), {
+          userId: this.userId,
+          email: this.userEmail,
+          type: "recharge",
+          amount: this.amount,
+          network: this.network,
+          txid: this.txid,
+          status: "pending",
+          createdAt: serverTimestamp(),
+        });
+        this.message = "تم إرسال الطلب بنجاح";
+        this.messageType = "success";
+        this.amount = null;
+        this.txid = "";
+      } catch (e) {
+        this.message = "حدث خطأ في الإرسال";
+        this.messageType = "error";
+      } finally {
+        this.loading = false;
+      }
     }
   }
 };
@@ -232,7 +314,7 @@ export default {
   background: #0b0e11;
   color: #eaecef;
   direction: rtl;
-  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
 /* Top Nav */
@@ -260,51 +342,50 @@ export default {
 }
 
 .main-content {
-  max-width: 550px;
+  max-width: 500px;
   margin: 0 auto;
-  padding: 16px 20px;
+  padding: 12px 16px;
 }
 
-/* Asset Card */
+/* Asset Card - مصغر */
 .asset-card {
   background: #1e2329;
-  border-radius: 16px;
-  padding: 16px 20px;
+  border-radius: 12px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  border: 1px solid #2b2f36;
+  margin-bottom: 10px;
 }
 
 .asset-main {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .coin-logo-real {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: contain;
 }
 
 .net-icon-real {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   object-fit: contain;
 }
 
 .coin-symbol {
   display: block;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .coin-name {
-  font-size: 12px;
+  font-size: 11px;
   color: #848e9c;
 }
 
@@ -314,27 +395,26 @@ export default {
 
 .balance-info .label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: #848e9c;
 }
 
 .balance-info .value {
   font-weight: 700;
   color: #fcd535;
-  font-size: 18px;
+  font-size: 14px;
 }
 
-/* Dropdown */
+/* Dropdown - مسافات أقل */
 .input-section {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .section-label {
   display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #eaecef;
-  margin-bottom: 8px;
+  font-size: 13px;
+  color: #848e9c;
+  margin-bottom: 6px;
 }
 
 .dropdown-container {
@@ -343,9 +423,9 @@ export default {
 }
 
 .dropdown-selected {
-  background: #1e2329;
-  border-radius: 12px;
-  padding: 14px 16px;
+  background: #2b2f36;
+  border-radius: 10px;
+  padding: 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -355,27 +435,32 @@ export default {
 
 .dropdown-selected.is-open {
   border-color: #fcd535;
-  box-shadow: 0 0 8px rgba(252, 213, 53, 0.3);
+  box-shadow: 0 0 5px rgba(252, 213, 53, 0.5);
 }
 
 .selected-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.net-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .net-name {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .dropdown-list {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #1e2329;
-  border-radius: 12px;
+  background: #2b2f36;
+  border-radius: 10px;
   overflow: hidden;
   z-index: 100;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -383,7 +468,7 @@ export default {
 }
 
 .dropdown-item {
-  padding: 14px 16px;
+  padding: 12px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -391,7 +476,7 @@ export default {
 }
 
 .dropdown-item:hover {
-  background: #2b2f36;
+  background: #3b3f46;
 }
 
 .dropdown-item.active {
@@ -401,17 +486,17 @@ export default {
 .item-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .net-title {
   display: block;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .net-desc {
-  font-size: 11px;
+  font-size: 10px;
   color: #848e9c;
 }
 
@@ -419,56 +504,44 @@ export default {
   color: #fcd535;
 }
 
-/* Deposit Card - محسن بشكل كبير */
+/* Deposit Card - مصغر */
 .deposit-card {
   background: #181a20;
-  border-radius: 24px;
-  padding: 24px;
+  border-radius: 14px;
+  padding: 14px;
   border: 1px solid #2b2f36;
-  margin-bottom: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  margin-bottom: 10px;
 }
 
-/* QR Section - مكبر */
 .qr-section {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 14px;
 }
 
 .qr-frame {
   display: inline-block;
-  background: #ffffff;
-  padding: 16px;
-  border-radius: 20px;
+  background: #fff;
+  padding: 6px;
+  border-radius: 10px;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .qr-code {
-  width: 200px;
-  height: 200px;
+  width: 100px;
+  height: 100px;
   display: block;
 }
 
-@media (min-width: 480px) {
-  .qr-code {
-    width: 240px;
-    height: 240px;
-  }
-}
-
 .qr-tip {
-  margin-top: 12px;
-  font-size: 13px;
+  margin-top: 6px;
+  font-size: 11px;
   color: #848e9c;
-  font-weight: 500;
 }
 
-/* Address Section - محسن مع خط عادي */
 .address-section {
-  background: #0b0e11;
-  border-radius: 16px;
-  padding: 18px 20px;
+  background: #2b2f36;
+  border-radius: 10px;
+  padding: 10px 12px;
   position: relative;
   border: 1px solid #fcd535;
 }
@@ -476,22 +549,20 @@ export default {
 .label-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .addr-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #eaecef;
+  font-size: 11px;
+  color: #848e9c;
 }
 
 .network-tag {
-  font-size: 11px;
-  background: rgba(252, 213, 53, 0.15);
+  font-size: 9px;
+  background: rgba(252, 213, 53, 0.1);
   color: #fcd535;
-  padding: 4px 10px;
-  border-radius: 20px;
+  padding: 2px 6px;
+  border-radius: 4px;
   font-weight: 700;
 }
 
@@ -499,143 +570,239 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  background: #0b0e11;
-  border-radius: 12px;
+  gap: 8px;
 }
 
-/* عنوان المحفظة بخط عادي ومتناسق */
 .address-text {
-  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 15px;
-  font-weight: 500;
+  font-family: monospace;
+  font-size: 12px;
   word-break: break-all;
   color: #eaecef;
-  line-height: 1.5;
-  letter-spacing: normal;
-  flex: 1;
-  background: #0b0e11;
-  padding: 4px 0;
-  direction: ltr;
-  text-align: left;
-}
-
-@media (min-width: 480px) {
-  .address-text {
-    font-size: 16px;
-  }
+  line-height: 1.3;
 }
 
 .copy-icon-btn {
-  background: rgba(252, 213, 53, 0.15);
-  border: 1px solid rgba(252, 213, 53, 0.3);
+  background: none;
+  border: none;
   color: #fcd535;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 10px 16px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  font-weight: 600;
-  min-width: 80px;
-  justify-content: center;
-  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.copy-icon-btn:hover {
-  background: rgba(252, 213, 53, 0.25);
-  border-color: #fcd535;
-  transform: scale(1.02);
-}
-
-.copy-icon-btn i {
   font-size: 16px;
-}
-
-.copy-text {
-  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
 }
 
 .copy-toast {
   position: absolute;
-  bottom: -28px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
+  bottom: -20px;
+  right: 12px;
+  font-size: 10px;
   color: #0ecb81;
-  background: #1e2329;
-  padding: 4px 12px;
-  border-radius: 20px;
-  white-space: nowrap;
-  font-weight: 600;
 }
 
-/* Tips Box */
+/* Warning Box - أعلى الصفحة مباشرة */
+.warning-box {
+  background: rgba(252, 213, 53, 0.08);
+  border: 1px solid rgba(252, 213, 53, 0.3);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+  backdrop-filter: blur(5px);
+}
+
+.warning-icon-circle {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  background: rgba(252, 213, 53, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.warning-icon {
+  font-size: 14px;
+}
+
+.warning-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.warning-title {
+  color: #fcd535;
+  font-size: 12px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.warning-description {
+  color: #f6465d;
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.arrow-down {
+  font-size: 16px;
+  min-width: 18px;
+  animation: bounce 2s infinite;
+  margin-top: 3px;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+/* Form Section */
+.form-section {
+  margin-bottom: 16px;
+}
+
+.input-group {
+  margin-bottom: 8px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #848e9c;
+}
+
+.input-field {
+  background: #2b2f36;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #fcd535;
+}
+
+.input-field:focus-within {
+  border-color: #fcd535;
+  box-shadow: 0 0 5px rgba(252, 213, 53, 0.5);
+}
+
+.input-field input {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 12px 0;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+}
+
+.suffix {
+  color: #848e9c;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.main-btn {
+  width: 100%;
+  background: #fcd535;
+  color: #0b0e11;
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s;
+}
+
+.main-btn:disabled {
+  opacity: 0.5;
+}
+
+.alert {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alert.success { background: rgba(14, 203, 129, 0.1); color: #0ecb81; }
+.alert.error { background: rgba(246, 70, 93, 0.1); color: #f6465d; }
+
+/* Tips */
 .tips-box {
   background: rgba(252, 213, 53, 0.05);
-  border-radius: 16px;
-  padding: 16px 20px;
+  border-radius: 10px;
+  padding: 12px;
   border: 1px solid rgba(252, 213, 53, 0.1);
 }
 
 .tips-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: #fcd535;
   font-weight: 700;
-  margin-bottom: 12px;
-  font-size: 14px;
+  margin-bottom: 8px;
+  font-size: 13px;
 }
 
 .tips-list {
   margin: 0;
-  padding-right: 20px;
-  font-size: 12px;
+  padding-right: 18px;
+  font-size: 11px;
   color: #848e9c;
-  line-height: 1.8;
+  line-height: 1.7;
 }
 
-.tips-list li {
-  margin-bottom: 6px;
-}
-
-.tips-list strong {
-  color: #fcd535;
-}
-
-/* Responsive */
+/* Responsive Warning Box */
 @media (max-width: 480px) {
   .main-content {
-    padding: 12px 16px;
+    padding: 10px 12px;
   }
   
-  .deposit-card {
-    padding: 20px;
+  .warning-box {
+    padding: 8px;
+    gap: 6px;
   }
   
-  .qr-code {
-    width: 160px;
-    height: 160px;
+  .warning-icon-circle {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
   }
   
-  .address-text {
-    font-size: 13px;
+  .warning-icon {
+    font-size: 12px;
   }
   
-  .copy-icon-btn {
-    padding: 8px 12px;
-    min-width: 70px;
-  }
-  
-  .copy-text {
+  .warning-title {
     font-size: 11px;
   }
   
-  .copy-icon-btn i {
+  .warning-description {
+    font-size: 10px;
+  }
+  
+  .arrow-down {
     font-size: 14px;
+    min-width: 16px;
+  }
+  
+  .qr-code {
+    width: 80px;
+    height: 80px;
   }
 }
 
