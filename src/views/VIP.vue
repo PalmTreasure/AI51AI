@@ -94,8 +94,7 @@
             :key="plan.level"
             :class="{ 
               'is-active': userVip && userVip.level === plan.level,
-              'elite-card': plan.level >= 8,
-              'welcome-card': plan.level === 1 && !hasClaimedWelcomeBonus
+              'elite-card': plan.level >= 8
             }"
           >
             <!-- شريط النخبة للمستويات 8+ -->
@@ -105,22 +104,16 @@
               <i class="fas fa-star"></i>
             </div>
             
-            <!-- شريط الترحيب لـ VIP 1 -->
-            <div class="welcome-ribbon" v-if="plan.level === 1 && !hasClaimedWelcomeBonus">
-              🎁 مكافأة ترحيبية
-            </div>
-            
-            <div class="item-header-row" :class="{ 'elite-header': plan.level >= 8, 'welcome-header': plan.level === 1 }">
+            <div class="item-header-row" :class="{ 'elite-header': plan.level >= 8 }">
               <div class="item-medal-right">
-                <span v-if="plan.level === 1">🎁</span>
+                <span v-if="plan.level === 1">🥉</span>
                 <span v-else-if="plan.level === 2">🥈</span>
                 <span v-else-if="plan.level === 3">🥇</span>
                 <span v-else-if="plan.level >= 8" class="elite-medal">👑</span>
                 <span v-else>💎</span>
               </div>
-              <div class="item-title-left" :class="{ 'elite-title': plan.level >= 8, 'welcome-title': plan.level === 1 }">
-                <span v-if="plan.level === 1">VIP 1 - مكافأة ترحيبية</span>
-                <span v-else>VIP {{ plan.level }}</span>
+              <div class="item-title-left" :class="{ 'elite-title': plan.level >= 8 }">
+                VIP {{ plan.level }}
                 <span v-if="plan.level >= 8" class="star-icon">⭐</span>
               </div>
             </div>
@@ -128,30 +121,16 @@
             <div class="item-body">
               <div class="subscription-row">
                 <span class="label">الاشتراك</span>
-                <span class="value" :class="{ 'elite-value': plan.level >= 8, 'welcome-value': plan.level === 1 }">
-                  <span v-if="plan.level === 1">🎁 مجاني بالكامل</span>
-                  <span v-else>USDT {{ formatNumberEnglishWithCommas(plan.price) }}</span>
-                </span>
+                <span class="value" :class="{ 'elite-value': plan.level >= 8 }">USDT {{ formatNumberEnglishWithCommas(plan.price) }}</span>
               </div>
 
-              <!-- نص توضيحي لـ VIP 1 -->
-              <div class="welcome-message" v-if="plan.level === 1 && !hasClaimedWelcomeBonus">
-                <i class="fas fa-gift"></i>
-                سجل الآن واحصل على 6 USDT هدية ترحيبية فورية!
-              </div>
-              <div class="welcome-message claimed" v-else-if="plan.level === 1 && hasClaimedWelcomeBonus">
-                <i class="fas fa-check-circle"></i>
-                ✅ تم استلام مكافأتك الترحيبية 6 USDT
-              </div>
-
-              <!-- مؤشر العائد على الاستثمار ROI - يظهر فقط للمستويات الأعلى من 1 -->
-              <div class="roi-display" :class="{ 'elite-roi': plan.level >= 8 }" v-if="plan.level > 1 && plan.price > 0">
+              <!-- مؤشر العائد على الاستثمار ROI -->
+              <div class="roi-display" :class="{ 'elite-roi': plan.level >= 8 }" v-if="plan.price > 0">
                 <i class="fas fa-chart-line"></i>
                 العائد السنوي: {{ formatNumberEnglish(getROI(plan), 1) }}%
               </div>
 
-              <!-- إحصائيات الأرباح - تظهر فقط للمستويات الأعلى من 1 -->
-              <div class="stats-grid-v2" v-if="plan.level > 1">
+              <div class="stats-grid-v2">
                 <div class="mini-stat-v2" :class="{ 'elite-stat': plan.level >= 8 }">
                   <span class="stat-label-v2"><i class="fas fa-coins gold-icon"></i> ربح يومي</span>
                   <span class="stat-value-v2">{{ formatNumberEnglish(plan.daily) }}</span>
@@ -174,22 +153,10 @@
                 </div>
               </div>
 
-              <!-- زر VIP 1 الخاص (استلام الهدية) -->
               <button
-                v-if="plan.level === 1 && !hasClaimedWelcomeBonus && !isClaimingBonus"
-                class="btn-action btn-welcome"
-                @click="claimWelcomeBonus"
-                :disabled="processingClaim"
-              >
-                <i class="fas fa-gift"></i>
-                {{ processingClaim ? 'جاري الاستلام...' : '🎁 استلم هديتك 6 USDT' }}
-              </button>
-              
-              <!-- باقي المستويات -->
-              <button
-                v-else-if="plan.level > 1 && !isActivePlan(plan)"
                 class="btn-action"
                 :class="{ 'elite-btn': plan.level >= 8 }"
+                v-if="!isActivePlan(plan)"
                 @click="openConfirmModal(plan)"
                 :disabled="processing"
               >
@@ -197,23 +164,17 @@
                 <i v-else class="fas fa-crown"></i>
                 {{ processing && buyingPlan === plan.level ? 'جاري الشراء...' : 'اشترِ الآن' }}
               </button>
-              
-              <button
-                v-else-if="plan.level > 1 && isActivePlan(plan)"
-                class="btn-action active"
-                :class="{ 'elite-btn-active': plan.level >= 8 }"
-                disabled
-              >
+              <button class="btn-action active" :class="{ 'elite-btn-active': plan.level >= 8 }" v-else disabled>
                 <i class="fas fa-check-circle"></i>
                 مفعل
               </button>
             </div>
 
-            <!-- علامة مميزة للخطط النشطة -->
+            <!-- علامة مميزة للخطط النشطة من النخبة -->
             <div class="active-ribbon" v-if="userVip && userVip.level === plan.level && plan.level >= 8">
               👑 نخبة نشط 👑
             </div>
-            <div class="active-ribbon basic" v-else-if="userVip && userVip.level === plan.level && plan.level > 1">
+            <div class="active-ribbon basic" v-else-if="userVip && userVip.level === plan.level">
               نشط الآن
             </div>
           </div>
@@ -348,7 +309,6 @@ export default {
     return {
       loading: true,
       processing: false,
-      processingClaim: false,
       buyingPlan: null,
       userVip: null,
       remainingMs: 0,
@@ -361,25 +321,23 @@ export default {
       currentPage: 1,
       showConfirmModal: false,
       selectedPlan: null,
-      hasClaimedWelcomeBonus: false,
-      isClaimingBonus: false,
 
       plans: [
-        { level: 1, name: "VIP 1", price: 0, tasks: 0, daily: 0, durationSeconds: 365 * 86400, firstReward: 6 },
-        { level: 2, name: "VIP 2", price: 15, tasks: 1, daily: 10.5, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 3, name: "VIP 3", price: 30, tasks: 1, daily: 21, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 4, name: "VIP 4", price: 60, tasks: 1, daily: 42, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 5, name: "VIP 5", price: 120, tasks: 1, daily: 84, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 6, name: "VIP 6", price: 240, tasks: 1, daily: 168, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 7, name: "VIP 7", price: 480, tasks: 1, daily: 336, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 8, name: "VIP 8", price: 960, tasks: 1, daily: 672, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 9, name: "VIP 9", price: 1920, tasks: 1, daily: 1344, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 10, name: "VIP 10", price: 3840, tasks: 1, daily: 2688, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 11, name: "VIP 11", price: 7680, tasks: 1, daily: 5376, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 12, name: "VIP 12", price: 15360, tasks: 1, daily: 10752, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 13, name: "VIP 13", price: 30720, tasks: 1, daily: 21504, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 14, name: "VIP 14", price: 61440, tasks: 1, daily: 43008, durationSeconds: 365 * 86400, firstReward: 0 },
-        { level: 15, name: "VIP 15", price: 122880, tasks: 1, daily: 86016, durationSeconds: 365 * 86400, firstReward: 0 },
+        { level: 1, name: "VIP 1", price: 0, tasks: 1, daily: 0.10, durationSeconds: 365 * 86400 },
+        { level: 2, name: "VIP 2", price: 10, tasks: 1, daily: 0.50, durationSeconds: 365 * 86400 },
+        { level: 3, name: "VIP 3", price: 50, tasks: 1, daily: 3.00, durationSeconds: 365 * 86400 },
+        { level: 4, name: "VIP 4", price: 100, tasks: 1, daily: 6.00, durationSeconds: 365 * 86400 },
+        { level: 5, name: "VIP 5", price: 300, tasks: 1, daily: 16.00, durationSeconds: 365 * 86400 },
+        { level: 6, name: "VIP 6", price: 900, tasks: 1, daily: 45.00, durationSeconds: 365 * 86400 },
+        { level: 7, name: "VIP 7", price: 1350, tasks: 1, daily: 75.00, durationSeconds: 365 * 86400 },
+        { level: 8, name: "VIP 8", price: 1800, tasks: 1, daily: 110.00, durationSeconds: 365 * 86400 },
+        { level: 9, name: "VIP 9", price: 3600, tasks: 1, daily: 230.00, durationSeconds: 365 * 86400 },
+        { level: 10, name: "VIP 10", price: 7200, tasks: 1, daily: 480.00, durationSeconds: 365 * 86400 },
+        { level: 11, name: "VIP 11", price: 14400, tasks: 1, daily: 1000.00, durationSeconds: 365 * 86400 },
+        { level: 12, name: "VIP 12", price: 18800, tasks: 1, daily: 2100.00, durationSeconds: 365 * 86400 },
+        { level: 13, name: "VIP 13", price: 37600, tasks: 1, daily: 4400.00, durationSeconds: 365 * 86400 },
+        { level: 14, name: "VIP 14", price: 75200, tasks: 1, daily: 9200.00, durationSeconds: 365 * 86400 },
+        { level: 15, name: "VIP 15", price: 150400, tasks: 1, daily: 19000.00, durationSeconds: 365 * 86400 },
       ],
       
       globalCycleHourUTC: 3,
@@ -438,7 +396,6 @@ export default {
         return;
       }
       await this.init();
-      await this.checkWelcomeBonusStatus();
     });
   },
 
@@ -698,131 +655,6 @@ export default {
       this.showConfirmModal = false;
     },
 
-    async checkWelcomeBonusStatus() {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
-        
-        const welcomeBonusRef = doc(db, "users", user.uid, "bonus", "welcome");
-        const bonusSnap = await getDoc(welcomeBonusRef);
-        
-        if (bonusSnap.exists() && bonusSnap.data().claimed === true) {
-          this.hasClaimedWelcomeBonus = true;
-        } else {
-          this.hasClaimedWelcomeBonus = false;
-        }
-      } catch (error) {
-        console.error("Error checking welcome bonus:", error);
-        this.hasClaimedWelcomeBonus = false;
-      }
-    },
-
-    // ====================== الدالة المعدلة لاستلام المكافأة ======================
-    async claimWelcomeBonus() {
-      // منع الضغط المتكرر
-      if (this.processingClaim || this.isClaimingBonus) {
-        return;
-      }
-      
-      // منع الاستلام إذا تم استلام المكافأة سابقاً
-      if (this.hasClaimedWelcomeBonus) {
-        this.showError("لقد قمت بالفعل باستلام المكافأة الترحيبية");
-        return;
-      }
-      
-      this.processingClaim = true;
-      this.isClaimingBonus = true;
-      
-      try {
-        const user = auth.currentUser;
-        if (!user) {
-          this.showError("يرجى تسجيل الدخول أولاً");
-          return;
-        }
-        
-        const userId = user.uid;
-        const userRef = doc(db, "users", userId);
-        const welcomeBonusRef = doc(db, "users", userId, "bonus", "welcome");
-        
-        await runTransaction(db, async (transaction) => {
-          // التحقق من عدم استلام المكافأة سابقاً
-          const bonusSnap = await transaction.get(welcomeBonusRef);
-          
-          if (bonusSnap.exists() && bonusSnap.data().claimed === true) {
-            throw new Error("لقد قمت بالفعل باستلام المكافأة الترحيبية");
-          }
-          
-          // جلب بيانات المستخدم الحالية
-          const userSnap = await transaction.get(userRef);
-          if (!userSnap.exists()) {
-            throw new Error("المستخدم غير موجود");
-          }
-          
-          // حساب الرصيد الجديد (إضافة 6 USDT)
-          const currentBalance = userSnap.data().balance || 0;
-          const newBalance = currentBalance + 6;
-          
-          // تحديث رصيد المستخدم
-          transaction.update(userRef, { balance: newBalance });
-          
-          // إنشاء سجل المكافأة في users/{uid}/bonus/welcome
-          transaction.set(welcomeBonusRef, {
-            claimed: true,
-            amount: 6,
-            claimedAt: serverTimestamp(),
-            type: "welcome_bonus",
-            userId: userId
-          });
-          
-          // تسجيل المعاملة في سجل المعاملات الرئيسي
-          const logRef = doc(collection(db, "transactions"));
-          transaction.set(logRef, {
-            userId: userId,
-            type: "welcome_bonus",
-            amount: 6,
-            status: "completed",
-            description: "مكافأة ترحيبية VIP 1",
-            createdAt: serverTimestamp()
-          });
-        });
-        
-        // تحديث الحالة المحلية
-        this.hasClaimedWelcomeBonus = true;
-        
-        // إعادة تحميل بيانات VIP لتحديث الواجهة وإخفاء الزر فوراً
-        await this.init();
-        
-        // إظهار رسالة النجاح
-        this.showSuccess("✅ تم استلام مكافأة 6 USDT بنجاح");
-        
-        // تحديث الرصيد المعروض في الواجهة
-        await this.refreshBalance();
-        
-      } catch (err) {
-        console.error("Error claiming welcome bonus:", err);
-        this.showError(err.message || "حدث خطأ أثناء استلام المكافأة");
-      } finally {
-        this.processingClaim = false;
-        this.isClaimingBonus = false;
-      }
-    },
-    
-    async refreshBalance() {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
-        
-        const userRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(userRef);
-        if (docSnap.exists()) {
-          const newBalance = docSnap.data().balance || 0;
-          this.$emit('balance-updated', newBalance);
-        }
-      } catch (error) {
-        console.error("Refresh balance error:", error);
-      }
-    },
-
     async executePurchase() {
       if (!this.selectedPlan) return;
       
@@ -853,17 +685,9 @@ export default {
           
           const lastCycle = this.getLastCompletedCycle(now);
           
-          let firstRewardAmount = 0;
-          let finalBalance = balance - this.selectedPlan.price;
-          
-          if (this.selectedPlan.level === 1 && this.selectedPlan.firstReward > 0) {
-            firstRewardAmount = this.selectedPlan.firstReward;
-            finalBalance = finalBalance + firstRewardAmount;
-          } 
-          else if (this.selectedPlan.daily > 0) {
-            firstRewardAmount = this.selectedPlan.daily;
-            finalBalance = finalBalance + firstRewardAmount;
-          }
+          const newBalanceAfterPurchase = balance - this.selectedPlan.price;
+          const firstReward = this.selectedPlan.daily;
+          const finalBalance = newBalanceAfterPurchase + firstReward;
           
           transaction.update(userRef, { balance: finalBalance });
           
@@ -882,7 +706,7 @@ export default {
 
           const firstRewardRef = doc(collection(db, "users", user.uid, "rewards_history"));
           transaction.set(firstRewardRef, {
-            amount: firstRewardAmount,
+            amount: firstReward,
             level: this.selectedPlan.level,
             type: "first_reward",
             cycles: 0,
@@ -895,17 +719,13 @@ export default {
             userId: user.uid,
             type: "vip_purchase",
             amount: this.selectedPlan.price,
-            firstReward: firstRewardAmount,
+            firstReward: firstReward,
             createdAt: serverTimestamp(),
             status: "completed"
           });
         });
 
-        if (this.selectedPlan.level === 1 && this.selectedPlan.firstReward > 0) {
-          this.showSuccess(`تم تفعيل VIP ${this.selectedPlan.level} بنجاح! +${this.formatNumberEnglish(this.selectedPlan.firstReward)} USDT مكافأة ترحيبية فورية!`);
-        } else {
-          this.showSuccess(`تم تفعيل VIP ${this.selectedPlan.level} بنجاح! +${this.formatNumberEnglish(this.selectedPlan.daily)} USDT ربح فوري`);
-        }
+        this.showSuccess(`تم تفعيل VIP ${this.selectedPlan.level} بنجاح! +${this.formatNumberEnglish(this.selectedPlan.daily)} USDT ربح فوري`);
         await this.init();
       } catch (err) {
         this.showError(err.message);
@@ -963,7 +783,6 @@ export default {
   font-size: 28px;
 }
 
-/* إشعار الأرباح */
 .profit-notification {
   position: fixed;
   top: 20px;
@@ -991,7 +810,6 @@ export default {
   opacity: 0;
 }
 
-/* البطاقة النشطة */
 .current-vip-card {
   background: #181a20;
   border: 1.5px solid #fcd535;
@@ -1085,7 +903,6 @@ export default {
   cursor: pointer;
 }
 
-/* فلترة الخطط */
 .filter-buttons {
   display: flex;
   gap: 10px;
@@ -1120,7 +937,6 @@ export default {
   border-color: #fcd535;
 }
 
-/* قائمة VIP */
 .vip-list { display: flex; flex-direction: column; gap: 15px; }
 .vip-card-item { 
   background: #181a20; 
@@ -1148,13 +964,6 @@ export default {
   background: linear-gradient(90deg, #fcd535, #ffed8a, #fcd535);
 }
 
-.vip-card-item.welcome-card {
-  border: 2px solid #4CAF50;
-  background: linear-gradient(135deg, #181a20, #1a2a1a);
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
-}
-
-/* شريط النخبة */
 .elite-ribbon {
   position: absolute;
   top: 12px;
@@ -1172,24 +981,6 @@ export default {
   gap: 5px;
 }
 
-/* شريط الترحيب */
-.welcome-ribbon {
-  position: absolute;
-  top: 12px;
-  right: -25px;
-  background: linear-gradient(135deg, #4CAF50, #66BB6A);
-  color: #fff;
-  padding: 4px 30px;
-  transform: rotate(45deg);
-  font-size: 11px;
-  font-weight: 800;
-  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
 .item-header-row {
   padding: 12px 15px;
   display: flex;
@@ -1200,10 +991,6 @@ export default {
 }
 .item-header-row.elite-header {
   background: linear-gradient(135deg, rgba(252, 213, 53, 0.15), rgba(255, 237, 138, 0.05));
-}
-.item-header-row.welcome-header {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(102, 187, 106, 0.05));
-  border-bottom: 1px solid rgba(76, 175, 80, 0.3);
 }
 .item-medal-right { font-size: 20px; }
 .elite-medal {
@@ -1222,10 +1009,6 @@ export default {
   font-size: 18px;
   text-shadow: 0 0 5px rgba(252, 213, 53, 0.5);
 }
-.item-title-left.welcome-title {
-  color: #66BB6A;
-  font-size: 16px;
-}
 .star-icon {
   font-size: 14px;
 }
@@ -1238,36 +1021,7 @@ export default {
   color: #fcd535;
   font-size: 16px;
 }
-.subscription-row .value.welcome-value {
-  color: #66BB6A;
-  font-size: 14px;
-}
 
-/* رسالة الترحيب */
-.welcome-message {
-  background: rgba(76, 175, 80, 0.15);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #66BB6A;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-.welcome-message.claimed {
-  background: rgba(76, 175, 80, 0.08);
-  color: #4CAF50;
-}
-.welcome-message i {
-  font-size: 14px;
-}
-
-/* مؤشر ROI */
 .roi-display {
   background: rgba(252, 213, 53, 0.1);
   border: 1px solid rgba(252, 213, 53, 0.3);
@@ -1353,20 +1107,6 @@ export default {
   box-shadow: 0 0 10px rgba(252, 213, 53, 0.2);
 }
 
-/* زر الترحيب الخاص */
-.btn-welcome {
-  background: linear-gradient(135deg, #4CAF50, #66BB6A);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 800;
-  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.4);
-}
-.btn-welcome:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(76, 175, 80, 0.5);
-}
-
-/* علامة النشط */
 .active-ribbon {
   position: absolute;
   bottom: 10px;
@@ -1382,7 +1122,6 @@ export default {
   background: rgba(252, 213, 53, 0.8);
 }
 
-/* Pagination */
 .pagination {
   display: flex;
   justify-content: center;
@@ -1418,7 +1157,6 @@ export default {
   font-weight: 700;
 }
 
-/* شارة النخبة في الأسفل */
 .elite-footer {
   margin-top: 25px;
   padding: 15px;
@@ -1451,7 +1189,6 @@ export default {
   margin: 0;
 }
 
-/* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
 .modal-content { background: #181a20; width: 100%; max-width: 400px; border-radius: 20px; border: 1px solid #fcd535; overflow: hidden; }
 .modal-header { padding: 15px 20px; border-bottom: 1px solid #2b2f36; display: flex; justify-content: space-between; align-items: center; }
@@ -1467,7 +1204,6 @@ export default {
 .modal-footer { padding: 15px; text-align: center; }
 .btn-modal-close { background: #fcd535; color: #000; border: none; padding: 8px 25px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 
-/* Custom Confirm Modal */
 .confirm-modal-overlay {
   position: fixed;
   top: 0;
@@ -1596,7 +1332,6 @@ export default {
   cursor: not-allowed;
 }
 
-/* Modal transitions */
 .modal-fade-scale-enter-active,
 .modal-fade-scale-leave-active {
   transition: all 0.3s ease;
@@ -1620,7 +1355,6 @@ export default {
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-/* تحسينات الجوال */
 @media (max-width: 768px) {
   .profit-notification {
     font-size: 12px;
@@ -1648,12 +1382,6 @@ export default {
     font-size: 9px;
     padding: 3px 25px;
     left: -20px;
-  }
-  
-  .welcome-ribbon {
-    font-size: 9px;
-    padding: 3px 25px;
-    right: -20px;
   }
   
   .elite-info-box {
