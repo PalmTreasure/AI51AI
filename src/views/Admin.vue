@@ -223,6 +223,8 @@
             <p><strong>رقم الهاتف:</strong> <span class="gold-text">{{ l.userPhone || l.phoneNumber || '—' }}</span></p>
             <p><strong>البريد:</strong> <span class="gold-text">{{ l.email || l.userEmail || '—' }}</span></p>
             <p><strong>المبلغ:</strong> <span class="gold-text">{{ l.amount }} USDT</span></p>
+            <!-- إضافة عرض المحفظة -->
+            <p><strong>المحفظة:</strong> <span class="gold-text">{{ l.wallet || l.walletAddress || '—' }}</span></p>
             <p><strong>النوع:</strong> 
               <span :class="{
                 'status-approved': l.type === 'approved',
@@ -2248,6 +2250,8 @@ export default {
             userPhone: data.userPhone || null,
             email: data.email || data.userEmail,
             userEmail: data.userEmail || data.email,
+            wallet: data.wallet || data.walletAddress || null,
+            walletAddress: data.walletAddress || data.wallet || null,
           };
         });
       } catch (e) {
