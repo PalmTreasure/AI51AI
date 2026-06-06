@@ -22,6 +22,36 @@
         </div>
       </div>
 
+      <!-- حالة VIP -->
+      <div v-if="userVipLevel" class="vip-status-box">
+        <div class="vip-badge">
+          <i class="fas fa-crown"></i>
+          مستوى VIP {{ userVipLevel }}
+        </div>
+        <div class="user-contact">
+          <i class="fas fa-phone" v-if="userPhone"></i>
+          <i class="fas fa-envelope" v-else></i>
+          {{ userContact }}
+        </div>
+        <div class="withdraw-condition">
+          <i class="fas fa-check-circle" :class="{ 'condition-met': isVIP8OrAbove || balance >= minWithdrawAmount }"></i>
+          <span>الحد الأدنى: <strong>{{ isVIP8OrAbove ? 'بدون حد أدنى' : minWithdrawAmount + ' USDT' }}</strong></span>
+        </div>
+        <div class="withdraw-condition">
+          <i class="fas fa-check-circle" :class="{ 'condition-met': isAllowedDay }"></i>
+          <span>يوم السحب: <strong>{{ isVIP8OrAbove ? 'أي يوم' : withdrawDay }}</strong></span>
+        </div>
+        <div v-if="isVIP8OrAbove" class="vip-special-badge">
+          <i class="fas fa-star"></i>
+          مميزات VIP 8+: سحب أي مبلغ في أي وقت
+        </div>
+      </div>
+
+      <div v-else class="vip-status-box error">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>يجب أن يكون لديك اشتراك VIP للسحب</p>
+      </div>
+
       <!-- مبلغ السحب -->
       <div class="input-group">
         <label>
@@ -85,6 +115,10 @@
 
       <!-- عنوان المحفظة - قسم مستقل -->
       <div class="isolated-section">
+        <!-- حقول وهمية خاصة بقسم المحفظة -->
+        <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="off" name="w_fake_1" tabindex="-1">
+        <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="new-password" name="w_fake_2" tabindex="-1">
+        
         <div class="input-group wallet-section">
           <label>
             <i class="fas fa-qrcode"></i>
@@ -115,6 +149,10 @@
 
       <!-- كلمة المرور - قسم مستقل -->
       <div class="isolated-section">
+        <!-- حقول وهمية خاصة بقسم كلمة المرور -->
+        <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="username" name="p_fake_1" tabindex="-1">
+        <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="current-password" name="p_fake_2" tabindex="-1">
+        
         <div class="input-group password-section">
           <label>
             <i class="fas fa-lock"></i>
@@ -146,6 +184,16 @@
         <h3>📋 ملخص طلب السحب</h3>
         
         <div class="summary-item">
+          <span>معلومات الاتصال:</span>
+          <span class="summary-value">{{ userContact }}</span>
+        </div>
+        
+        <div class="summary-item">
+          <span>مستوى VIP:</span>
+          <span class="summary-value">{{ userVipLevel || 'لا يوجد' }}</span>
+        </div>
+        
+        <div class="summary-item">
           <span>المبلغ المطلوب:</span>
           <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
         </div>
@@ -168,6 +216,16 @@
         <div class="summary-item">
           <span>عنوان المحفظة:</span>
           <span class="summary-value address">{{ wallet.substring(0, 10) }}...{{ wallet.substring(wallet.length - 10) }}</span>
+        </div>
+        
+        <div class="summary-item">
+          <span>يوم السحب:</span>
+          <span class="summary-value">{{ isVIP8OrAbove ? 'أي يوم' : withdrawDay }}</span>
+        </div>
+        
+        <div class="summary-item">
+          <span>الحد الأدنى:</span>
+          <span class="summary-value">{{ isVIP8OrAbove ? 'بدون حد أدنى' : minWithdrawAmount + ' USDT' }}</span>
         </div>
         
         <div class="summary-item total">
@@ -193,28 +251,17 @@
       <!-- زر السحب -->
       <button 
         class="gold-button" 
-        @click="showWithdrawRestriction"
-        :disabled="isLoading"
+        @click="submitWithdraw"
+        :disabled="isLoading || !isFormValid"
       >
         <i class="fas fa-paper-plane" v-if="!isLoading"></i>
         <i class="fas fa-spinner fa-spin" v-else></i>
         {{ isLoading ? 'جاري المعالجة...' : 'تأكيد السحب' }}
       </button>
 
-      <!-- رسالة المنع -->
+      <!-- رسائل الخطأ والنجاح -->
       <transition name="fade">
-        <div v-if="showRestrictionMessage" class="message error restriction-message">
-          <i class="fas fa-exclamation-triangle"></i>
-          <div>
-            <div class="message-title">⚠️ يجب ترقية حسابك إلى VIP أعلى حتى تتمكن من سحب الأرباح.</div>
-            <div class="message-amount">المبلغ المطلوب سحبه: <strong>{{ (Number(amount) || 0).toFixed(2) }} USDT</strong></div>
-          </div>
-        </div>
-      </transition>
-
-      <!-- رسائل أخرى -->
-      <transition name="fade">
-        <div v-if="message && !showRestrictionMessage" class="message" :class="messageType">
+        <div v-if="message" class="message" :class="messageType">
           <i :class="messageType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
           {{ message }}
         </div>
@@ -225,7 +272,8 @@
 
 <script>
 import { auth, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, runTransaction, collection, serverTimestamp } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default {
   name: "Withdraw",
@@ -241,8 +289,11 @@ export default {
       isLoading: false,
       message: "",
       messageType: "info",
+      userVipLevel: null,
+      userPhone: "",
+      userEmail: "",
+      minWithdrawAmount: 5,
       showNetworkDropdown: false,
-      showRestrictionMessage: false,
       networks: [
         { value: 'TRC20', label: 'Tron (TRC20)' },
         { value: 'ERC20', label: 'Ethereum (ERC20)' },
@@ -256,11 +307,69 @@ export default {
       walletError: "",
       
       // نسبة الرسوم
-      feePercentage: 5
+      feePercentage: 5,
+      
+      vipLimits: {
+        1: 5,
+        2: 7,
+        3: 25,
+        4: 50,
+        5: 150,
+        6: 450,
+        7: 675,
+        8: 0,
+        9: 0,
+        10: 0,
+        11: 0,
+        12: 0,
+        13: 0,
+        14: 0,
+        15: 0
+      },
+      
+      withdrawDays: {
+        1: "السبت", 2: "السبت", 3: "السبت",
+        4: "الأحد", 5: "الأحد",
+        6: "الاثنين", 7: "الاثنين",
+        8: "أي يوم", 9: "أي يوم",
+        10: "أي يوم", 11: "أي يوم",
+        12: "أي يوم", 13: "أي يوم",
+        14: "أي يوم", 15: "أي يوم"
+      }
     };
   },
 
   computed: {
+    isVIP8OrAbove() {
+      return this.userVipLevel >= 8;
+    },
+
+    withdrawDay() {
+      return this.withdrawDays[this.userVipLevel] || "";
+    },
+
+    isAllowedDay() {
+      if (!this.userVipLevel) return false;
+      
+      // VIP 8+ يمكنهم السحب في أي يوم
+      if (this.isVIP8OrAbove) return true;
+      
+      const dayMap = {
+        "السبت": "Saturday",
+        "الأحد": "Sunday",
+        "الاثنين": "Monday",
+        "الثلاثاء": "Tuesday",
+        "الأربعاء": "Wednesday",
+        "الخميس": "Thursday",
+        "الجمعة": "Friday"
+      };
+      
+      const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+      const allowedDay = this.withdrawDays[this.userVipLevel];
+      
+      return today === dayMap[allowedDay];
+    },
+
     // حساب الرسوم
     fee() {
       if (!this.amount) return 0;
@@ -274,6 +383,23 @@ export default {
     },
 
     isFormValid() {
+      // لـ VIP 8+ الشروط مختلفة
+      if (this.isVIP8OrAbove) {
+        return (
+          this.amount && 
+          !this.amountError &&
+          this.network && 
+          !this.networkError &&
+          this.wallet && 
+          !this.walletError &&
+          this.password &&
+          this.userVipLevel &&
+          this.balance >= Number(this.amount) &&
+          Number(this.amount) > 0
+        );
+      }
+      
+      // للـ VIP العادي
       return (
         this.amount && 
         !this.amountError &&
@@ -282,13 +408,25 @@ export default {
         this.wallet && 
         !this.walletError &&
         this.password &&
-        Number(this.amount) > 0 &&
+        this.userVipLevel &&
+        this.isAllowedDay &&
+        Number(this.amount) === this.minWithdrawAmount &&
         this.balance >= Number(this.amount)
       );
     },
 
     showSummary() {
-      return this.amount && this.network && this.wallet;
+      return this.amount && this.network && this.wallet && this.userVipLevel;
+    },
+
+    userContact() {
+      if (this.userPhone) {
+        return this.userPhone;
+      } else if (this.userEmail) {
+        return this.userEmail;
+      } else {
+        return "لا يوجد";
+      }
     }
   },
 
@@ -301,6 +439,15 @@ export default {
     },
     wallet() {
       this.validateWallet();
+    },
+    userVipLevel() {
+      if (this.userVipLevel) {
+        if (!this.isVIP8OrAbove) {
+          this.minWithdrawAmount = this.vipLimits[this.userVipLevel] || 5;
+        } else {
+          this.minWithdrawAmount = 0;
+        }
+      }
     }
   },
 
@@ -316,6 +463,7 @@ export default {
   methods: {
     clearBrowserAutofill() {
       this.$nextTick(() => {
+        // تنظيف حقول المحفظة وكلمة المرور من أي قيم مترسبة من المتصفح
         if (this.$refs.walletInput) {
           this.$refs.walletInput.value = '';
           this.wallet = '';
@@ -328,6 +476,7 @@ export default {
     },
 
     preventAutocomplete() {
+      // إزالة أي سمات autocomplete قد تكون أضافها المتصفح
       this.$nextTick(() => {
         setTimeout(() => {
           const allInputs = document.querySelectorAll('input');
@@ -337,6 +486,7 @@ export default {
             input.setAttribute('data-form-type', 'other');
             input.setAttribute('data-browser-autofill', 'off');
             
+            // مسح أي قيمة مترسبة
             if (input.name === 'wallet_address_field' || input.name === 'password_field_y') {
               const currentValue = input.value;
               if (currentValue && !this.wallet && !this.password) {
@@ -363,6 +513,24 @@ export default {
         if (userSnap.exists()) {
           const userData = userSnap.data();
           this.balance = userData.balance || 0;
+          this.userPhone = userData.phoneNumber || "";
+          this.userEmail = userData.email || "";
+          
+          // قراءة مستوى VIP من بيانات المستخدم مباشرةً (الوظيفة الأصلية)
+          if (userData.vipLevel) {
+            this.userVipLevel = userData.vipLevel;
+          }
+        }
+
+        // إذا لم يكن VIP موجوداً في بيانات المستخدم، نحاول من subcollection (الوظيفة الأصلية)
+        if (!this.userVipLevel) {
+          const vipRef = doc(db, "users", user.uid, "vip", "current");
+          const vipSnap = await getDoc(vipRef);
+          if (vipSnap.exists()) {
+            this.userVipLevel = vipSnap.data().level;
+          } else {
+            this.showMessage("لا يوجد اشتراك VIP نشط", "error");
+          }
         }
       } catch (error) {
         console.error("خطأ:", error);
@@ -373,8 +541,17 @@ export default {
     validateAmount() {
       if (!this.amount) {
         this.amountError = "الرجاء إدخال المبلغ";
-      } else if (Number(this.amount) <= 0) {
-        this.amountError = "المبلغ يجب أن يكون أكبر من صفر";
+      } else if (this.isVIP8OrAbove) {
+        // VIP 8+ يمكنهم إدخال أي مبلغ
+        if (this.amount > this.balance) {
+          this.amountError = "المبلغ أكبر من رصيدك";
+        } else if (this.amount <= 0) {
+          this.amountError = "الرجاء إدخال مبلغ أكبر من صفر";
+        } else {
+          this.amountError = "";
+        }
+      } else if (Number(this.amount) !== this.minWithdrawAmount) {
+        this.amountError = `يجب سحب ${this.minWithdrawAmount} USDT فقط`;
       } else if (this.amount > this.balance) {
         this.amountError = "المبلغ أكبر من رصيدك";
       } else {
@@ -438,23 +615,120 @@ export default {
       }, 5000);
     },
 
-    showWithdrawRestriction() {
-      // إخفاء أي رسائل أخرى
-      this.message = "";
-      
-      // إظهار رسالة المنع فقط
-      this.showRestrictionMessage = true;
-      
-      // إضافة تأثير تحميل وهمي
+    async submitWithdraw() {
+      if (!this.isFormValid) return;
+
       this.isLoading = true;
-      setTimeout(() => {
+      const user = auth.currentUser;
+      const withdrawAmount = Number(this.amount);
+      const feeAmount = this.fee;
+      const netAmountValue = this.netAmount;
+      const transactionId = "WITHDRAW_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
+
+      try {
+        // التحقق من كلمة المرور
+        try {
+          await signInWithEmailAndPassword(auth, user.email, this.password);
+        } catch (authError) {
+          this.showMessage("❌ كلمة المرور غير صحيحة. تحقق من كلمة المرور.", "error");
+          this.isLoading = false;
+          return;
+        }
+
+        // ===================================================
+        // استخدام مراجع المستندات مسبقاً
+        // لتجنب خطأ الأذونات داخل runTransaction
+        // ===================================================
+        const userRef = doc(db, "users", user.uid);
+        const withdrawDocRef = doc(collection(db, "withdraw_requests"));
+        const transactionDocRef = doc(collection(db, "transactions"));
+
+        await runTransaction(db, async (transaction) => {
+          const userSnap = await transaction.get(userRef);
+
+          if (!userSnap.exists()) {
+            throw new Error("المستخدم غير موجود");
+          }
+
+          const userData = userSnap.data();
+          if (userData.balance < withdrawAmount) {
+            throw new Error("الرصيد غير كافي");
+          }
+
+          if (userData.blocked) {
+            throw new Error("حسابك محظور من السحب");
+          }
+
+          // 1. تحديث الرصيد - خصم المبلغ المطلوب فقط
+          transaction.update(userRef, {
+            balance: userData.balance - withdrawAmount
+          });
+
+          // 2. إنشاء طلب السحب مع تفاصيل الرسوم
+          transaction.set(withdrawDocRef, {
+            transactionId: transactionId,
+            userId: user.uid,
+            userPhone: this.userPhone || null,
+            userEmail: this.userEmail || null,
+            amount: withdrawAmount,           // المبلغ المطلوب
+            fee: feeAmount,                   // قيمة الرسوم (5%)
+            netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
+            feePercentage: this.feePercentage, // نسبة الرسوم
+            totalDeduct: withdrawAmount,      // المبلغ المخصوم من الرصيد
+            network: this.network,
+            wallet: this.wallet,
+            walletAddress: this.wallet,
+            status: "pending",
+            createdAt: serverTimestamp(),
+            vipLevel: this.userVipLevel,
+            withdrawDay: this.isVIP8OrAbove ? "أي يوم" : this.withdrawDay,
+            adminAction: "",
+            adminMessage: "",
+            userMessage: "",
+            reason: "",
+            isVIP8OrAbove: this.isVIP8OrAbove
+          });
+
+          // 3. إنشاء سجل المعاملة مع تفاصيل الرسوم
+          transaction.set(transactionDocRef, {
+            transactionId: transactionId,
+            userId: user.uid,
+            userPhone: this.userPhone || null,
+            userEmail: this.userEmail || null,
+            type: "withdraw",
+            amount: withdrawAmount,           // المبلغ المطلوب
+            fee: feeAmount,                   // قيمة الرسوم (5%)
+            netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
+            feePercentage: this.feePercentage, // نسبة الرسوم
+            totalDeduct: withdrawAmount,      // المبلغ المخصوم من الرصيد
+            currency: "USDT",
+            network: this.network,
+            wallet: this.wallet,
+            walletAddress: this.wallet,
+            status: "pending",
+            vipLevel: this.userVipLevel,
+            withdrawDay: this.isVIP8OrAbove ? "أي يوم" : this.withdrawDay,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            isVIP8OrAbove: this.isVIP8OrAbove
+          });
+        });
+
+        this.balance -= withdrawAmount;
+        this.showMessage(`✅ تم إرسال طلب السحب بنجاح. المبلغ الصافي بعد الرسوم: ${netAmountValue.toFixed(2)} USDT`, "success");
+        
+        // تفريغ الحقول
+        this.amount = "";
+        this.network = "";
+        this.wallet = "";
+        this.password = "";
+
+      } catch (error) {
+        console.error("خطأ:", error);
+        this.showMessage(error.message || "حدث خطأ أثناء السحب", "error");
+      } finally {
         this.isLoading = false;
-      }, 500);
-      
-      // إخفاء الرسالة بعد 5 ثواني
-      setTimeout(() => {
-        this.showRestrictionMessage = false;
-      }, 5000);
+      }
     }
   }
 };
@@ -567,6 +841,75 @@ export default {
   border-radius: 6px;
 }
 
+/* حالة VIP */
+.vip-status-box {
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vip-status-box.error {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+}
+
+.vip-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #fcd535;
+  font-size: 14px;
+}
+
+.user-contact {
+  font-size: 13px;
+  color: #eaecef;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-contact i {
+  color: #fcd535;
+}
+
+.withdraw-condition {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #eaecef;
+}
+
+.withdraw-condition i {
+  color: #dc2626;
+  font-size: 14px;
+}
+
+.withdraw-condition i.condition-met {
+  color: #10b981;
+}
+
+.vip-special-badge {
+  background: linear-gradient(135deg, #fcd53520, #d4af3720);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #fcd535;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
 /* رسائل */
 .message {
   padding: 12px 16px;
@@ -589,34 +932,6 @@ export default {
   background: rgba(16, 185, 129, 0.15);
   color: #86efac;
   border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-/* رسالة المنع المخصصة */
-.restriction-message {
-  background: rgba(220, 38, 38, 0.2);
-  border: 1px solid rgba(220, 38, 38, 0.5);
-  padding: 16px;
-}
-
-.restriction-message i {
-  font-size: 24px;
-  color: #fca5a5;
-}
-
-.message-title {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-.message-amount {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.message-amount strong {
-  color: #fcd535;
-  font-size: 14px;
 }
 
 /* مجموعات الإدخال */
