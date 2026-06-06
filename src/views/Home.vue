@@ -52,6 +52,7 @@
           </div>
           
           <div class="custom-modal-body">
+            <!-- تقييم بالنجوم -->
             <div class="rating-stars">
               <span 
                 v-for="star in 5" 
@@ -64,6 +65,7 @@
               </span>
             </div>
             
+            <!-- حقل كتابة الرسالة -->
             <div class="review-message-input">
               <textarea 
                 v-model="reviewData.message" 
@@ -73,6 +75,7 @@
               ></textarea>
             </div>
             
+            <!-- زر إرسال التقييم -->
             <button 
               class="submit-review-btn" 
               @click="submitReview" 
@@ -82,6 +85,7 @@
               {{ isSubmittingReview ? 'جاري الإرسال...' : 'إرسال التقييم' }}
             </button>
             
+            <!-- عرض التقييمات -->
             <div class="previous-reviews">
               <h4>آخر التقييمات <i class="fas fa-comments"></i></h4>
               <div class="reviews-list">
@@ -249,8 +253,8 @@
 
     <!-- ==================== PROMO BANNER ==================== -->
     <div class="promo-banner" @click="openReviewModal">
-      <span class="banner-emoji">🤖</span>
-      <span class="banner-text">شراكة عالمية مع Amazon, eBay, TikTok, AliExpress, Alibaba, Shopee</span>
+      <span class="banner-emoji">⭐</span>
+      <span class="banner-text">قيم المنصة وانضم إلى آلاف المستخدمين الراضين</span>
     </div>
 
     <!-- ==================== MAIN MENU ==================== -->
@@ -325,7 +329,7 @@
       <div v-if="showCompany" class="modal-overlay" @click.self="closeCompanyModal">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
-            <h3>🌴 Palm Treasure</h3>
+            <h3>🤖 AI Treasure</h3>
             <button class="close-btn" @click="closeCompanyModal">
               <i class="fas fa-times"></i>
             </button>
@@ -335,15 +339,15 @@
             <div class="company-text">
               <p>
                 مرحباً بالجميع 🌟<br><br>
-                يسرّنا أن نعرفكم بشركة Palm Treasure التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
+                يسرّنا أن نعرفكم بشركة AI Treasure التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية والذكاء الاصطناعي. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
                 وانطلاقاً من رؤيتنا للتوسع وبناء شبكة تعاون واسعة، قمنا بإنشاء فروع ووكالات في عدد من الدول العربية مثل لبنان، الجزائر، ليبيا، والعراق، ونسعى خلال المرحلة القادمة إلى توسيع نشاطنا وانتشارنا في مختلف دول الشرق الأوسط.<br><br>
                 لقد جاء تأسيس هذه الشركة بعد دراسة عميقة لما حدث خلال عامي 2024 و2025، حيث ظهرت العديد من المنصات الوهمية التي خدعت الكثير من الناس ولم تستمر طويلاً. ومن هنا كان هدفنا واضحاً: تحويل هذا المجال إلى منصة حقيقية وموثوقة يستفيد منها الأعضاء كما تستفيد منها الشركة، ضمن نظام عادل وشفاف.<br><br>
                 وقد تحقق هذا المشروع بجهود كبيرة من الفريق التقني تحت إشراف المهندس أليكس ديروب، الذي لعب دوراً أساسياً في تطوير النظام التقني للشركة. وتقديراً لجهوده المميزة ومساهمته في نجاح هذا المشروع، تمت ترقيته إلى منصب نائب المدير.<br><br>
-                نحن في Palm Treasure نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
+                نحن في AI Treasure نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
                 ولهذا السبب تم وضع نظام واضح وقوانين عادلة تضمن حماية حقوق الموظفين والأعضاء قبل حقوق المستثمرين، مع مراعاة الظروف الاقتصادية والاجتماعية في المجتمعات العربية.<br><br>
                 وسيتم تطبيق هذا النظام المبرمج في معظم الدول العربية ابتداءً من 1 مارس 2026 وحتى نهاية عام 2028، وخلال هذه الفترة سيتم تقييم الأداء والنتائج. وبعد ذلك قد يتم تطوير النظام وإجراء بعض التعديلات بناءً على كفاءة الأعضاء وجهودهم وإخلاصهم في العمل.<br><br>
                 كما نعمل منذ الآن على التخطيط لمجموعة من الفرص المستقبلية والمشاريع الجديدة التي ستوفر المزيد من الإمكانيات لأعضاء الشركة في السنوات القادمة.<br><br>
-                نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع Palm Treasure 🌴
+                نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع AI Treasure 🤖
               </p>
             </div>
 
@@ -422,6 +426,14 @@
                 </div>
               </div>
 
+              <h4>💵 {{ t('vipWithdrawalSchedule') }}</h4>
+              <div class="schedule-list">
+                <div v-for="day in withdrawalDays" :key="day.id" class="schedule-item">
+                  <span class="day">{{ day.day }}</span>
+                  <span class="vips">{{ day.vips }}</span>
+                </div>
+              </div>
+
               <h4>👑 مميزات VIP 8 فأعلى</h4>
               <div class="vip-features">
                 <div class="feature-item">
@@ -463,7 +475,7 @@
     <transition name="slide">
       <aside v-if="sidebarOpen" class="sidebar">
         <div class="sidebar-header">
-          <span>🌴 Palm Treasure</span>
+          <span>🤖 AI Treasure</span>
           <button @click="toggleSidebar"><i class="fas fa-times"></i></button>
         </div>
         <nav class="sidebar-nav">
@@ -515,12 +527,13 @@ export default {
       },
       fakeReviews: [],
       
+      // قائمة الأسماء الوهمية للتقييمات اليومية
       reviewsList: [
         { name: "أحمد محمد", country: "🇸🇦", rating: 5, message: "منصة رائعة جداً، أرباح يومية ممتازة وسحب فوري" },
         { name: "سارة خالد", country: "🇪🇬", rating: 5, message: "تجربة ممتازة، دعم فني متجاوب وفريق محترم" },
         { name: "محمد علي", country: "🇦🇪", rating: 4, message: "منصة موثوقة وأرباحها حقيقية، أنصح بها الجميع" },
         { name: "نورة عبدالله", country: "🇰🇼", rating: 5, message: "أفضل منصة استثمارية جربتها، أرباح يومية ثابتة" },
-        { name: "عمر سعيد", country: "🇶🇦", rating: 5, message: "سحبت أرباحي بكل سهولة، شكراً لفريق Palm Treasure" },
+        { name: "عمر سعيد", country: "🇶🇦", rating: 5, message: "سحبت أرباحي بكل سهولة، شكراً لفريق AI Treasure" },
         { name: "فاطمة الزهراء", country: "🇲🇦", rating: 5, message: "منصة مذهلة وسهلة الاستخدام، أرباح رائعة" },
         { name: "يوسف حسن", country: "🇯🇴", rating: 4, message: "تجربة ممتازة وسحب سريع، أنصح بالاستثمار" },
         { name: "ليلى عماد", country: "🇱🇧", rating: 5, message: "أفضل قرار استثماري اتخذته، شكراً لكم" },
@@ -536,6 +549,7 @@ export default {
         { name: "مها السيد", country: "🇪🇬", rating: 5, message: "منصة مذهلة وسحب فوري، أنصح الجميع بالتسجيل" }
       ],
       
+      // أوقات عشوائية
       timesList: ["الآن", "قبل دقيقة", "قبل 5 دقائق", "قبل ساعة", "قبل ساعتين", "قبل 3 ساعات", "قبل 5 ساعات", "قبل يوم", "قبل يومين", "قبل 3 أيام"],
 
       // ==================== CUSTOM MODAL SYSTEM ====================
@@ -580,6 +594,12 @@ export default {
         6000, 7000, 8000, 9000, 10000, 12000, 15000, 18000, 20000,
         25000, 30000, 35000, 40000, 45000, 50000, 60000, 70000, 80000,
         90000, 100000, 120000, 150000
+      ],
+
+      withdrawalDays: [
+        { id: 1, day: "السبت", vips: "VIP1 - VIP2 - VIP3" },
+        { id: 2, day: "الأحد", vips: "VIP4 - VIP5" },
+        { id: 3, day: "الاثنين", vips: "VIP6 - VIP7" }
       ],
 
       vipPlans: [
@@ -633,6 +653,7 @@ export default {
           level3: 'المستوى 3',
           understood: 'فهمت',
           businessContracts: 'عقود رجال الأعمال',
+          vipWithdrawalSchedule: 'مواعيد سحب الرواتب',
           iAccept: 'أوافق',
           home: 'الرئيسية',
           vip: 'VIP',
@@ -679,6 +700,7 @@ export default {
           level3: 'Level 3',
           understood: 'Understood',
           businessContracts: 'Business Contracts',
+          vipWithdrawalSchedule: 'Withdrawal Schedule',
           iAccept: 'I Accept',
           home: 'Home',
           vip: 'VIP',
@@ -736,18 +758,23 @@ export default {
   },
 
   methods: {
+    // ==================== REVIEW SYSTEM METHODS ====================
+    
+    // جلب تقييمات عشوائية مختلفة كل يوم
     getDailyRandomReviews() {
       const today = new Date().toDateString();
       const savedDate = localStorage.getItem('reviews_date');
       let reviews = localStorage.getItem('daily_reviews');
       
       if (savedDate !== today || !reviews) {
+        // خلط الأسماء بشكل عشوائي
         const shuffled = [...this.reviewsList];
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         
+        // اختيار 8 تقييمات عشوائية وإضافة أوقات عشوائية
         reviews = shuffled.slice(0, 8).map((item) => ({
           name: item.name,
           flag: item.country,
@@ -758,6 +785,7 @@ export default {
         
         localStorage.setItem('daily_reviews', JSON.stringify(reviews));
         localStorage.setItem('reviews_date', today);
+        console.log("تم تحديث التقييمات اليومية");
       } else {
         reviews = JSON.parse(reviews);
       }
@@ -766,11 +794,14 @@ export default {
     },
     
     loadDailyReviews() {
+      // جلب التقييمات اليومية العشوائية
       this.fakeReviews = this.getDailyRandomReviews();
       
+      // إضافة تقييمات المستخدمين السابقة إن وجدت
       const savedUserReviews = localStorage.getItem('user_reviews');
       if (savedUserReviews) {
         const userReviews = JSON.parse(savedUserReviews);
+        // إضافة تقييمات المستخدمين في الأعلى
         this.fakeReviews = [...userReviews, ...this.fakeReviews];
       }
     },
@@ -795,8 +826,10 @@ export default {
       
       this.isSubmittingReview = true;
       
+      // الحصول على اسم المستخدم الحقيقي
       let userName = this.username || "مستخدم";
       
+      // محاولة جلب اسم المستخدم من Firestore إذا كان متاحاً
       if (this.currentUserUid) {
         try {
           const userSnap = await getDoc(doc(db, "users", this.currentUserUid));
@@ -808,6 +841,7 @@ export default {
         }
       }
       
+      // إضافة التقييم الجديد
       const newReview = {
         name: userName,
         flag: "⭐",
@@ -816,11 +850,13 @@ export default {
         time: "الآن"
       };
       
+      // حفظ التقييمات في localStorage
       const savedUserReviews = localStorage.getItem('user_reviews');
       let userReviews = savedUserReviews ? JSON.parse(savedUserReviews) : [];
       userReviews.unshift(newReview);
       localStorage.setItem('user_reviews', JSON.stringify(userReviews));
       
+      // تحديث قائمة التقييمات المعروضة
       this.fakeReviews = [...userReviews, ...this.getDailyRandomReviews()];
       
       this.isSubmittingReview = false;
@@ -828,6 +864,7 @@ export default {
       this.showSuccessMessage(this.t('reviewSubmitted'));
     },
 
+    // ==================== STATS INFO METHODS ====================
     showTotalPaidInfo() {
       this.showModal({
         type: 'info',
@@ -858,6 +895,7 @@ export default {
       });
     },
 
+    // ==================== CUSTOM MODAL METHODS ====================
     showModal(options) {
       this.modal = {
         visible: true,
@@ -1154,6 +1192,7 @@ export default {
       this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          // استخدام اسم المستخدم بدلاً من رقم الهاتف
           this.username = data.username || data.email || "User";
           this.balance = typeof data.balance === 'number' ? data.balance : 0;
         }
@@ -1506,6 +1545,7 @@ export default {
   border-color: #D4AF37;
 }
 
+/* ==================== زر إرسال التقييم ==================== */
 .submit-review-btn {
   width: 100%;
   padding: 14px 20px;
@@ -1536,6 +1576,7 @@ export default {
   transform: none;
 }
 
+/* ==================== التقييمات السابقة ==================== */
 .previous-reviews {
   margin-top: 20px;
   border-top: 1px solid rgba(212, 175, 55, 0.2);
@@ -2527,6 +2568,31 @@ export default {
 .table-row .highlight {
   color: #F6E27A;
   font-weight: 700;
+}
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-item {
+  background: rgba(212, 175, 55, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.schedule-item .day {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.schedule-item .vips {
+  color: #D4AF37;
+  font-weight: 600;
 }
 
 .modal-footer {
