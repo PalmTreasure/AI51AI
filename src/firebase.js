@@ -22,7 +22,12 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  onSnapshot
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
+  Timestamp,
+  addDoc,
+  limit
 } from "firebase/firestore";
 
 import { getStorage } from "firebase/storage";
@@ -87,7 +92,12 @@ export {
   getDoc,
   setDoc,
   updateDoc,
-  onSnapshot
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
+  Timestamp,
+  addDoc,
+  limit
 };
 
 // إضافة التصدير لخاصية userId الجديد في المعاملات
@@ -107,6 +117,54 @@ export const getTransactionsByUserId = async (userId) => {
     }));
   } catch (error) {
     console.error("❌ خطأ في جلب المعاملات:", error);
+    return [];
+  }
+};
+
+// دالة مساعدة لجلب بيانات الأسهم
+export const getStockData = async () => {
+  try {
+    const stockDoc = await getDoc(doc(db, "stock", "company"));
+    if (stockDoc.exists()) {
+      return stockDoc.data();
+    }
+    return null;
+  } catch (error) {
+    console.error("❌ خطأ في جلب بيانات الأسهم:", error);
+    return null;
+  }
+};
+
+// دالة مساعدة لجلب محفظة المستخدم
+export const getUserPortfolio = async (userId) => {
+  try {
+    const portfolioDoc = await getDoc(doc(db, "users", userId, "shares", "portfolio"));
+    if (portfolioDoc.exists()) {
+      return portfolioDoc.data();
+    }
+    return null;
+  } catch (error) {
+    console.error("❌ خطأ في جلب المحفظة:", error);
+    return null;
+  }
+};
+
+// دالة مساعدة لجلب تاريخ أسعار الأسهم
+export const getStockHistory = async (limitCount = 365) => {
+  try {
+    const historyQuery = query(
+      collection(db, "stock_history"),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    );
+    
+    const snapshot = await getDocs(historyQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })).reverse();
+  } catch (error) {
+    console.error("❌ خطأ في جلب تاريخ الأسهم:", error);
     return [];
   }
 };
