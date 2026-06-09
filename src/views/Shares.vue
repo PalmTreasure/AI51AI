@@ -17,14 +17,12 @@
           <h2 class="company-name">Palm Treasure</h2>
         </div>
         <div class="stock-status">
-          <span class="status-badge open">
-            السوق مفتوح
-          </span>
+          <span class="status-badge open">السوق مفتوح</span>
         </div>
       </div>
 
       <!-- Stock Price Card -->
-      <div class="price-card">
+      <div class="price-card" v-if="stockData">
         <div class="price-main">
           <div class="current-price">
             <span class="price-value">{{ formatPrice(stockData.currentPrice) }}</span>
@@ -54,7 +52,7 @@
       </div>
 
       <!-- Shares Statistics -->
-      <div class="stats-card">
+      <div class="stats-card" v-if="stockData">
         <h3 class="stats-title">📊 إحصائيات الأسهم</h3>
         <div class="stats-grid">
           <div class="stat-item">
@@ -79,27 +77,6 @@
         </div>
         <div v-if="stockData.availableShares <= 0" class="sold-out-message">
           🚫 تم بيع جميع أسهم الشركة
-        </div>
-      </div>
-
-      <!-- Chart Section -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3 class="chart-title">📈 الرسم البياني</h3>
-          <div class="chart-controls">
-            <button 
-              v-for="period in periods" 
-              :key="period.key"
-              @click="changePeriod(period.key)"
-              class="period-btn"
-              :class="{ active: selectedPeriod === period.key }"
-            >
-              {{ period.label }}
-            </button>
-          </div>
-        </div>
-        <div class="chart-container">
-          <canvas ref="chartCanvas"></canvas>
         </div>
       </div>
 
@@ -134,7 +111,7 @@
       </div>
 
       <!-- Trade Buttons -->
-      <div class="trade-buttons">
+      <div class="trade-buttons" v-if="stockData">
         <button 
           @click="openTradeModal('buy')" 
           class="trade-btn buy-btn"
@@ -240,24 +217,8 @@
 </template>
 
 <script>
-import { auth, db } from "../firebase";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  runTransaction,
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  serverTimestamp,
-  Timestamp,
-  onSnapshot
-} from "firebase/firestore";
+import { auth, db, runTransaction, serverTimestamp, collection, doc, getDoc, setDoc, addDoc, query, orderBy, limit, getDocs, onSnapshot } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import Chart from 'chart.js/auto';
 
 export default {
   name: "Shares",
@@ -265,24 +226,9 @@ export default {
     return {
       loading: true,
       processing: false,
-      stockData: {
-        currentPrice: 1.50,
-        previousPrice: 1.50,
-        highPrice: 1.50,
-        lowPrice: 1.50,
-        volume: 0,
-        totalShares: 300000000,
-        availableShares: 125000000,
-        soldShares: 175000000
-      },
+      stockData: null,
       userShares: null,
       userBalance: 0,
-      selectedPeriod: 'daily',
-      periods: [
-        { key: 'daily', label: 'يومي' },
-        { key: 'weekly', label: 'أسبوعي' },
-        { key: 'monthly', label: 'شهري' }
-      ],
       showTradeModal: false,
       tradeType: 'buy',
       tradeQuantity: 1,
@@ -290,25 +236,25 @@ export default {
       showNotification: false,
       notificationMessage: '',
       notificationType: 'success',
-      chart: null,
-      priceHistory: [],
       unsubscribeStock: null
     };
   },
 
   computed: {
     priceChange() {
+      if (!this.stockData) return 0;
       return this.stockData.currentPrice - this.stockData.previousPrice;
     },
     priceChangePercent() {
-      if (this.stockData.previousPrice === 0) return 0;
+      if (!this.stockData || this.stockData.previousPrice === 0) return 0;
       return (this.priceChange / this.stockData.previousPrice) * 100;
     },
     soldPercentage() {
-      if (this.stockData.totalShares === 0) return 0;
+      if (!this.stockData || this.stockData.totalShares === 0) return 0;
       return (this.stockData.soldShares / this.stockData.totalShares) * 100;
     },
     maxTradeQuantity() {
+      if (!this.stockData) return 0;
       if (this.tradeType === 'buy') {
         return this.stockData.availableShares;
       } else {
@@ -316,7 +262,7 @@ export default {
       }
     },
     isTradeValid() {
-      if (!this.tradeQuantity || this.tradeQuantity <= 0) return false;
+      if (!this.tradeQuantity || this.tradeQuantity <= 0 || !this.stockData) return false;
       if (this.tradeQuantity > this.maxTradeQuantity) return false;
       
       if (this.tradeType === 'buy') {
@@ -327,7 +273,7 @@ export default {
       return true;
     },
     profitPercentage() {
-      if (!this.userShares || this.userShares.invested === 0) return 0;
+      if (!this.userShares || !this.stockData || this.userShares.invested === 0) return 0;
       const currentValue = this.userShares.shares * this.stockData.currentPrice;
       return ((currentValue - this.userShares.invested) / this.userShares.invested) * 100;
     }
@@ -341,9 +287,6 @@ export default {
     if (this.unsubscribeStock) {
       this.unsubscribeStock();
     }
-    if (this.chart) {
-      this.chart.destroy();
-    }
   },
 
   methods: {
@@ -355,7 +298,6 @@ export default {
         }
         await this.loadStockData();
         await this.loadUserData();
-        this.subscribeToStockUpdates();
         this.loading = false;
       });
     },
@@ -364,63 +306,41 @@ export default {
       try {
         const stockDoc = await getDoc(doc(db, "stock", "company"));
         if (stockDoc.exists()) {
-          const data = stockDoc.data();
-          this.stockData = {
-            currentPrice: data.currentPrice || 1.50,
-            previousPrice: data.previousPrice || 1.50,
-            highPrice: data.highPrice || 1.50,
-            lowPrice: data.lowPrice || 1.50,
-            volume: data.volume || 0,
-            totalShares: data.totalShares || 300000000,
-            availableShares: data.availableShares || 125000000,
-            soldShares: data.soldShares || 175000000
-          };
+          this.stockData = stockDoc.data();
         } else {
-          await this.initializeStockData();
+          // إنشاء بيانات افتراضية للعرض
+          this.stockData = {
+            currentPrice: 1.50,
+            previousPrice: 1.50,
+            highPrice: 1.50,
+            lowPrice: 1.50,
+            volume: 0,
+            totalShares: 300000000,
+            availableShares: 125000000,
+            soldShares: 175000000
+          };
         }
-        await this.loadPriceHistory();
+        
+        // مراقبة التحديثات
+        this.unsubscribeStock = onSnapshot(doc(db, "stock", "company"), (doc) => {
+          if (doc.exists()) {
+            this.stockData = doc.data();
+          }
+        });
       } catch (error) {
         console.error("Error loading stock data:", error);
+        // استخدام بيانات افتراضية في حالة الخطأ
+        this.stockData = {
+          currentPrice: 1.50,
+          previousPrice: 1.50,
+          highPrice: 1.50,
+          lowPrice: 1.50,
+          volume: 0,
+          totalShares: 300000000,
+          availableShares: 125000000,
+          soldShares: 175000000
+        };
       }
-    },
-
-    async initializeStockData() {
-      const initialData = {
-        currentPrice: 1.50,
-        previousPrice: 1.50,
-        highPrice: 1.50,
-        lowPrice: 1.50,
-        volume: 0,
-        totalShares: 300000000,
-        availableShares: 125000000,
-        soldShares: 175000000,
-        updatedAt: serverTimestamp()
-      };
-      
-      await setDoc(doc(db, "stock", "company"), initialData);
-      
-      await addDoc(collection(db, "stock_history"), {
-        price: 1.50,
-        createdAt: serverTimestamp()
-      });
-    },
-
-    subscribeToStockUpdates() {
-      this.unsubscribeStock = onSnapshot(doc(db, "stock", "company"), (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          this.stockData = {
-            currentPrice: data.currentPrice || 1.50,
-            previousPrice: data.previousPrice || 1.50,
-            highPrice: data.highPrice || 1.50,
-            lowPrice: data.lowPrice || 1.50,
-            volume: data.volume || 0,
-            totalShares: data.totalShares || 300000000,
-            availableShares: data.availableShares || 125000000,
-            soldShares: data.soldShares || 175000000
-          };
-        }
-      });
     },
 
     async loadUserData() {
@@ -435,176 +355,11 @@ export default {
 
         const sharesDoc = await getDoc(doc(db, "users", user.uid, "shares", "portfolio"));
         if (sharesDoc.exists()) {
-          const data = sharesDoc.data();
-          this.userShares = {
-            shares: data.shares || 0,
-            avgPrice: data.avgPrice || 0,
-            invested: data.invested || 0,
-            totalProfit: data.totalProfit || 0
-          };
+          this.userShares = sharesDoc.data();
         }
       } catch (error) {
         console.error("Error loading user data:", error);
       }
-    },
-
-    async loadPriceHistory() {
-      try {
-        const historyQuery = query(
-          collection(db, "stock_history"),
-          orderBy("createdAt", "desc"),
-          limit(365)
-        );
-        
-        const snapshot = await getDocs(historyQuery);
-        this.priceHistory = snapshot.docs.map(doc => ({
-          price: doc.data().price,
-          date: doc.data().createdAt?.toDate() || new Date()
-        })).reverse();
-        
-        this.renderChart();
-      } catch (error) {
-        console.error("Error loading price history:", error);
-      }
-    },
-
-    changePeriod(period) {
-      this.selectedPeriod = period;
-      this.renderChart();
-    },
-
-    getFilteredHistory() {
-      const now = new Date();
-      let filteredData = [...this.priceHistory];
-      
-      switch(this.selectedPeriod) {
-        case 'weekly':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          filteredData = filteredData.filter(item => item.date >= weekAgo);
-          break;
-        case 'monthly':
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          filteredData = filteredData.filter(item => item.date >= monthAgo);
-          break;
-        case 'daily':
-        default:
-          const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-          filteredData = filteredData.filter(item => item.date >= dayAgo);
-          break;
-      }
-      
-      if (filteredData.length === 0) {
-        filteredData = this.priceHistory.slice(-10);
-      }
-      
-      return filteredData;
-    },
-
-    renderChart() {
-      if (this.chart) {
-        this.chart.destroy();
-      }
-      
-      const canvas = this.$refs.chartCanvas;
-      if (!canvas) return;
-      
-      const filteredData = this.getFilteredHistory();
-      
-      if (filteredData.length === 0) return;
-      
-      const labels = filteredData.map(item => {
-        const date = item.date;
-        return date.toLocaleDateString('ar-SA', { 
-          month: 'short', 
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      });
-      
-      const prices = filteredData.map(item => item.price);
-      
-      const ctx = canvas.getContext('2d');
-      
-      this.chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'سعر السهم (USDT)',
-            data: prices,
-            borderColor: '#fcd535',
-            backgroundColor: 'rgba(252, 213, 53, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 6,
-            pointHoverBackgroundColor: '#fcd535',
-            pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-              backgroundColor: 'rgba(24, 26, 32, 0.95)',
-              titleColor: '#fcd535',
-              bodyColor: '#fff',
-              borderColor: '#fcd535',
-              borderWidth: 1,
-              padding: 12,
-              displayColors: false,
-              callbacks: {
-                label: function(context) {
-                  return `السعر: ${context.parsed.y} USDT`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              grid: {
-                color: 'rgba(255, 255, 255, 0.05)',
-                drawBorder: false
-              },
-              ticks: {
-                color: '#848e9c',
-                maxTicksLimit: 8,
-                font: {
-                  size: 10
-                }
-              }
-            },
-            y: {
-              grid: {
-                color: 'rgba(255, 255, 255, 0.05)',
-                drawBorder: false
-              },
-              ticks: {
-                color: '#848e9c',
-                callback: function(value) {
-                  return value + ' USDT';
-                },
-                font: {
-                  size: 10
-                }
-              }
-            }
-          },
-          interaction: {
-            intersect: false,
-            mode: 'index'
-          }
-        }
-      });
     },
 
     openTradeModal(type) {
@@ -623,7 +378,7 @@ export default {
     validateQuantity() {
       this.errorMessage = '';
       
-      if (this.tradeQuantity <= 0) {
+      if (!this.tradeQuantity || this.tradeQuantity <= 0) {
         this.errorMessage = 'يجب أن يكون عدد الأسهم أكبر من 0';
         return;
       }
@@ -633,7 +388,7 @@ export default {
         return;
       }
       
-      if (this.tradeType === 'buy') {
+      if (this.tradeType === 'buy' && this.stockData) {
         const totalCost = this.tradeQuantity * this.stockData.currentPrice;
         if (totalCost > this.userBalance) {
           this.errorMessage = 'رصيدك غير كافٍ لإتمام عملية الشراء';
@@ -643,7 +398,7 @@ export default {
     },
 
     async executeTrade() {
-      if (!this.isTradeValid) return;
+      if (!this.isTradeValid || !this.stockData) return;
       
       this.processing = true;
       
@@ -667,10 +422,10 @@ export default {
           if (!stockDoc.exists()) throw new Error("بيانات السهم غير متوفرة");
           
           const userData = userDoc.data();
-          const stockData = stockDoc.data();
+          const stockDataFromDB = stockDoc.data();
           
           if (this.tradeType === 'buy') {
-            if (stockData.availableShares < quantity) {
+            if (stockDataFromDB.availableShares < quantity) {
               throw new Error("الأسهم المتاحة غير كافية");
             }
             
@@ -683,10 +438,10 @@ export default {
             });
             
             transaction.update(stockRef, {
-              availableShares: stockData.availableShares - quantity,
-              soldShares: stockData.soldShares + quantity,
-              volume: stockData.volume + totalAmount,
-              previousPrice: stockData.currentPrice,
+              availableShares: stockDataFromDB.availableShares - quantity,
+              soldShares: stockDataFromDB.soldShares + quantity,
+              volume: (stockDataFromDB.volume || 0) + totalAmount,
+              previousPrice: stockDataFromDB.currentPrice,
               updatedAt: serverTimestamp()
             });
             
@@ -733,10 +488,10 @@ export default {
             });
             
             transaction.update(stockRef, {
-              availableShares: stockData.availableShares + quantity,
-              soldShares: stockData.soldShares - quantity,
-              volume: stockData.volume + totalAmount,
-              previousPrice: stockData.currentPrice,
+              availableShares: stockDataFromDB.availableShares + quantity,
+              soldShares: stockDataFromDB.soldShares - quantity,
+              volume: (stockDataFromDB.volume || 0) + totalAmount,
+              previousPrice: stockDataFromDB.currentPrice,
               updatedAt: serverTimestamp()
             });
             
@@ -753,52 +508,42 @@ export default {
             }
           }
           
+          // تسجيل العملية في transactions
           const transactionRef = doc(collection(db, "transactions"));
           transaction.set(transactionRef, {
             userId: user.uid,
             type: this.tradeType === 'buy' ? 'stock_buy' : 'stock_sell',
+            amount: totalAmount,
             quantity: quantity,
             price: price,
-            totalAmount: totalAmount,
-            stockPrice: price,
             createdAt: serverTimestamp(),
             status: 'completed'
           });
-          
-          const historyRef = doc(collection(db, "stock_history"));
-          transaction.set(historyRef, {
-            price: price,
-            createdAt: serverTimestamp(),
-            type: 'trade'
-          });
         });
         
-        this.showNotification = true;
-        this.notificationType = 'success';
-        this.notificationMessage = this.tradeType === 'buy' 
+        this.showNotificationMessage('success', this.tradeType === 'buy' 
           ? `✅ تم شراء ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`
-          : `✅ تم بيع ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`;
-        
-        setTimeout(() => {
-          this.showNotification = false;
-        }, 3000);
+          : `✅ تم بيع ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`);
         
         this.closeTradeModal();
         await this.loadUserData();
         
       } catch (error) {
-        this.showNotification = true;
-        this.notificationType = 'error';
-        this.notificationMessage = `❌ ${error.message}`;
-        
-        setTimeout(() => {
-          this.showNotification = false;
-        }, 3000);
-        
+        console.error("Trade error:", error);
+        this.showNotificationMessage('error', `❌ ${error.message}`);
         this.errorMessage = error.message;
       } finally {
         this.processing = false;
       }
+    },
+
+    showNotificationMessage(type, message) {
+      this.notificationType = type;
+      this.notificationMessage = message;
+      this.showNotification = true;
+      setTimeout(() => {
+        this.showNotification = false;
+      }, 3000);
     },
 
     formatPrice(value) {
@@ -812,6 +557,7 @@ export default {
     },
 
     formatVolume(value) {
+      if (!value) return '0';
       if (value >= 1000000) {
         return (value / 1000000).toFixed(2) + 'M';
       } else if (value >= 1000) {
@@ -866,7 +612,6 @@ export default {
 
 .back-btn:hover {
   background: rgba(252, 213, 53, 0.2);
-  transform: scale(1.05);
 }
 
 .page-title {
@@ -903,7 +648,6 @@ export default {
   font-size: 24px;
   font-weight: 900;
   color: #fcd535;
-  text-shadow: 0 0 10px rgba(252, 213, 53, 0.3);
 }
 
 .stock-status {
@@ -944,7 +688,6 @@ export default {
   font-size: 36px;
   font-weight: 900;
   color: #fcd535;
-  text-shadow: 0 0 20px rgba(252, 213, 53, 0.3);
 }
 
 .currency {
@@ -1081,72 +824,6 @@ export default {
   margin-top: 15px;
 }
 
-.chart-card {
-  background: #181a20;
-  border: 1px solid rgba(252, 213, 53, 0.3);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.chart-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #fcd535;
-}
-
-.chart-controls {
-  display: flex;
-  gap: 5px;
-}
-
-.period-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(252, 213, 53, 0.3);
-  color: #848e9c;
-  padding: 5px 12px;
-  border-radius: 50px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.period-btn.active {
-  background: #fcd535;
-  color: #0b0e11;
-  border-color: #fcd535;
-}
-
-.period-btn:hover {
-  border-color: #fcd535;
-  color: #fcd535;
-}
-
-.period-btn.active:hover {
-  color: #0b0e11;
-}
-
-.chart-container {
-  width: 100%;
-  height: 300px;
-  position: relative;
-}
-
-.chart-container canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
 .portfolio-card {
   background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
   border: 2px solid #fcd535;
@@ -1220,13 +897,10 @@ export default {
   justify-content: center;
   gap: 8px;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
 }
 
 .trade-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .trade-btn:disabled {
@@ -1278,6 +952,7 @@ export default {
   font-weight: 600;
 }
 
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1308,7 +983,6 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, rgba(252, 213, 53, 0.1), rgba(255, 237, 138, 0.05));
 }
 
 .modal-header h3 {
@@ -1324,19 +998,6 @@ export default {
   color: #848e9c;
   font-size: 28px;
   cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
 
 .modal-body {
@@ -1386,13 +1047,11 @@ export default {
   color: #fff;
   font-size: 16px;
   outline: none;
-  transition: all 0.3s ease;
   font-family: 'Cairo', sans-serif;
 }
 
 .trade-input:focus {
   border-color: #fcd535;
-  box-shadow: 0 0 0 3px rgba(252, 213, 53, 0.1);
 }
 
 .total-calculation {
@@ -1457,12 +1116,6 @@ export default {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-cancel:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .btn-confirm {
@@ -1475,16 +1128,6 @@ export default {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-confirm:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(252, 213, 53, 0.4);
 }
 
 .btn-confirm:disabled {
@@ -1492,6 +1135,7 @@ export default {
   cursor: not-allowed;
 }
 
+/* Notification */
 .notification {
   position: fixed;
   top: 20px;
@@ -1501,13 +1145,11 @@ export default {
   border-radius: 50px;
   font-weight: 700;
   z-index: 3000;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 14px;
   max-width: 90%;
-  text-align: center;
 }
 
 .notification.success {
@@ -1520,10 +1162,10 @@ export default {
   color: #fff;
 }
 
+/* Transitions */
 .slide-down-enter-active, .slide-down-leave-active {
   transition: all 0.3s ease;
 }
-
 .slide-down-enter-from, .slide-down-leave-to {
   transform: translateX(-50%) translateY(-100px);
   opacity: 0;
@@ -1533,30 +1175,15 @@ export default {
 .modal-fade-scale-leave-active {
   transition: all 0.3s ease;
 }
-
 .modal-fade-scale-enter-from,
 .modal-fade-scale-leave-to {
   opacity: 0;
   transform: scale(0.9);
 }
 
-.modal-fade-scale-enter-to,
-.modal-fade-scale-leave-from {
-  opacity: 1;
-  transform: scale(1);
-}
-
 @media (max-width: 768px) {
-  .page-title {
-    font-size: 18px;
-  }
-  
   .price-value {
     font-size: 28px;
-  }
-  
-  .chart-container {
-    height: 250px;
   }
   
   .portfolio-grid {
