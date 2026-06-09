@@ -269,7 +269,8 @@ export default {
       dailyChange: 0,
       tradingVolume24h: 0,
       startOfDayPrice: 1.50,
-      volumeInterval: null
+      volumeInterval: null,
+      stockReady: false
     };
   },
 
@@ -340,16 +341,18 @@ export default {
           this.$router.push("/login");
           return;
         }
-        await this.initializeStockData();
+        await this.ensureStockDataExists();
         await this.loadUserData();
         this.startPriceSimulator();
         this.loading = false;
+        this.stockReady = true;
       });
     },
 
-    async initializeStockData() {
+    async ensureStockDataExists() {
       try {
-        const stockDoc = await getDoc(doc(db, "stock", "company"));
+        const stockRef = doc(db, "stock", "company");
+        const stockDoc = await getDoc(stockRef);
         
         if (stockDoc.exists()) {
           const data = stockDoc.data();
@@ -357,7 +360,7 @@ export default {
             currentPrice: data.currentPrice || 1.50,
             previousPrice: data.previousPrice || 1.50,
             highPrice: data.highPrice || 1.80,
-            lowPrice: data.lowPrice || 1.40,
+            lowPrice: data.lowPrice || 0.10,
             volume: data.volume || 100000000,
             totalShares: data.totalShares || 300000000,
             availableShares: data.availableShares || 125000000,
@@ -365,13 +368,12 @@ export default {
           };
           this.startOfDayPrice = data.currentPrice || 1.50;
         } else {
-          // إنشاء بيانات أولية مع تقلبات
-          const initialPrice = 1.50;
+          // إنشاء البيانات الأولية
           const initialData = {
-            currentPrice: initialPrice,
-            previousPrice: initialPrice,
-            highPrice: initialPrice + 0.30,
-            lowPrice: initialPrice - 0.10,
+            currentPrice: 1.50,
+            previousPrice: 1.50,
+            highPrice: 1.80,
+            lowPrice: 0.10,
             volume: 100000000,
             totalShares: 300000000,
             availableShares: 125000000,
@@ -379,14 +381,14 @@ export default {
             updatedAt: serverTimestamp()
           };
           
-          await setDoc(doc(db, "stock", "company"), initialData);
+          await setDoc(stockRef, initialData);
           
           this.stockData = { ...initialData };
-          this.startOfDayPrice = initialPrice;
+          this.startOfDayPrice = 1.50;
         }
         
         // مراقبة التحديثات من Firestore
-        this.unsubscribeStock = onSnapshot(doc(db, "stock", "company"), (doc) => {
+        this.unsubscribeStock = onSnapshot(stockRef, (doc) => {
           if (doc.exists()) {
             const data = doc.data();
             this.stockData = {
@@ -402,19 +404,20 @@ export default {
           }
         });
       } catch (error) {
-        console.error("Error initializing stock data:", error);
+        console.error("Error ensuring stock data:", error);
         // بيانات افتراضية في حالة الخطأ
         this.stockData = {
           currentPrice: 1.50,
           previousPrice: 1.50,
           highPrice: 1.80,
-          lowPrice: 1.40,
+          lowPrice: 0.10,
           volume: 100000000,
           totalShares: 300000000,
           availableShares: 125000000,
           soldShares: 175000000
         };
         this.startOfDayPrice = 1.50;
+        this.stockReady = true;
       }
     },
 
@@ -448,7 +451,6 @@ export default {
       // تحديث حجم التداول كل 10 ثواني
       this.volumeInterval = setInterval(() => {
         if (this.stockData) {
-          // زيادة حجم التداول بشكل عشوائي
           const volumeIncrease = Math.floor(Math.random() * 1000000) + 500000;
           this.stockData.volume += volumeIncrease;
           this.tradingVolume24h += volumeIncrease;
@@ -491,8 +493,8 @@ export default {
     },
 
     openTradeModal(type) {
-      if (!this.stockData) {
-        this.showNotificationMessage('error', '❌ بيانات السهم غير متوفرة حالياً، يرجى المحاولة لاحقاً');
+      if (!this.stockData || !this.stockReady) {
+        this.showNotificationMessage('error', '❌ جاري تحميل بيانات السهم، يرجى الانتظار لحظة...');
         return;
       }
       this.tradeType = type;
@@ -530,7 +532,7 @@ export default {
     },
 
     async executeTrade() {
-      if (!this.isTradeValid || !this.stockData) {
+      if (!this.isTradeValid || !this.stockData || !this.stockReady) {
         this.showNotificationMessage('error', '❌ بيانات السهم غير متوفرة، يرجى المحاولة لاحقاً');
         return;
       }
@@ -554,41 +556,46 @@ export default {
           const stockDoc = await transaction.get(stockRef);
           
           if (!userDoc.exists()) throw new Error("المستخدم غير موجود");
+          
+          // إذا كانت بيانات السهم غير موجودة، نقوم بإنشائها
+          let stockDataFromDB;
           if (!stockDoc.exists()) {
-            // إنشاء بيانات السهم إذا لم تكن موجودة
-            transaction.set(stockRef, {
+            const defaultStockData = {
               currentPrice: 1.50,
               previousPrice: 1.50,
               highPrice: 1.80,
-              lowPrice: 1.40,
+              lowPrice: 0.10,
               volume: 100000000,
               totalShares: 300000000,
               availableShares: 125000000,
               soldShares: 175000000,
               updatedAt: serverTimestamp()
-            });
-            throw new Error("يرجى المحاولة مرة أخرى، جاري تهيئة البيانات");
+            };
+            transaction.set(stockRef, defaultStockData);
+            stockDataFromDB = defaultStockData;
+          } else {
+            stockDataFromDB = stockDoc.data();
           }
           
           const userData = userDoc.data();
-          const stockDataFromDB = stockDoc.data();
           
           if (this.tradeType === 'buy') {
-            if (stockDataFromDB.availableShares < quantity) {
+            const availableShares = stockDataFromDB.availableShares || 125000000;
+            if (availableShares < quantity) {
               throw new Error("الأسهم المتاحة غير كافية");
             }
             
-            if (userData.balance < totalAmount) {
+            if ((userData.balance || 0) < totalAmount) {
               throw new Error("رصيدك غير كافٍ");
             }
             
             transaction.update(userRef, {
-              balance: userData.balance - totalAmount
+              balance: (userData.balance || 0) - totalAmount
             });
             
             transaction.update(stockRef, {
-              availableShares: stockDataFromDB.availableShares - quantity,
-              soldShares: (stockDataFromDB.soldShares || 0) + quantity,
+              availableShares: availableShares - quantity,
+              soldShares: (stockDataFromDB.soldShares || 175000000) + quantity,
               volume: (stockDataFromDB.volume || 100000000) + totalAmount,
               updatedAt: serverTimestamp()
             });
@@ -596,8 +603,8 @@ export default {
             const sharesDoc = await transaction.get(sharesRef);
             if (sharesDoc.exists()) {
               const currentShares = sharesDoc.data();
-              const newTotalShares = currentShares.shares + quantity;
-              const newInvested = currentShares.invested + totalAmount;
+              const newTotalShares = (currentShares.shares || 0) + quantity;
+              const newInvested = (currentShares.invested || 0) + totalAmount;
               const newAvgPrice = newInvested / newTotalShares;
               
               transaction.update(sharesRef, {
@@ -621,7 +628,7 @@ export default {
             if (!sharesDoc.exists()) throw new Error("لا تمتلك أي أسهم");
             
             const currentShares = sharesDoc.data();
-            if (currentShares.shares < quantity) {
+            if ((currentShares.shares || 0) < quantity) {
               throw new Error("لا تمتلك هذا العدد من الأسهم");
             }
             
@@ -632,12 +639,12 @@ export default {
             const profit = totalAmount - soldInvested;
             
             transaction.update(userRef, {
-              balance: userData.balance + totalAmount
+              balance: (userData.balance || 0) + totalAmount
             });
             
             transaction.update(stockRef, {
-              availableShares: (stockDataFromDB.availableShares || 0) + quantity,
-              soldShares: (stockDataFromDB.soldShares || 0) - quantity,
+              availableShares: (stockDataFromDB.availableShares || 125000000) + quantity,
+              soldShares: (stockDataFromDB.soldShares || 175000000) - quantity,
               volume: (stockDataFromDB.volume || 100000000) + totalAmount,
               updatedAt: serverTimestamp()
             });
