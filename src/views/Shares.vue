@@ -17,7 +17,10 @@
           <h2 class="company-name">Palm Treasure</h2>
         </div>
         <div class="stock-status">
-          <span class="status-badge open">السوق مفتوح</span>
+          <span class="status-badge open">
+            <span class="pulse-dot"></span>
+            السوق مفتوح
+          </span>
         </div>
       </div>
 
@@ -51,8 +54,14 @@
         </div>
       </div>
 
+      <!-- Loading State -->
+      <div v-if="loading" class="loading-card">
+        <div class="gold-spinner"></div>
+        <div class="loading-text">جاري تحميل البيانات...</div>
+      </div>
+
       <!-- Shares Statistics -->
-      <div class="stats-card" v-if="stockData">
+      <div class="stats-card" v-if="!loading && stockData">
         <h3 class="stats-title">📊 إحصائيات الأسهم</h3>
         <div class="stats-grid">
           <div class="stat-item">
@@ -80,8 +89,32 @@
         </div>
       </div>
 
+      <!-- Price Simulator Info -->
+      <div class="simulator-info" v-if="!loading && stockData">
+        <div class="simulator-header">
+          <i class="fas fa-robot"></i>
+          <span>محاكي السوق - تحديث مباشر</span>
+        </div>
+        <div class="simulator-stats">
+          <div class="sim-stat">
+            <span class="sim-label">آخر تحديث</span>
+            <span class="sim-value">{{ lastUpdateTime }}</span>
+          </div>
+          <div class="sim-stat">
+            <span class="sim-label">التغير اليومي</span>
+            <span class="sim-value" :class="dailyChange >= 0 ? 'profit' : 'loss'">
+              {{ dailyChange >= 0 ? '+' : '' }}{{ formatPrice(dailyChange) }} USDT
+            </span>
+          </div>
+          <div class="sim-stat">
+            <span class="sim-label">حجم التداول 24س</span>
+            <span class="sim-value">{{ formatVolume(tradingVolume24h) }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- User Portfolio -->
-      <div class="portfolio-card" v-if="userShares">
+      <div class="portfolio-card" v-if="!loading && userShares">
         <h3 class="portfolio-title">💼 محفظتي</h3>
         <div class="portfolio-grid">
           <div class="portfolio-item">
@@ -102,8 +135,8 @@
           </div>
           <div class="portfolio-item full-width">
             <span class="portfolio-label">الربح/الخسارة</span>
-            <span class="portfolio-value" :class="userShares.totalProfit >= 0 ? 'profit' : 'loss'">
-              {{ userShares.totalProfit >= 0 ? '+' : '' }}{{ formatPrice(userShares.totalProfit) }} USDT
+            <span class="portfolio-value" :class="portfolioProfit >= 0 ? 'profit' : 'loss'">
+              {{ portfolioProfit >= 0 ? '+' : '' }}{{ formatPrice(portfolioProfit) }} USDT
               ({{ profitPercentage >= 0 ? '+' : '' }}{{ formatPrice(profitPercentage) }}%)
             </span>
           </div>
@@ -111,7 +144,7 @@
       </div>
 
       <!-- Trade Buttons -->
-      <div class="trade-buttons" v-if="stockData">
+      <div class="trade-buttons" v-if="!loading && stockData">
         <button 
           @click="openTradeModal('buy')" 
           class="trade-btn buy-btn"
@@ -128,12 +161,6 @@
           <i class="fas fa-money-bill-wave"></i>
           بيع الأسهم
         </button>
-      </div>
-
-      <!-- Loading State -->
-      <div v-if="loading" class="loading-overlay">
-        <div class="gold-spinner"></div>
-        <div class="loading-text">جاري التحميل...</div>
       </div>
     </div>
 
@@ -206,7 +233,7 @@
       </div>
     </transition>
 
-    <!-- Success Notification -->
+    <!-- Notification -->
     <transition name="slide-down">
       <div v-if="showNotification" class="notification" :class="notificationType">
         <i :class="notificationType === 'success' ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
@@ -217,7 +244,7 @@
 </template>
 
 <script>
-import { auth, db, runTransaction, serverTimestamp, collection, doc, getDoc, setDoc, addDoc, query, orderBy, limit, getDocs, onSnapshot } from "../firebase";
+import { auth, db, runTransaction, serverTimestamp, collection, doc, getDoc, setDoc, addDoc, onSnapshot } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default {
@@ -236,7 +263,13 @@ export default {
       showNotification: false,
       notificationMessage: '',
       notificationType: 'success',
-      unsubscribeStock: null
+      unsubscribeStock: null,
+      priceInterval: null,
+      lastUpdateTime: '--',
+      dailyChange: 0,
+      tradingVolume24h: 0,
+      startOfDayPrice: 1.50,
+      volumeInterval: null
     };
   },
 
@@ -272,6 +305,11 @@ export default {
       
       return true;
     },
+    portfolioProfit() {
+      if (!this.userShares || !this.stockData) return 0;
+      const currentValue = this.userShares.shares * this.stockData.currentPrice;
+      return currentValue - this.userShares.invested;
+    },
     profitPercentage() {
       if (!this.userShares || !this.stockData || this.userShares.invested === 0) return 0;
       const currentValue = this.userShares.shares * this.stockData.currentPrice;
@@ -287,6 +325,12 @@ export default {
     if (this.unsubscribeStock) {
       this.unsubscribeStock();
     }
+    if (this.priceInterval) {
+      clearInterval(this.priceInterval);
+    }
+    if (this.volumeInterval) {
+      clearInterval(this.volumeInterval);
+    }
   },
 
   methods: {
@@ -296,50 +340,134 @@ export default {
           this.$router.push("/login");
           return;
         }
-        await this.loadStockData();
+        await this.initializeStockData();
         await this.loadUserData();
+        this.startPriceSimulator();
         this.loading = false;
       });
     },
 
-    async loadStockData() {
+    async initializeStockData() {
       try {
         const stockDoc = await getDoc(doc(db, "stock", "company"));
+        
         if (stockDoc.exists()) {
-          this.stockData = stockDoc.data();
-        } else {
-          // إنشاء بيانات افتراضية للعرض
+          const data = stockDoc.data();
           this.stockData = {
-            currentPrice: 1.50,
-            previousPrice: 1.50,
-            highPrice: 1.50,
-            lowPrice: 1.50,
-            volume: 0,
+            currentPrice: data.currentPrice || 1.50,
+            previousPrice: data.previousPrice || 1.50,
+            highPrice: data.highPrice || 1.80,
+            lowPrice: data.lowPrice || 1.40,
+            volume: data.volume || 100000000,
+            totalShares: data.totalShares || 300000000,
+            availableShares: data.availableShares || 125000000,
+            soldShares: data.soldShares || 175000000
+          };
+          this.startOfDayPrice = data.currentPrice || 1.50;
+        } else {
+          // إنشاء بيانات أولية مع تقلبات
+          const initialPrice = 1.50;
+          const initialData = {
+            currentPrice: initialPrice,
+            previousPrice: initialPrice,
+            highPrice: initialPrice + 0.30,
+            lowPrice: initialPrice - 0.10,
+            volume: 100000000,
             totalShares: 300000000,
             availableShares: 125000000,
-            soldShares: 175000000
+            soldShares: 175000000,
+            updatedAt: serverTimestamp()
           };
+          
+          await setDoc(doc(db, "stock", "company"), initialData);
+          
+          this.stockData = { ...initialData };
+          this.startOfDayPrice = initialPrice;
         }
         
-        // مراقبة التحديثات
+        // مراقبة التحديثات من Firestore
         this.unsubscribeStock = onSnapshot(doc(db, "stock", "company"), (doc) => {
           if (doc.exists()) {
-            this.stockData = doc.data();
+            const data = doc.data();
+            this.stockData = {
+              currentPrice: data.currentPrice || this.stockData.currentPrice,
+              previousPrice: data.previousPrice || this.stockData.previousPrice,
+              highPrice: data.highPrice || this.stockData.highPrice,
+              lowPrice: data.lowPrice || this.stockData.lowPrice,
+              volume: data.volume || this.stockData.volume,
+              totalShares: data.totalShares || this.stockData.totalShares,
+              availableShares: data.availableShares || this.stockData.availableShares,
+              soldShares: data.soldShares || this.stockData.soldShares
+            };
           }
         });
       } catch (error) {
-        console.error("Error loading stock data:", error);
-        // استخدام بيانات افتراضية في حالة الخطأ
+        console.error("Error initializing stock data:", error);
+        // بيانات افتراضية في حالة الخطأ
         this.stockData = {
           currentPrice: 1.50,
           previousPrice: 1.50,
-          highPrice: 1.50,
-          lowPrice: 1.50,
-          volume: 0,
+          highPrice: 1.80,
+          lowPrice: 1.40,
+          volume: 100000000,
           totalShares: 300000000,
           availableShares: 125000000,
           soldShares: 175000000
         };
+        this.startOfDayPrice = 1.50;
+      }
+    },
+
+    startPriceSimulator() {
+      // تحديث السعر كل 5 ثواني بتقلبات صغيرة
+      this.priceInterval = setInterval(() => {
+        if (this.stockData) {
+          const currentPrice = this.stockData.currentPrice;
+          // تقلب عشوائي بين -0.02 و +0.05 (ارتفاع أكثر من انخفاض)
+          const change = (Math.random() * 0.07) - 0.02;
+          const newPrice = Math.max(0.01, currentPrice + change);
+          
+          const newHighPrice = Math.max(this.stockData.highPrice, newPrice);
+          const newLowPrice = Math.min(this.stockData.lowPrice, newPrice);
+          
+          this.stockData.previousPrice = currentPrice;
+          this.stockData.currentPrice = newPrice;
+          this.stockData.highPrice = newHighPrice;
+          this.stockData.lowPrice = newLowPrice;
+          
+          this.dailyChange = newPrice - this.startOfDayPrice;
+          this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
+          
+          // تحديث Firestore كل 30 ثانية
+          if (Math.random() < 0.1) {
+            this.updateFirestorePrice(newPrice);
+          }
+        }
+      }, 5000);
+
+      // تحديث حجم التداول كل 10 ثواني
+      this.volumeInterval = setInterval(() => {
+        if (this.stockData) {
+          // زيادة حجم التداول بشكل عشوائي
+          const volumeIncrease = Math.floor(Math.random() * 1000000) + 500000;
+          this.stockData.volume += volumeIncrease;
+          this.tradingVolume24h += volumeIncrease;
+        }
+      }, 10000);
+    },
+
+    async updateFirestorePrice(newPrice) {
+      try {
+        const stockRef = doc(db, "stock", "company");
+        await setDoc(stockRef, {
+          currentPrice: newPrice,
+          highPrice: this.stockData.highPrice,
+          lowPrice: this.stockData.lowPrice,
+          volume: this.stockData.volume,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (error) {
+        console.error("Error updating price:", error);
       }
     },
 
@@ -363,6 +491,10 @@ export default {
     },
 
     openTradeModal(type) {
+      if (!this.stockData) {
+        this.showNotificationMessage('error', '❌ بيانات السهم غير متوفرة حالياً، يرجى المحاولة لاحقاً');
+        return;
+      }
       this.tradeType = type;
       this.tradeQuantity = 1;
       this.errorMessage = '';
@@ -384,7 +516,7 @@ export default {
       }
       
       if (this.tradeQuantity > this.maxTradeQuantity) {
-        this.errorMessage = `لا يمكنك ${this.tradeType === 'buy' ? 'شراء' : 'بيع'} أكثر من ${this.maxTradeQuantity} سهم`;
+        this.errorMessage = `لا يمكنك ${this.tradeType === 'buy' ? 'شراء' : 'بيع'} أكثر من ${this.formatNumber(this.maxTradeQuantity)} سهم`;
         return;
       }
       
@@ -398,7 +530,10 @@ export default {
     },
 
     async executeTrade() {
-      if (!this.isTradeValid || !this.stockData) return;
+      if (!this.isTradeValid || !this.stockData) {
+        this.showNotificationMessage('error', '❌ بيانات السهم غير متوفرة، يرجى المحاولة لاحقاً');
+        return;
+      }
       
       this.processing = true;
       
@@ -419,7 +554,21 @@ export default {
           const stockDoc = await transaction.get(stockRef);
           
           if (!userDoc.exists()) throw new Error("المستخدم غير موجود");
-          if (!stockDoc.exists()) throw new Error("بيانات السهم غير متوفرة");
+          if (!stockDoc.exists()) {
+            // إنشاء بيانات السهم إذا لم تكن موجودة
+            transaction.set(stockRef, {
+              currentPrice: 1.50,
+              previousPrice: 1.50,
+              highPrice: 1.80,
+              lowPrice: 1.40,
+              volume: 100000000,
+              totalShares: 300000000,
+              availableShares: 125000000,
+              soldShares: 175000000,
+              updatedAt: serverTimestamp()
+            });
+            throw new Error("يرجى المحاولة مرة أخرى، جاري تهيئة البيانات");
+          }
           
           const userData = userDoc.data();
           const stockDataFromDB = stockDoc.data();
@@ -439,9 +588,8 @@ export default {
             
             transaction.update(stockRef, {
               availableShares: stockDataFromDB.availableShares - quantity,
-              soldShares: stockDataFromDB.soldShares + quantity,
-              volume: (stockDataFromDB.volume || 0) + totalAmount,
-              previousPrice: stockDataFromDB.currentPrice,
+              soldShares: (stockDataFromDB.soldShares || 0) + quantity,
+              volume: (stockDataFromDB.volume || 100000000) + totalAmount,
               updatedAt: serverTimestamp()
             });
             
@@ -488,10 +636,9 @@ export default {
             });
             
             transaction.update(stockRef, {
-              availableShares: stockDataFromDB.availableShares + quantity,
-              soldShares: stockDataFromDB.soldShares - quantity,
-              volume: (stockDataFromDB.volume || 0) + totalAmount,
-              previousPrice: stockDataFromDB.currentPrice,
+              availableShares: (stockDataFromDB.availableShares || 0) + quantity,
+              soldShares: (stockDataFromDB.soldShares || 0) - quantity,
+              volume: (stockDataFromDB.volume || 100000000) + totalAmount,
               updatedAt: serverTimestamp()
             });
             
@@ -508,7 +655,7 @@ export default {
             }
           }
           
-          // تسجيل العملية في transactions
+          // تسجيل العملية
           const transactionRef = doc(collection(db, "transactions"));
           transaction.set(transactionRef, {
             userId: user.uid,
@@ -558,7 +705,9 @@ export default {
 
     formatVolume(value) {
       if (!value) return '0';
-      if (value >= 1000000) {
+      if (value >= 1000000000) {
+        return (value / 1000000000).toFixed(2) + 'B';
+      } else if (value >= 1000000) {
         return (value / 1000000).toFixed(2) + 'M';
       } else if (value >= 1000) {
         return (value / 1000).toFixed(2) + 'K';
@@ -612,6 +761,7 @@ export default {
 
 .back-btn:hover {
   background: rgba(252, 213, 53, 0.2);
+  transform: scale(1.05);
 }
 
 .page-title {
@@ -642,12 +792,19 @@ export default {
 .logo-icon {
   font-size: 48px;
   margin-bottom: 10px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 .company-name {
   font-size: 24px;
   font-weight: 900;
   color: #fcd535;
+  text-shadow: 0 0 10px rgba(252, 213, 53, 0.3);
 }
 
 .stock-status {
@@ -659,12 +816,28 @@ export default {
   border-radius: 50px;
   font-size: 12px;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .status-badge.open {
   background: rgba(0, 255, 0, 0.1);
   color: #00ff88;
   border: 1px solid #00ff88;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #00ff88;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 .price-card {
@@ -688,6 +861,8 @@ export default {
   font-size: 36px;
   font-weight: 900;
   color: #fcd535;
+  text-shadow: 0 0 20px rgba(252, 213, 53, 0.3);
+  transition: all 0.5s ease;
 }
 
 .currency {
@@ -743,6 +918,88 @@ export default {
 }
 
 .detail-value.low {
+  color: #ff4444;
+}
+
+.loading-card {
+  background: #181a20;
+  border: 1px solid rgba(252, 213, 53, 0.3);
+  border-radius: 16px;
+  padding: 40px 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.gold-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(252, 213, 53, 0.1);
+  border-top: 4px solid #fcd535;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #fcd535;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.simulator-info {
+  background: linear-gradient(135deg, rgba(252, 213, 53, 0.1), rgba(255, 237, 138, 0.05));
+  border: 1px solid rgba(252, 213, 53, 0.3);
+  border-radius: 16px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.simulator-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fcd535;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.simulator-header i {
+  font-size: 18px;
+}
+
+.simulator-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.sim-stat {
+  text-align: center;
+}
+
+.sim-label {
+  display: block;
+  font-size: 10px;
+  color: #848e9c;
+  margin-bottom: 3px;
+}
+
+.sim-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sim-value.profit {
+  color: #00ff88;
+}
+
+.sim-value.loss {
   color: #ff4444;
 }
 
@@ -897,10 +1154,13 @@ export default {
   justify-content: center;
   gap: 8px;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .trade-btn:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .trade-btn:disabled {
@@ -916,40 +1176,6 @@ export default {
 .sell-btn {
   background: linear-gradient(135deg, #ff4444, #cc0000);
   color: #fff;
-}
-
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.gold-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(252, 213, 53, 0.1);
-  border-top: 4px solid #fcd535;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  color: #fcd535;
-  font-size: 16px;
-  font-weight: 600;
 }
 
 /* Modal Styles */
@@ -983,6 +1209,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: linear-gradient(135deg, rgba(252, 213, 53, 0.1), rgba(255, 237, 138, 0.05));
 }
 
 .modal-header h3 {
@@ -998,6 +1225,19 @@ export default {
   color: #848e9c;
   font-size: 28px;
   cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .modal-body {
@@ -1047,11 +1287,13 @@ export default {
   color: #fff;
   font-size: 16px;
   outline: none;
+  transition: all 0.3s ease;
   font-family: 'Cairo', sans-serif;
 }
 
 .trade-input:focus {
   border-color: #fcd535;
+  box-shadow: 0 0 0 3px rgba(252, 213, 53, 0.1);
 }
 
 .total-calculation {
@@ -1116,6 +1358,12 @@ export default {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .btn-confirm {
@@ -1128,6 +1376,16 @@ export default {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(252, 213, 53, 0.4);
 }
 
 .btn-confirm:disabled {
@@ -1135,7 +1393,6 @@ export default {
   cursor: not-allowed;
 }
 
-/* Notification */
 .notification {
   position: fixed;
   top: 20px;
@@ -1145,11 +1402,13 @@ export default {
   border-radius: 50px;
   font-weight: 700;
   z-index: 3000;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 14px;
   max-width: 90%;
+  text-align: center;
 }
 
 .notification.success {
@@ -1162,10 +1421,10 @@ export default {
   color: #fff;
 }
 
-/* Transitions */
 .slide-down-enter-active, .slide-down-leave-active {
   transition: all 0.3s ease;
 }
+
 .slide-down-enter-from, .slide-down-leave-to {
   transform: translateX(-50%) translateY(-100px);
   opacity: 0;
@@ -1175,6 +1434,7 @@ export default {
 .modal-fade-scale-leave-active {
   transition: all 0.3s ease;
 }
+
 .modal-fade-scale-enter-from,
 .modal-fade-scale-leave-to {
   opacity: 0;
@@ -1182,6 +1442,10 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .page-title {
+    font-size: 18px;
+  }
+  
   .price-value {
     font-size: 28px;
   }
@@ -1196,6 +1460,15 @@ export default {
   
   .trade-buttons {
     flex-direction: column;
+  }
+  
+  .simulator-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+  
+  .sim-value {
+    font-size: 10px;
   }
 }
 </style>
