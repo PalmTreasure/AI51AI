@@ -7,6 +7,20 @@
         <span class="title-glow">💎</span>
       </h1>
 
+      <!-- زر أسهم الشركة الجديد -->
+      <div class="shares-button-container">
+        <button @click="goToShares" class="shares-button">
+          <div class="shares-button-content">
+            <span class="shares-icon">📈</span>
+            <div class="shares-text-container">
+              <span class="shares-title">أسهم الشركة</span>
+              <span class="shares-subtitle">Palm Treasure</span>
+            </div>
+          </div>
+          <span class="shares-badge">استثمر الآن</span>
+        </button>
+      </div>
+
       <!-- إشعار الأرباح -->
       <transition name="slide-down">
         <div v-if="showNotification" class="profit-notification">
@@ -750,6 +764,10 @@ export default {
       setTimeout(() => {
         this.showNotification = false;
       }, 3000);
+    },
+
+    goToShares() {
+      this.$router.push('/shares');
     }
   }
 };
@@ -781,6 +799,99 @@ export default {
 
 .title-glow {
   font-size: 28px;
+}
+
+/* تنسيقات زر أسهم الشركة */
+.shares-button-container {
+  margin-bottom: 25px;
+  padding: 0 5px;
+}
+
+.shares-button {
+  width: 100%;
+  background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
+  border: 2px solid #fcd535;
+  border-radius: 16px;
+  padding: 16px 20px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(252, 213, 53, 0.15);
+}
+
+.shares-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(252, 213, 53, 0.05) 0%, rgba(252, 213, 53, 0.02) 100%);
+  transition: all 0.3s ease;
+}
+
+.shares-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(252, 213, 53, 0.3);
+  border-color: #ffed8a;
+}
+
+.shares-button:hover::before {
+  background: linear-gradient(135deg, rgba(252, 213, 53, 0.1) 0%, rgba(252, 213, 53, 0.05) 100%);
+}
+
+.shares-button-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+.shares-icon {
+  font-size: 32px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.shares-text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.shares-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fcd535;
+  text-shadow: 0 0 10px rgba(252, 213, 53, 0.3);
+}
+
+.shares-subtitle {
+  font-size: 13px;
+  color: #848e9c;
+  font-weight: 600;
+}
+
+.shares-badge {
+  background: linear-gradient(135deg, #fcd535, #ffed8a);
+  color: #0b0e11;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
 }
 
 .profit-notification {
@@ -1399,6 +1510,23 @@ export default {
 
   .highlight-level {
     font-size: 16px;
+  }
+  
+  .shares-button {
+    padding: 14px 16px;
+  }
+  
+  .shares-title {
+    font-size: 16px;
+  }
+  
+  .shares-subtitle {
+    font-size: 11px;
+  }
+  
+  .shares-badge {
+    font-size: 11px;
+    padding: 6px 12px;
   }
 }
 </style>
