@@ -9,6 +9,7 @@ import Register from "../views/Register.vue";
 import Home from "../views/Home.vue";
 import Tasks from "../views/Tasks.vue";
 import VIP from "../views/VIP.vue";
+import Shares from "../views/Shares.vue";
 import Profile from "../views/Profile.vue";
 import Recharge from "../views/Recharge.vue";
 import Withdraw from "../views/Withdraw.vue";
@@ -58,6 +59,12 @@ const routes = [
   {
     path: "/vip",
     component: VIP,
+    meta: { requiresAuth: true },
+  },
+
+  {
+    path: "/shares",
+    component: Shares,
     meta: { requiresAuth: true },
   },
 
