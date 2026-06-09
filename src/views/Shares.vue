@@ -89,24 +89,24 @@
         </div>
       </div>
 
-      <!-- Price Info -->
-      <div class="simulator-info" v-if="!loading && stockData">
-        <div class="simulator-header">
-          <i class="fas fa-robot"></i>
-          <span>بيانات السوق - مباشر</span>
+      <!-- Market Info -->
+      <div class="market-info-card" v-if="!loading && stockData">
+        <div class="market-info-header">
+          <i class="fas fa-chart-line"></i>
+          <span>معلومات السوق</span>
         </div>
-        <div class="simulator-stats">
-          <div class="sim-stat">
-            <span class="sim-label">آخر تحديث</span>
-            <span class="sim-value">{{ lastUpdateTime }}</span>
+        <div class="market-info-grid">
+          <div class="market-info-item">
+            <span class="market-label">آخر تحديث</span>
+            <span class="market-value">{{ lastUpdateTime }}</span>
           </div>
-          <div class="sim-stat">
-            <span class="sim-label">سعر الافتتاح اليومي</span>
-            <span class="sim-value">{{ formatPrice(stockData.openingPrice || stockData.currentPrice) }} USDT</span>
+          <div class="market-info-item">
+            <span class="market-label">سعر الافتتاح</span>
+            <span class="market-value gold">{{ formatPrice(stockData.openingPrice || stockData.currentPrice) }} USDT</span>
           </div>
-          <div class="sim-stat">
-            <span class="sim-label">التغير اليومي</span>
-            <span class="sim-value" :class="dailyChange >= 0 ? 'profit' : 'loss'">
+          <div class="market-info-item">
+            <span class="market-label">التغير اليومي</span>
+            <span class="market-value" :class="dailyChange >= 0 ? 'profit' : 'loss'">
               {{ dailyChange >= 0 ? '+' : '' }}{{ formatPrice(dailyChange) }} USDT
             </span>
           </div>
@@ -361,7 +361,6 @@ export default {
           this.dailyChange = this.stockData.currentPrice - this.stockData.openingPrice;
           this.lastUpdateTime = data.updatedAt ? new Date(data.updatedAt.toDate()).toLocaleTimeString('ar-SA') : '--';
         } else {
-          // إنشاء البيانات الأولية في Firestore
           const initialData = {
             currentPrice: 1.50,
             previousPrice: 1.50,
@@ -399,7 +398,6 @@ export default {
     },
 
     subscribeToStockUpdates() {
-      // الاستماع للتحديثات من Firestore مباشرة
       const stockRef = doc(db, "stock", "company");
       this.unsubscribeStock = onSnapshot(stockRef, (doc) => {
         if (doc.exists()) {
@@ -505,7 +503,6 @@ export default {
           const stockRef = doc(db, "stock", "company");
           const sharesRef = doc(db, "users", user.uid, "shares", "portfolio");
           
-          // ✅ جميع عمليات القراءة أولاً
           const userDoc = await transaction.get(userRef);
           const stockDoc = await transaction.get(stockRef);
           const sharesDoc = await transaction.get(sharesRef);
@@ -545,7 +542,6 @@ export default {
               throw new Error("رصيدك غير كافٍ");
             }
             
-            // ✅ جميع عمليات الكتابة بعد القراءة
             transaction.update(userRef, {
               balance: userBalance - totalAmount
             });
@@ -581,7 +577,6 @@ export default {
               });
             }
           } else {
-            // بيع
             if (!sharesDoc.exists()) throw new Error("لا تمتلك أي أسهم");
             
             const currentShares = sharesDoc.data();
@@ -597,7 +592,6 @@ export default {
             const newInvested = currentShares.invested - soldInvested;
             const profit = totalAmount - soldInvested;
             
-            // ✅ جميع عمليات الكتابة بعد القراءة
             transaction.update(userRef, {
               balance: userBalance + totalAmount
             });
@@ -623,7 +617,6 @@ export default {
             }
           }
           
-          // تسجيل العملية
           const transactionRef = doc(collection(db, "transactions"));
           transaction.set(transactionRef, {
             userId: user.uid,
@@ -689,3 +682,841 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.shares-page {
+  min-height: 100vh;
+  background: #0b0e11;
+  color: #fff;
+  direction: rtl;
+  padding: 15px;
+  font-family: 'Cairo', sans-serif;
+}
+
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Header */
+.shares-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(252, 213, 53, 0.3);
+  color: #fcd535;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(252, 213, 53, 0.2);
+  border-color: #fcd535;
+  transform: scale(1.05);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fcd535;
+  text-align: center;
+  flex: 1;
+  text-shadow: 0 0 15px rgba(252, 213, 53, 0.3);
+}
+
+.header-spacer {
+  width: 40px;
+}
+
+/* Company Card */
+.company-card {
+  background: linear-gradient(135deg, #1a1f2e 0%, #141820 100%);
+  border: 2px solid #fcd535;
+  border-radius: 20px;
+  padding: 25px 20px;
+  margin-bottom: 18px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(252, 213, 53, 0.1);
+}
+
+.company-logo {
+  margin-bottom: 12px;
+}
+
+.logo-icon {
+  font-size: 45px;
+  margin-bottom: 8px;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(252, 213, 53, 0.3));
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.company-name {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fcd535;
+  text-shadow: 0 0 15px rgba(252, 213, 53, 0.4);
+  letter-spacing: 1px;
+}
+
+.stock-status {
+  margin-top: 10px;
+}
+
+.status-badge {
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-badge.open {
+  background: rgba(0, 255, 136, 0.1);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #00ff88;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+}
+
+/* Price Card */
+.price-card {
+  background: #181a20;
+  border: 1px solid rgba(252, 213, 53, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.price-main {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.current-price {
+  margin-bottom: 8px;
+}
+
+.price-value {
+  font-size: 38px;
+  font-weight: 900;
+  color: #fcd535;
+  text-shadow: 0 0 25px rgba(252, 213, 53, 0.4);
+  transition: all 0.3s ease;
+  letter-spacing: -1px;
+}
+
+.currency {
+  font-size: 16px;
+  color: #848e9c;
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+.price-change {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.price-change.positive {
+  color: #00ff88;
+}
+
+.price-change.negative {
+  color: #ff4444;
+}
+
+.price-change i {
+  font-size: 18px;
+}
+
+.price-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(252, 213, 53, 0.12);
+}
+
+.detail-item {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  padding: 10px 5px;
+}
+
+.detail-label {
+  display: block;
+  font-size: 10px;
+  color: #848e9c;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.detail-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.detail-value.high {
+  color: #00ff88;
+}
+
+.detail-value.low {
+  color: #ff4444;
+}
+
+/* Loading */
+.loading-card {
+  background: #181a20;
+  border: 1px solid rgba(252, 213, 53, 0.25);
+  border-radius: 16px;
+  padding: 50px 20px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.gold-spinner {
+  width: 45px;
+  height: 45px;
+  border: 4px solid rgba(252, 213, 53, 0.1);
+  border-top: 4px solid #fcd535;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #fcd535;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Stats Card */
+.stats-card {
+  background: #181a20;
+  border: 1px solid rgba(252, 213, 53, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.stats-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fcd535;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stat-item {
+  background: linear-gradient(135deg, rgba(30, 35, 41, 0.8), rgba(20, 24, 30, 0.8));
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  border: 1px solid rgba(252, 213, 53, 0.15);
+}
+
+.stat-item.full-width {
+  grid-column: span 2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  color: #848e9c;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.stat-value.highlight {
+  color: #fcd535;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #fcd535, #ffed8a, #fcd535);
+  border-radius: 10px;
+  transition: width 0.6s ease;
+  box-shadow: 0 0 10px rgba(252, 213, 53, 0.3);
+}
+
+.sold-out-message {
+  text-align: center;
+  padding: 15px;
+  background: rgba(255, 0, 0, 0.08);
+  border: 1px solid rgba(255, 0, 0, 0.25);
+  border-radius: 12px;
+  color: #ff4444;
+  font-weight: 700;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+/* Market Info Card */
+.market-info-card {
+  background: linear-gradient(135deg, rgba(252, 213, 53, 0.06), rgba(255, 237, 138, 0.03));
+  border: 1px solid rgba(252, 213, 53, 0.25);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.market-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fcd535;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(252, 213, 53, 0.1);
+}
+
+.market-info-header i {
+  font-size: 16px;
+}
+
+.market-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.market-info-item {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  padding: 10px 5px;
+}
+
+.market-label {
+  display: block;
+  font-size: 10px;
+  color: #848e9c;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.market-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.market-value.gold {
+  color: #fcd535;
+}
+
+.market-value.profit {
+  color: #00ff88;
+}
+
+.market-value.loss {
+  color: #ff4444;
+}
+
+/* Portfolio Card */
+.portfolio-card {
+  background: linear-gradient(135deg, #1a1f2e 0%, #141820 100%);
+  border: 2px solid #fcd535;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 8px 30px rgba(252, 213, 53, 0.08);
+}
+
+.portfolio-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fcd535;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.portfolio-item {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  border: 1px solid rgba(252, 213, 53, 0.1);
+}
+
+.portfolio-item.full-width {
+  grid-column: span 2;
+  background: rgba(252, 213, 53, 0.05);
+}
+
+.portfolio-label {
+  display: block;
+  font-size: 11px;
+  color: #848e9c;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.portfolio-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.portfolio-value.profit {
+  color: #00ff88;
+}
+
+.portfolio-value.loss {
+  color: #ff4444;
+}
+
+/* Trade Buttons */
+.trade-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.trade-btn {
+  flex: 1;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.trade-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.trade-btn:hover:not(:disabled)::before {
+  transform: translateX(0);
+}
+
+.trade-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.trade-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.buy-btn {
+  background: linear-gradient(135deg, #00cc6a, #009944);
+  color: #fff;
+}
+
+.sell-btn {
+  background: linear-gradient(135deg, #ff4444, #cc0000);
+  color: #fff;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2500;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #181a20;
+  width: 100%;
+  max-width: 380px;
+  border-radius: 20px;
+  border: 1px solid #fcd535;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(252, 213, 53, 0.15);
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(252, 213, 53, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(252, 213, 53, 0.1), rgba(255, 237, 138, 0.03));
+}
+
+.modal-header h3 {
+  color: #fcd535;
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #848e9c;
+  font-size: 26px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.trade-info {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(252, 213, 53, 0.1);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.price-highlight {
+  color: #fcd535;
+  font-weight: 700;
+}
+
+.input-group {
+  margin-bottom: 18px;
+}
+
+.input-group label {
+  display: block;
+  color: #848e9c;
+  font-size: 12px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.trade-input {
+  width: 100%;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(252, 213, 53, 0.3);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+  font-family: 'Cairo', sans-serif;
+}
+
+.trade-input:focus {
+  border-color: #fcd535;
+  box-shadow: 0 0 0 3px rgba(252, 213, 53, 0.1);
+}
+
+.total-calculation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  background: rgba(252, 213, 53, 0.08);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  border: 1px solid rgba(252, 213, 53, 0.15);
+}
+
+.total-value {
+  color: #fcd535;
+  font-size: 17px;
+}
+
+.balance-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.balance-value {
+  color: #fcd535;
+  font-weight: 700;
+}
+
+.error-message {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 0, 0, 0.08);
+  border: 1px solid rgba(255, 0, 0, 0.25);
+  border-radius: 10px;
+  color: #ff4444;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(252, 213, 53, 0.15);
+}
+
+.btn-cancel {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-confirm {
+  flex: 1;
+  background: linear-gradient(135deg, #fcd535, #e6b800);
+  border: none;
+  color: #0b0e11;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(252, 213, 53, 0.2);
+}
+
+.btn-confirm:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(252, 213, 53, 0.4);
+  background: linear-gradient(135deg, #ffed8a, #fcd535);
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Notification */
+.notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 24px;
+  border-radius: 50px;
+  font-weight: 700;
+  z-index: 3000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  max-width: 90%;
+  text-align: center;
+}
+
+.notification.success {
+  background: linear-gradient(135deg, #00cc6a, #009944);
+  color: #fff;
+}
+
+.notification.error {
+  background: linear-gradient(135deg, #ff4444, #cc0000);
+  color: #fff;
+}
+
+/* Transitions */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.35s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  transform: translateX(-50%) translateY(-100px);
+  opacity: 0;
+}
+
+.modal-fade-scale-enter-active,
+.modal-fade-scale-leave-active {
+  transition: all 0.3s ease;
+}
+.modal-fade-scale-enter-from,
+.modal-fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 17px;
+  }
+  
+  .price-value {
+    font-size: 30px;
+  }
+  
+  .company-name {
+    font-size: 19px;
+  }
+  
+  .portfolio-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .portfolio-item.full-width {
+    grid-column: span 1;
+  }
+  
+  .trade-buttons {
+    flex-direction: column;
+  }
+  
+  .market-info-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  
+  .market-value {
+    font-size: 11px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-item.full-width {
+    grid-column: span 1;
+  }
+}
+</style>
