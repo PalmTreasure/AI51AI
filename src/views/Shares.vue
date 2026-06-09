@@ -266,7 +266,8 @@ export default {
       unsubscribeStock: null,
       lastUpdateTime: '--',
       dailyChange: 0,
-      stockReady: false
+      stockReady: false,
+      simulationInterval: null
     };
   },
 
@@ -321,6 +322,9 @@ export default {
   beforeUnmount() {
     if (this.unsubscribeStock) {
       this.unsubscribeStock();
+    }
+    if (this.simulationInterval) {
+      clearInterval(this.simulationInterval);
     }
   },
 
@@ -397,6 +401,54 @@ export default {
       }
     },
 
+    startPriceSimulation() {
+      this.simulationInterval = setInterval(async () => {
+        if (!this.stockData || !this.stockReady) return;
+        
+        try {
+          const stockRef = doc(db, "stock", "company");
+          
+          await runTransaction(db, async (transaction) => {
+            const stockDoc = await transaction.get(stockRef);
+            
+            if (!stockDoc.exists()) return;
+            
+            const data = stockDoc.data();
+            const currentPrice = data.currentPrice || 1.50;
+            
+            const change = (Math.random() * 0.05) - 0.01;
+            const newPrice = Math.max(0.01, currentPrice + change);
+            
+            const newHighPrice = Math.max(data.highPrice || 1.80, newPrice);
+            const newLowPrice = Math.min(data.lowPrice || 0.10, newPrice);
+            
+            const volumeIncrease = Math.floor(Math.random() * 200000) + 50000;
+            const newVolume = (data.volume || 100000000) + volumeIncrease;
+            
+            const now = new Date();
+            const lastUpdate = data.updatedAt ? data.updatedAt.toDate() : new Date(0);
+            let openingPrice = data.openingPrice || currentPrice;
+            
+            if (now.getDate() !== lastUpdate.getDate()) {
+              openingPrice = newPrice;
+            }
+            
+            transaction.update(stockRef, {
+              currentPrice: newPrice,
+              previousPrice: currentPrice,
+              highPrice: newHighPrice,
+              lowPrice: newLowPrice,
+              volume: newVolume,
+              openingPrice: openingPrice,
+              updatedAt: serverTimestamp()
+            });
+          });
+        } catch (error) {
+          // تجاهل الأخطاء في المحاكي
+        }
+      }, 10000);
+    },
+
     subscribeToStockUpdates() {
       const stockRef = doc(db, "stock", "company");
       this.unsubscribeStock = onSnapshot(stockRef, (doc) => {
@@ -422,6 +474,8 @@ export default {
           }
         }
       });
+      
+      this.startPriceSimulation();
     },
 
     async loadUserData() {
@@ -704,7 +758,6 @@ export default {
   margin: 0 auto;
 }
 
-/* Header */
 .shares-header {
   display: flex;
   align-items: center;
@@ -746,7 +799,6 @@ export default {
   width: 40px;
 }
 
-/* Company Card */
 .company-card {
   background: linear-gradient(135deg, #1a1f2e 0%, #141820 100%);
   border: 2px solid #fcd535;
@@ -815,7 +867,6 @@ export default {
   50% { opacity: 0.4; transform: scale(1.3); }
 }
 
-/* Price Card */
 .price-card {
   background: #181a20;
   border: 1px solid rgba(252, 213, 53, 0.25);
@@ -908,7 +959,6 @@ export default {
   color: #ff4444;
 }
 
-/* Loading */
 .loading-card {
   background: #181a20;
   border: 1px solid rgba(252, 213, 53, 0.25);
@@ -938,7 +988,6 @@ export default {
   font-weight: 600;
 }
 
-/* Stats Card */
 .stats-card {
   background: #181a20;
   border: 1px solid rgba(252, 213, 53, 0.25);
@@ -1021,7 +1070,6 @@ export default {
   font-size: 14px;
 }
 
-/* Market Info Card */
 .market-info-card {
   background: linear-gradient(135deg, rgba(252, 213, 53, 0.06), rgba(255, 237, 138, 0.03));
   border: 1px solid rgba(252, 213, 53, 0.25);
@@ -1085,7 +1133,6 @@ export default {
   color: #ff4444;
 }
 
-/* Portfolio Card */
 .portfolio-card {
   background: linear-gradient(135deg, #1a1f2e 0%, #141820 100%);
   border: 2px solid #fcd535;
@@ -1144,7 +1191,6 @@ export default {
   color: #ff4444;
 }
 
-/* Trade Buttons */
 .trade-buttons {
   display: flex;
   gap: 12px;
@@ -1204,7 +1250,6 @@ export default {
   color: #fff;
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1426,7 +1471,6 @@ export default {
   box-shadow: none;
 }
 
-/* Notification */
 .notification {
   position: fixed;
   top: 20px;
@@ -1455,7 +1499,6 @@ export default {
   color: #fff;
 }
 
-/* Transitions */
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.35s ease;
@@ -1476,7 +1519,6 @@ export default {
   transform: scale(0.9);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .page-title {
     font-size: 17px;
