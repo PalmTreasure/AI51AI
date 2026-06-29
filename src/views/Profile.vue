@@ -62,14 +62,14 @@
         </div>
       </div>
 
-      <!-- قسم الرصيد -->
+      <!-- قسم الرصيد (تم التعديل هنا لعرض الرصيد القابل للسحب فقط) -->
       <div class="fields-section">
         <h3 class="section-label"><i class="fas fa-chart-line"></i> الرصيد والبيانات</h3>
         
         <div class="gold-field balance-field">
-          <label><i class="fas fa-wallet"></i> الرصيد المتاح (USDT)</label>
+          <label><i class="fas fa-wallet"></i> الرصيد القابل للسحب (USDT)</label>
           <div class="field-input-group">
-            <input type="text" :value="Number(userData.balance).toFixed(2)" readonly class="gold-input-field balance-text">
+            <input type="text" :value="Number(vipBalance).toFixed(2)" readonly class="gold-input-field balance-text">
             <span class="currency-tag">USDT</span>
           </div>
         </div>
@@ -336,7 +336,7 @@
 
 <script>
 import { auth, db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile } from "firebase/auth";
 
 export default {
@@ -364,11 +364,12 @@ export default {
         phoneNumber: "", 
         uid: "", 
         createdAt: "", 
-        balance: 0, 
         username: "", 
         referralCode: "",
         avatar: ""
       },
+      vipBalance: 0, // تمت إضافة هذا الحقل لعرض الرصيد القابل للسحب
+      unsubscribeUser: null, // لإلغاء الاشتراك عند الخروج
       modal: {
         visible: false,
         type: 'info',
@@ -418,6 +419,12 @@ export default {
   created() { 
     this.loadUserData();
     this.loadLocalAvatar();
+  },
+  beforeUnmount() {
+    // إلغاء الاشتراك عند مغادرة الصفحة لمنع تسريب الذاكرة
+    if (this.unsubscribeUser) {
+      this.unsubscribeUser();
+    }
   },
   methods: {
     showModal(options) {
@@ -510,27 +517,41 @@ export default {
           return; 
         }
         try {
-          const userSnap = await getDoc(doc(db, "users", user.uid));
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            this.userData = {
-              email: data.email || user.email || "",
-              phoneNumber: data.phoneNumber || "",
-              uid: user.uid,
-              createdAt: data.createdAt || user.metadata.creationTime,
-              balance: data.balance ?? 0,
-              username: data.username || (data.email ? data.email.split("@")[0] : "مستخدم"),
-              referralCode: data.referralCode || user.uid.substring(0, 6),
-              avatar: ""
-            };
-            this.editUsername = this.userData.username;
-            this.loadLocalAvatar();
-          }
+          // استخدام onSnapshot للاستماع المباشر لتحديثات الرصيد (vipBalance)
+          const userRef = doc(db, "users", user.uid);
+          
+          // إعداد الاستماع المباشر (Realtime Listener)
+          this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              
+              this.userData = {
+                email: data.email || user.email || "",
+                phoneNumber: data.phoneNumber || "",
+                uid: user.uid,
+                createdAt: data.createdAt || user.metadata.creationTime,
+                username: data.username || (data.email ? data.email.split("@")[0] : "مستخدم"),
+                referralCode: data.referralCode || user.uid.substring(0, 6),
+                avatar: ""
+              };
+              
+              // تعيين الرصيد القابل للسحب فقط (vipBalance) مباشرة من الداتا
+              this.vipBalance = typeof data.vipBalance === 'number' ? data.vipBalance : 0;
+              
+              this.editUsername = this.userData.username;
+              this.loadLocalAvatar();
+              this.loading = false;
+            }
+          }, (error) => {
+            console.error("Listener error:", error);
+            this.loading = false;
+          });
+
         } catch (err) { 
           console.error("Error loading profile:", err); 
           this.showError("حدث خطأ في تحميل البيانات");
+          this.loading = false;
         }
-        this.loading = false;
       });
     },
 
@@ -771,6 +792,9 @@ export default {
         'تسجيل الخروج',
         'هل أنت متأكد من رغبتك في تسجيل الخروج؟',
         async () => {
+          if (this.unsubscribeUser) {
+            this.unsubscribeUser();
+          }
           await signOut(auth);
           this.$router.push("/login");
         }
