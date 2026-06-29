@@ -1237,9 +1237,17 @@ export default {
       this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // استخدام اسم المستخدم بدلاً من رقم الهاتف
           this.username = data.username || data.email || "User";
-          this.vipBalance = typeof data.vipBalance === 'number' ? data.vipBalance : 0;
+          
+          // ✅ قراءة الرصيد القديم تلقائياً
+          if (typeof data.vipBalance === 'number') {
+            this.vipBalance = data.vipBalance;
+          } else if (typeof data.balance === 'number') {
+            this.vipBalance = data.balance; // 🔥 الرصيد القديم ← حقل السحب
+          } else {
+            this.vipBalance = 0;
+          }
+          
           this.depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
         }
       }, (error) => {
@@ -1256,8 +1264,18 @@ export default {
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          this.vipBalance = typeof data.vipBalance === 'number' ? data.vipBalance : 0;
+          
+          // ✅ قراءة الرصيد القديم تلقائياً
+          if (typeof data.vipBalance === 'number') {
+            this.vipBalance = data.vipBalance;
+          } else if (typeof data.balance === 'number') {
+            this.vipBalance = data.balance; // 🔥 الرصيد القديم ← حقل السحب
+          } else {
+            this.vipBalance = 0;
+          }
+          
           this.depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
+          
           this.showSuccessMessage(this.t('balanceUpdated'));
         }
       } catch (error) {
