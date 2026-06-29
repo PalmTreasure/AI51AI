@@ -193,30 +193,34 @@
       </div>
     </header>
 
-    <!-- ==================== BALANCE CARDS SECTION ==================== -->
+    <!-- ==================== BALANCE CARDS SECTION - NEW DESIGN ==================== -->
     <div class="balance-cards-section">
       <!-- بطاقة رصيد الأرباح القابل للسحب -->
-      <div class="balance-card withdrawable-card">
-        <div class="card-header">
-          <div class="card-icon-wrapper withdrawable">
-            <i class="fas fa-wallet"></i>
-          </div>
-          <span class="card-title">{{ t('withdrawableBalance') }}</span>
+      <div class="balance-card-mini withdraw-card" @click="navigateTo('/withdraw')">
+        <div class="card-mini-icon withdraw-icon-bg">
+          <i class="fas fa-arrow-down"></i>
         </div>
-        <div class="card-amount">{{ formatNumber(vipBalance) }} USDT</div>
-        <div class="card-subtitle">{{ t('withdrawableDesc') }}</div>
+        <div class="card-mini-info">
+          <span class="card-mini-label">{{ t('withdrawableBalance') }}</span>
+          <span class="card-mini-amount">${{ formatNumber(vipBalance) }}</span>
+        </div>
+        <div class="card-mini-arrow">
+          <i class="fas fa-chevron-right"></i>
+        </div>
       </div>
 
       <!-- بطاقة رصيد الترقية -->
-      <div class="balance-card upgrade-card">
-        <div class="card-header">
-          <div class="card-icon-wrapper upgrade">
-            <i class="fas fa-arrow-up"></i>
-          </div>
-          <span class="card-title">{{ t('upgradeBalance') }}</span>
+      <div class="balance-card-mini upgrade-card" @click="navigateTo('/vip')">
+        <div class="card-mini-icon upgrade-icon-bg">
+          <i class="fas fa-arrow-up"></i>
         </div>
-        <div class="card-amount">{{ formatNumber(depositBalance) }} USDT</div>
-        <div class="card-subtitle">{{ t('upgradeDesc') }}</div>
+        <div class="card-mini-info">
+          <span class="card-mini-label">{{ t('upgradeBalance') }}</span>
+          <span class="card-mini-amount">${{ formatNumber(depositBalance) }}</span>
+        </div>
+        <div class="card-mini-arrow">
+          <i class="fas fa-chevron-right"></i>
+        </div>
       </div>
     </div>
 
@@ -1333,95 +1337,139 @@ export default {
   overflow-x: hidden;
 }
 
-/* ==================== BALANCE CARDS SECTION ==================== */
+/* ==================== BALANCE CARDS SECTION - NEW DESIGN ==================== */
 .balance-cards-section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 10px;
   padding: 0 16px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
-.balance-card {
-  background: linear-gradient(135deg, #1a1f2e, #0f1419);
+.balance-card-mini {
+  background: linear-gradient(145deg, #1a1e29 0%, #151920 100%);
   border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  cursor: default;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.balance-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(212, 175, 55, 0.4);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-}
-
-.balance-card.withdrawable-card {
-  border-left: 3px solid #4CAF50;
-}
-
-.balance-card.upgrade-card {
-  border-left: 3px solid #2196F3;
-}
-
-.home-container[dir="rtl"] .balance-card.withdrawable-card {
-  border-left: none;
-  border-right: 3px solid #4CAF50;
-}
-
-.home-container[dir="rtl"] .balance-card.upgrade-card {
-  border-left: none;
-  border-right: 3px solid #2196F3;
-}
-
-.card-header {
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-.card-icon-wrapper {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.balance-card-mini::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.balance-card-mini.withdraw-card::before {
+  background: linear-gradient(90deg, transparent, rgba(76, 175, 80, 0.6), transparent);
+}
+
+.balance-card-mini.upgrade-card::before {
+  background: linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.6), transparent);
+}
+
+.balance-card-mini:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.balance-card-mini:hover::before {
+  opacity: 1;
+}
+
+.balance-card-mini:active {
+  transform: translateY(0);
+  transition: all 0.1s ease;
+}
+
+.card-mini-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-}
-
-.card-icon-wrapper.withdrawable {
-  background: rgba(76, 175, 80, 0.15);
-  color: #4CAF50;
-}
-
-.card-icon-wrapper.upgrade {
-  background: rgba(33, 150, 243, 0.15);
-  color: #2196F3;
-}
-
-.card-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.card-amount {
   font-size: 18px;
+  position: relative;
+  z-index: 1;
+}
+
+.withdraw-icon-bg {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.18), rgba(129, 199, 132, 0.08));
+  color: #66BB6A;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+}
+
+.upgrade-icon-bg {
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.18), rgba(100, 181, 246, 0.08));
+  color: #42A5F5;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+}
+
+.card-mini-icon i {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.card-mini-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.card-mini-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-mini-amount {
+  font-size: 17px;
   font-weight: 800;
   color: #F6E27A;
-  font-family: monospace;
-  letter-spacing: -0.5px;
+  font-family: 'SF Mono', 'Cairo', monospace;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.card-subtitle {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.4);
-  font-weight: 500;
+.card-mini-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  transition: all 0.25s ease;
+  min-width: 16px;
+}
+
+.balance-card-mini:hover .card-mini-arrow {
+  color: rgba(255, 255, 255, 0.5);
+  transform: translateX(3px);
+}
+
+.home-container[dir="rtl"] .balance-card-mini:hover .card-mini-arrow {
+  transform: translateX(-3px);
 }
 
 /* ==================== CUSTOM MODAL SYSTEM ==================== */
@@ -2904,8 +2952,27 @@ export default {
 
 @media (max-width: 768px) {
   .balance-cards-section {
-    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .balance-card-mini {
+    padding: 12px 14px;
     gap: 10px;
+  }
+  
+  .card-mini-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 16px;
+  }
+  
+  .card-mini-amount {
+    font-size: 15px;
+  }
+  
+  .card-mini-label {
+    font-size: 10px;
   }
   
   .main-menu {
@@ -2964,10 +3031,6 @@ export default {
     font-size: 18px;
   }
   
-  .card-amount {
-    font-size: 16px;
-  }
-  
   .toast-container {
     max-width: 260px;
     right: 10px;
@@ -2990,6 +3053,11 @@ export default {
 @media (max-width: 480px) {
   .balance-cards-section {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .balance-card-mini {
+    padding: 12px 14px;
   }
   
   .main-menu {
