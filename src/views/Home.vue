@@ -202,7 +202,7 @@
         </div>
         <div class="card-content">
           <div class="card-title">{{ t('withdrawableBalance') }}</div>
-          <div class="card-amount"><span class="currency-symbol">USDT</span> {{ formatNumber(vipBalance) }}</div>
+          <div class="card-amount"><span class="currency-symbol withdrawable-text">USDT</span> 0.00</div>
         </div>
         <div class="card-arrow">
           <i class="fas fa-chevron-right"></i>
@@ -216,7 +216,7 @@
         </div>
         <div class="card-content">
           <div class="card-title">{{ t('upgradeBalance') }}</div>
-          <div class="card-amount"><span class="currency-symbol">USDT</span> {{ formatNumber(depositBalance) }}</div>
+          <div class="card-amount"><span class="currency-symbol upgrade-text">USDT</span> 0.00</div>
         </div>
         <div class="card-arrow">
           <i class="fas fa-chevron-right"></i>
@@ -707,7 +707,7 @@ export default {
           languageChanged: 'تم تغيير اللغة بنجاح',
           reviewSubmitted: 'تم إرسال تقييمك بنجاح! شكراً لك على مشاركتنا رأيك',
           pleaseSelectRating: 'الرجاء اختيار تقييم بالنجوم أولاً',
-          withdrawableBalance: 'رصيد الأرباح القابل للسحب',
+          withdrawableBalance: 'الأرباح القابل للسحب',
           withdrawableDesc: 'أرباح VIP المتاحة للسحب',
           upgradeBalance: 'رصيد الترقية',
           upgradeDesc: 'مخصص للترقية إلى مستويات VIP'
@@ -1386,8 +1386,8 @@ export default {
 }
 
 .card-icon-wrapper {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1412,43 +1412,46 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 2px;
 }
 
 .card-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.3px;
+  color: #ffffff;
 }
 
 .card-amount {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   color: #F6E27A;
-  font-family: 'Cairo', monospace, sans-serif;
-  letter-spacing: -0.5px;
 }
 
 .currency-symbol {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.currency-symbol.withdrawable-text {
+  color: #4CAF50;
+}
+
+.currency-symbol.upgrade-text {
+  color: #2196F3;
 }
 
 .card-arrow {
-  color: rgba(255, 255, 255, 0.25);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 16px;
   transition: all 0.3s ease;
-  padding: 6px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .balance-card:hover .card-arrow {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   transform: translateX(3px);
 }
 
