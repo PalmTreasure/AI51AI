@@ -13,10 +13,10 @@
       <!-- رصيد المستخدم -->
       <div class="balance-box">
         <div class="balance-info">
-          <span class="balance-label">رصيدك الحالي</span>
+          <span class="balance-label">رصيدك الحالي القابل للسحب</span>
           <div class="balance-display">
             <img src="https://assets.coingecko.com/coins/images/325/large/tether.png" alt="USDT" class="balance-usdt-icon">
-            <span class="balance-amount">{{ balance.toFixed(2) }}</span>
+            <span class="balance-amount">{{ vipBalance.toFixed(2) }}</span>
             <span class="balance-currency-badge">USDT</span>
           </div>
         </div>
@@ -34,7 +34,7 @@
           {{ userContact }}
         </div>
         <div class="withdraw-condition">
-          <i class="fas fa-check-circle" :class="{ 'condition-met': isVIP8OrAbove || balance >= minWithdrawAmount }"></i>
+          <i class="fas fa-check-circle" :class="{ 'condition-met': isVIP8OrAbove || vipBalance >= minWithdrawAmount }"></i>
           <span>الحد الأدنى: <strong>{{ isVIP8OrAbove ? 'بدون حد أدنى' : minWithdrawAmount + ' USDT' }}</strong></span>
         </div>
         <div class="withdraw-condition">
@@ -229,13 +229,13 @@
         </div>
         
         <div class="summary-item total">
-          <span>سيتم خصم من رصيدك:</span>
+          <span>سيتم خصم من رصيد VIP:</span>
           <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
         </div>
         
         <div class="summary-item">
-          <span>الرصيد بعد السحب:</span>
-          <span class="summary-value">{{ (balance - Number(amount)).toFixed(2) }} USDT</span>
+          <span>رصيد VIP بعد السحب:</span>
+          <span class="summary-value">{{ (vipBalance - Number(amount)).toFixed(2) }} USDT</span>
         </div>
       </div>
 
@@ -244,7 +244,7 @@
         <i class="fas fa-shield-alt"></i>
         <div class="warning-text">
           <p>يرجى التأكد من صحة المعلومات قبل الإرسال</p>
-          <p class="small">سيتم خصم {{ Number(amount) || 0 }} USDT من رصيدك. ستستلم {{ netAmount.toFixed(2) }} USDT بعد خصم 5% رسوم</p>
+          <p class="small">سيتم خصم {{ Number(amount) || 0 }} USDT من رصيد VIP الخاص بك. ستستلم {{ netAmount.toFixed(2) }} USDT بعد خصم 5% رسوم</p>
         </div>
       </div>
 
@@ -280,7 +280,7 @@ export default {
   
   data() {
     return {
-      balance: 0,
+      vipBalance: 0,
       amount: "",
       network: "",
       wallet: "",
@@ -394,7 +394,7 @@ export default {
           !this.walletError &&
           this.password &&
           this.userVipLevel &&
-          this.balance >= Number(this.amount) &&
+          this.vipBalance >= Number(this.amount) &&
           Number(this.amount) > 0
         );
       }
@@ -411,7 +411,7 @@ export default {
         this.userVipLevel &&
         this.isAllowedDay &&
         Number(this.amount) === this.minWithdrawAmount &&
-        this.balance >= Number(this.amount)
+        this.vipBalance >= Number(this.amount)
       );
     },
 
@@ -512,7 +512,7 @@ export default {
         
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          this.balance = userData.balance || 0;
+          this.vipBalance = userData.vipBalance || 0;
           this.userPhone = userData.phoneNumber || "";
           this.userEmail = userData.email || "";
           
@@ -543,8 +543,8 @@ export default {
         this.amountError = "الرجاء إدخال المبلغ";
       } else if (this.isVIP8OrAbove) {
         // VIP 8+ يمكنهم إدخال أي مبلغ
-        if (this.amount > this.balance) {
-          this.amountError = "المبلغ أكبر من رصيدك";
+        if (this.amount > this.vipBalance) {
+          this.amountError = "المبلغ أكبر من رصيد VIP الخاص بك";
         } else if (this.amount <= 0) {
           this.amountError = "الرجاء إدخال مبلغ أكبر من صفر";
         } else {
@@ -552,8 +552,8 @@ export default {
         }
       } else if (Number(this.amount) !== this.minWithdrawAmount) {
         this.amountError = `يجب سحب ${this.minWithdrawAmount} USDT فقط`;
-      } else if (this.amount > this.balance) {
-        this.amountError = "المبلغ أكبر من رصيدك";
+      } else if (this.amount > this.vipBalance) {
+        this.amountError = "رصيد VIP غير كافٍ للسحب";
       } else {
         this.amountError = "";
       }
@@ -651,17 +651,19 @@ export default {
           }
 
           const userData = userSnap.data();
-          if (userData.balance < withdrawAmount) {
-            throw new Error("الرصيد غير كافي");
+          const currentVipBalance = userData.vipBalance || 0;
+          
+          if (currentVipBalance < withdrawAmount) {
+            throw new Error("رصيد VIP غير كافٍ للسحب");
           }
 
           if (userData.blocked) {
             throw new Error("حسابك محظور من السحب");
           }
 
-          // 1. تحديث الرصيد - خصم المبلغ المطلوب فقط
+          // 1. تحديث vipBalance - خصم المبلغ المطلوب فقط
           transaction.update(userRef, {
-            balance: userData.balance - withdrawAmount
+            vipBalance: currentVipBalance - withdrawAmount
           });
 
           // 2. إنشاء طلب السحب مع تفاصيل الرسوم
@@ -674,7 +676,7 @@ export default {
             fee: feeAmount,                   // قيمة الرسوم (5%)
             netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
             feePercentage: this.feePercentage, // نسبة الرسوم
-            totalDeduct: withdrawAmount,      // المبلغ المخصوم من الرصيد
+            totalDeduct: withdrawAmount,      // المبلغ المخصوم من رصيد VIP
             network: this.network,
             wallet: this.wallet,
             walletAddress: this.wallet,
@@ -686,7 +688,8 @@ export default {
             adminMessage: "",
             userMessage: "",
             reason: "",
-            isVIP8OrAbove: this.isVIP8OrAbove
+            isVIP8OrAbove: this.isVIP8OrAbove,
+            withdrawFrom: "vipBalance"
           });
 
           // 3. إنشاء سجل المعاملة مع تفاصيل الرسوم
@@ -700,7 +703,7 @@ export default {
             fee: feeAmount,                   // قيمة الرسوم (5%)
             netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
             feePercentage: this.feePercentage, // نسبة الرسوم
-            totalDeduct: withdrawAmount,      // المبلغ المخصوم من الرصيد
+            totalDeduct: withdrawAmount,      // المبلغ المخصوم من رصيد VIP
             currency: "USDT",
             network: this.network,
             wallet: this.wallet,
@@ -710,11 +713,12 @@ export default {
             withdrawDay: this.isVIP8OrAbove ? "أي يوم" : this.withdrawDay,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-            isVIP8OrAbove: this.isVIP8OrAbove
+            isVIP8OrAbove: this.isVIP8OrAbove,
+            withdrawFrom: "vipBalance"
           });
         });
 
-        this.balance -= withdrawAmount;
+        this.vipBalance -= withdrawAmount;
         this.showMessage(`✅ تم إرسال طلب السحب بنجاح. المبلغ الصافي بعد الرسوم: ${netAmountValue.toFixed(2)} USDT`, "success");
         
         // تفريغ الحقول
