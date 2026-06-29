@@ -7,7 +7,7 @@
         <span class="title-glow">💎</span>
       </h1>
 
-      <!-- زر أسهم الشركة الجديد -->
+      <!-- زر أسهم الشركة -->
       <div class="shares-button-container">
         <button @click="goToShares" class="shares-button">
           <div class="shares-button-content">
@@ -337,21 +337,21 @@ export default {
       selectedPlan: null,
 
       plans: [
-        { level: 1, name: "VIP 1", price: 0, tasks: 1, daily: 0.10, durationSeconds: 365 * 86400 },
-        { level: 2, name: "VIP 2", price: 10, tasks: 1, daily: 0.50, durationSeconds: 365 * 86400 },
-        { level: 3, name: "VIP 3", price: 50, tasks: 1, daily: 3.00, durationSeconds: 365 * 86400 },
-        { level: 4, name: "VIP 4", price: 100, tasks: 1, daily: 6.00, durationSeconds: 365 * 86400 },
-        { level: 5, name: "VIP 5", price: 300, tasks: 1, daily: 16.00, durationSeconds: 365 * 86400 },
-        { level: 6, name: "VIP 6", price: 900, tasks: 1, daily: 45.00, durationSeconds: 365 * 86400 },
-        { level: 7, name: "VIP 7", price: 1350, tasks: 1, daily: 75.00, durationSeconds: 365 * 86400 },
-        { level: 8, name: "VIP 8", price: 1800, tasks: 1, daily: 110.00, durationSeconds: 365 * 86400 },
-        { level: 9, name: "VIP 9", price: 3600, tasks: 1, daily: 230.00, durationSeconds: 365 * 86400 },
-        { level: 10, name: "VIP 10", price: 7200, tasks: 1, daily: 480.00, durationSeconds: 365 * 86400 },
-        { level: 11, name: "VIP 11", price: 14400, tasks: 1, daily: 1000.00, durationSeconds: 365 * 86400 },
-        { level: 12, name: "VIP 12", price: 18800, tasks: 1, daily: 2100.00, durationSeconds: 365 * 86400 },
-        { level: 13, name: "VIP 13", price: 37600, tasks: 1, daily: 4400.00, durationSeconds: 365 * 86400 },
-        { level: 14, name: "VIP 14", price: 75200, tasks: 1, daily: 9200.00, durationSeconds: 365 * 86400 },
-        { level: 15, name: "VIP 15", price: 150400, tasks: 1, daily: 19000.00, durationSeconds: 365 * 86400 },
+        { level: 1, name: "VIP 1", price: 5, tasks: 1, daily: 0.15, durationSeconds: 365 * 86400 },
+        { level: 2, name: "VIP 2", price: 10, tasks: 1, daily: 0.35, durationSeconds: 365 * 86400 },
+        { level: 3, name: "VIP 3", price: 50, tasks: 1, daily: 1.60, durationSeconds: 365 * 86400 },
+        { level: 4, name: "VIP 4", price: 100, tasks: 1, daily: 3.25, durationSeconds: 365 * 86400 },
+        { level: 5, name: "VIP 5", price: 300, tasks: 1, daily: 10, durationSeconds: 365 * 86400 },
+        { level: 6, name: "VIP 6", price: 900, tasks: 1, daily: 33, durationSeconds: 365 * 86400 },
+        { level: 7, name: "VIP 7", price: 1350, tasks: 1, daily: 51, durationSeconds: 365 * 86400 },
+        { level: 8, name: "VIP 8", price: 1800, tasks: 1, daily: 70, durationSeconds: 365 * 86400 },
+        { level: 9, name: "VIP 9", price: 3600, tasks: 1, daily: 150, durationSeconds: 365 * 86400 },
+        { level: 10, name: "VIP 10", price: 7200, tasks: 1, daily: 330, durationSeconds: 365 * 86400 },
+        { level: 11, name: "VIP 11", price: 14400, tasks: 1, daily: 700, durationSeconds: 365 * 86400 },
+        { level: 12, name: "VIP 12", price: 18800, tasks: 1, daily: 1600, durationSeconds: 365 * 86400 },
+        { level: 13, name: "VIP 13", price: 37600, tasks: 1, daily: 3500, durationSeconds: 365 * 86400 },
+        { level: 14, name: "VIP 14", price: 75200, tasks: 1, daily: 7500, durationSeconds: 365 * 86400 },
+        { level: 15, name: "VIP 15", price: 150400, tasks: 1, daily: 16000, durationSeconds: 365 * 86400 },
       ],
       
       globalCycleHourUTC: 3,
@@ -514,8 +514,9 @@ export default {
           const userSnap = await transaction.get(userDocRef);
           
           if (userSnap.exists()) {
-            const newBalance = (userSnap.data().balance || 0) + reward;
-            transaction.update(userDocRef, { balance: newBalance });
+            const currentVipBalance = userSnap.data().vipBalance || 0;
+            const newVipBalance = currentVipBalance + reward;
+            transaction.update(userDocRef, { vipBalance: newVipBalance });
             
             const lastCycle = this.getLastCompletedCycle(now);
             transaction.update(doc(db, "users", userId, "vip", "current"), { 
@@ -688,9 +689,9 @@ export default {
             throw new Error("المستخدم غير موجود");
           }
           
-          const balance = userSnap.data().balance || 0;
-          if (balance < this.selectedPlan.price) {
-            throw new Error("رصيدك غير كافٍ لشراء هذا المستوى");
+          const depositBalance = userSnap.data().depositBalance || 0;
+          if (depositBalance < this.selectedPlan.price) {
+            throw new Error("رصيد الإيداع غير كافٍ لشراء هذا المستوى");
           }
 
           const now = new Date();
@@ -699,11 +700,17 @@ export default {
           
           const lastCycle = this.getLastCompletedCycle(now);
           
-          const newBalanceAfterPurchase = balance - this.selectedPlan.price;
-          const firstReward = this.selectedPlan.daily;
-          const finalBalance = newBalanceAfterPurchase + firstReward;
+          const newDepositBalance = depositBalance - this.selectedPlan.price;
           
-          transaction.update(userRef, { balance: finalBalance });
+          // خصم من depositBalance فقط وإضافة المكافأة الأولى إلى vipBalance
+          const currentVipBalance = userSnap.data().vipBalance || 0;
+          const firstReward = this.selectedPlan.daily;
+          const newVipBalance = currentVipBalance + firstReward;
+          
+          transaction.update(userRef, { 
+            depositBalance: newDepositBalance,
+            vipBalance: newVipBalance
+          });
           
           transaction.set(vipDocRef, {
             level: this.selectedPlan.level,
@@ -767,6 +774,11 @@ export default {
     },
 
     goToShares() {
+      // ✅ التحقق من مستوى VIP 8
+      if (!this.userVip || this.userVip.level < 8) {
+        this.showError('🔒 يجب تفعيل مستوى VIP 8 للوصول إلى أسهم الشركة');
+        return;
+      }
       this.$router.push('/shares');
     }
   }
@@ -894,6 +906,7 @@ export default {
   white-space: nowrap;
 }
 
+/* إشعار الأرباح */
 .profit-notification {
   position: fixed;
   top: 20px;
@@ -921,6 +934,7 @@ export default {
   opacity: 0;
 }
 
+/* البطاقة النشطة */
 .current-vip-card {
   background: #181a20;
   border: 1.5px solid #fcd535;
@@ -1014,6 +1028,7 @@ export default {
   cursor: pointer;
 }
 
+/* فلترة الخطط */
 .filter-buttons {
   display: flex;
   gap: 10px;
@@ -1048,6 +1063,7 @@ export default {
   border-color: #fcd535;
 }
 
+/* قائمة VIP */
 .vip-list { display: flex; flex-direction: column; gap: 15px; }
 .vip-card-item { 
   background: #181a20; 
@@ -1075,6 +1091,7 @@ export default {
   background: linear-gradient(90deg, #fcd535, #ffed8a, #fcd535);
 }
 
+/* شريط النخبة */
 .elite-ribbon {
   position: absolute;
   top: 12px;
@@ -1133,6 +1150,7 @@ export default {
   font-size: 16px;
 }
 
+/* مؤشر ROI */
 .roi-display {
   background: rgba(252, 213, 53, 0.1);
   border: 1px solid rgba(252, 213, 53, 0.3);
@@ -1218,6 +1236,7 @@ export default {
   box-shadow: 0 0 10px rgba(252, 213, 53, 0.2);
 }
 
+/* علامة النشط */
 .active-ribbon {
   position: absolute;
   bottom: 10px;
@@ -1233,6 +1252,7 @@ export default {
   background: rgba(252, 213, 53, 0.8);
 }
 
+/* Pagination */
 .pagination {
   display: flex;
   justify-content: center;
@@ -1268,6 +1288,7 @@ export default {
   font-weight: 700;
 }
 
+/* شارة النخبة في الأسفل */
 .elite-footer {
   margin-top: 25px;
   padding: 15px;
@@ -1300,6 +1321,7 @@ export default {
   margin: 0;
 }
 
+/* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
 .modal-content { background: #181a20; width: 100%; max-width: 400px; border-radius: 20px; border: 1px solid #fcd535; overflow: hidden; }
 .modal-header { padding: 15px 20px; border-bottom: 1px solid #2b2f36; display: flex; justify-content: space-between; align-items: center; }
@@ -1315,6 +1337,7 @@ export default {
 .modal-footer { padding: 15px; text-align: center; }
 .btn-modal-close { background: #fcd535; color: #000; border: none; padding: 8px 25px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 
+/* Custom Confirm Modal */
 .confirm-modal-overlay {
   position: fixed;
   top: 0;
@@ -1443,6 +1466,7 @@ export default {
   cursor: not-allowed;
 }
 
+/* Modal transitions */
 .modal-fade-scale-enter-active,
 .modal-fade-scale-leave-active {
   transition: all 0.3s ease;
@@ -1466,6 +1490,7 @@ export default {
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
+/* تحسينات الجوال */
 @media (max-width: 768px) {
   .profit-notification {
     font-size: 12px;
