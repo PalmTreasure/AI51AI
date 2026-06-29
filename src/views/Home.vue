@@ -1337,11 +1337,11 @@ export default {
   overflow-x: hidden;
 }
 
-/* ==================== BALANCE CARDS SECTION (مطابق للصورة تماماً) ==================== */
+/* ==================== BALANCE CARDS SECTION (تم ضبط المسافات) ==================== */
 .balance-cards-section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  gap: 12px;
   padding: 0 16px;
   margin-bottom: 16px;
 }
@@ -1349,7 +1349,7 @@ export default {
 .balance-card {
   background: rgba(15, 20, 25, 0.5);
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: 12px 6px; /* تم تقليل الـ padding ليعطي مساحة أكبر للعناصر */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1370,13 +1370,13 @@ export default {
   transform: translateY(-2px);
 }
 
-/* الترتيب (السهم - النص - الأيقونة) ثابت بغض النظر عن RTL */
 .card-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   flex: 1;
+  margin: 0 auto; /* توسيط النص بشكل كامل */
 }
 
 .card-title {
@@ -1384,6 +1384,7 @@ export default {
   font-weight: 600;
   color: #ffffff;
   text-align: center;
+  white-space: nowrap;
 }
 
 .card-amount {
@@ -1398,23 +1399,23 @@ export default {
 .currency-symbol {
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff; /* اللون الافتراضي */
+  color: #ffffff;
 }
 
-/* لون النص الخاص بـ USDT حسب البطاقة */
 .currency-symbol.withdrawable-text {
-  color: #4CAF50 !important; /* أخضر للأرباح */
+  color: #4CAF50 !important;
 }
 
 .currency-symbol.upgrade-text {
-  color: #2196F3 !important; /* أزرق للترقية */
+  color: #2196F3 !important;
 }
 
 .card-arrow {
   color: rgba(255, 255, 255, 0.3);
-  font-size: 16px;
-  padding: 4px;
+  font-size: 14px;
+  padding: 0 8px; /* تقليل المسافة للسماح للبطاقة بالظهور */
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .balance-card:hover .card-arrow {
@@ -1422,14 +1423,15 @@ export default {
 }
 
 .card-icon-wrapper {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
+  margin: 0 4px; /* تقريب الأيقونة من النص */
 }
 
 .card-icon-wrapper.withdrawable {
@@ -2929,14 +2931,14 @@ export default {
   }
   
   .balance-card {
-    padding: 14px 16px;
-    gap: 12px;
+    padding: 10px 4px;
   }
   
   .card-icon-wrapper {
-    width: 42px;
-    height: 42px;
-    font-size: 18px;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    margin: 0 2px;
   }
   
   .card-title {
@@ -2944,7 +2946,12 @@ export default {
   }
   
   .card-amount {
-    font-size: 16px;
+    font-size: 14px;
+  }
+
+  .card-arrow {
+    padding: 0 4px;
+    font-size: 12px;
   }
   
   .main-menu {
@@ -3029,14 +3036,14 @@ export default {
   }
   
   .balance-card {
-    padding: 12px 14px;
-    gap: 10px;
+    padding: 8px 4px;
   }
   
   .card-icon-wrapper {
-    width: 36px;
-    height: 36px;
-    font-size: 15px;
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    margin: 0;
   }
   
   .card-title {
@@ -3044,11 +3051,12 @@ export default {
   }
   
   .card-amount {
-    font-size: 14px;
+    font-size: 12px;
   }
   
   .card-arrow {
-    font-size: 12px;
+    font-size: 10px;
+    padding: 0 2px;
   }
   
   .main-menu {
