@@ -142,7 +142,7 @@
         </div>
         <ul class="tips-list">
           <li>يرجى التأكد من اختيار شبكة <strong>{{ network }}</strong> عند التحويل.</li>
-          <li>سيتم إضافة الرصيد تلقائياً بعد تأكيد الشبكة.</li>
+          <li>سيتم إضافة الرصيد بعد مراجعة وموافقة الأدمن على طلبك.</li>
           <li>لا تقم بإيداع أي عملات أخرى غير USDT لهذا العنوان.</li>
           <li>لا يوجد حد أدنى للإيداع - يمكنك إيداع أي مبلغ تريده.</li>
         </ul>
@@ -153,7 +153,7 @@
 
 <script>
 import { getAuth } from "firebase/auth";
-import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 export default {
@@ -203,7 +203,9 @@ export default {
       try {
         const userDoc = await getDoc(doc(db, "users", this.userId));
         if (userDoc.exists()) {
-          this.userBalance = userDoc.data().balance || 0;
+          const data = userDoc.data();
+          // عرض مجموع الرصيدين للمستخدم
+          this.userBalance = (data.vipBalance || 0) + (data.depositBalance || 0);
         }
       } catch (error) {
         console.error("Error fetching balance:", error);
@@ -274,6 +276,7 @@ export default {
       }
       this.loading = true;
       try {
+        // ✅ فقط إنشاء طلب التعبئة بحالة pending - لا يتم إضافة أي رصيد هنا
         await addDoc(collection(db, "payments"), {
           userId: this.userId,
           email: this.userEmail,
@@ -281,8 +284,10 @@ export default {
           txid: this.txid,
           network: this.network,
           status: "pending",
+          targetBalance: "depositBalance", // للإشارة إلى أن المبلغ سيضاف إلى depositBalance عند الموافقة
           createdAt: serverTimestamp(),
         });
+        
         await addDoc(collection(db, "transactions"), {
           userId: this.userId,
           email: this.userEmail,
@@ -291,16 +296,14 @@ export default {
           network: this.network,
           txid: this.txid,
           status: "pending",
+          targetBalance: "depositBalance",
           createdAt: serverTimestamp(),
         });
         
-        // تحديث depositBalance بدلاً من balance
-        const userRef = doc(db, "users", this.userId);
-        await updateDoc(userRef, {
-          depositBalance: increment(this.amount)
-        });
+        // ✅ تم حذف كود إضافة الرصيد من هنا تماماً
+        // ✅ الرصيد يضاف فقط عند موافقة الأدمن في لوحة الإدارة
         
-        this.message = "تم إرسال الطلب بنجاح";
+        this.message = "تم إرسال الطلب بنجاح، سيتم مراجعة طلبك من قبل الإدارة";
         this.messageType = "success";
         this.amount = null;
         this.txid = "";
