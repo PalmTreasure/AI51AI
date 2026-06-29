@@ -52,6 +52,7 @@
           </div>
           
           <div class="custom-modal-body">
+            <!-- تقييم بالنجوم -->
             <div class="rating-stars">
               <span 
                 v-for="star in 5" 
@@ -64,6 +65,7 @@
               </span>
             </div>
             
+            <!-- حقل كتابة الرسالة -->
             <div class="review-message-input">
               <textarea 
                 v-model="reviewData.message" 
@@ -73,6 +75,7 @@
               ></textarea>
             </div>
             
+            <!-- زر إرسال التقييم -->
             <button 
               class="submit-review-btn" 
               @click="submitReview" 
@@ -82,6 +85,7 @@
               {{ isSubmittingReview ? 'جاري الإرسال...' : 'إرسال التقييم' }}
             </button>
             
+            <!-- عرض التقييمات -->
             <div class="previous-reviews">
               <h4>آخر التقييمات <i class="fas fa-comments"></i></h4>
               <div class="reviews-list">
@@ -169,7 +173,7 @@
         <div class="balance-display">
           <div class="balance-label">{{ t('totalBalance') }}</div>
           <div class="balance-value">
-            <span class="amount">{{ formatNumber(balance) }}</span>
+            <span class="amount">{{ formatNumber(totalBalance) }}</span>
             <span class="currency">USDT</span>
           </div>
           <button class="refresh-btn" @click="refreshBalance" :disabled="refreshing">
@@ -188,6 +192,33 @@
         <span class="user-name">{{ username }}</span>
       </div>
     </header>
+
+    <!-- ==================== BALANCE CARDS SECTION ==================== -->
+    <div class="balance-cards-section">
+      <!-- بطاقة رصيد الأرباح القابل للسحب -->
+      <div class="balance-card withdrawable-card">
+        <div class="card-header">
+          <div class="card-icon-wrapper withdrawable">
+            <i class="fas fa-wallet"></i>
+          </div>
+          <span class="card-title">{{ t('withdrawableBalance') }}</span>
+        </div>
+        <div class="card-amount">{{ formatNumber(vipBalance) }} USDT</div>
+        <div class="card-subtitle">{{ t('withdrawableDesc') }}</div>
+      </div>
+
+      <!-- بطاقة رصيد الترقية -->
+      <div class="balance-card upgrade-card">
+        <div class="card-header">
+          <div class="card-icon-wrapper upgrade">
+            <i class="fas fa-arrow-up"></i>
+          </div>
+          <span class="card-title">{{ t('upgradeBalance') }}</span>
+        </div>
+        <div class="card-amount">{{ formatNumber(depositBalance) }} USDT</div>
+        <div class="card-subtitle">{{ t('upgradeDesc') }}</div>
+      </div>
+    </div>
 
     <!-- ==================== SEARCH SECTION ==================== -->
     <div class="search-section">
@@ -325,7 +356,7 @@
       <div v-if="showCompany" class="modal-overlay" @click.self="closeCompanyModal">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
-            <h3>🤖 AI Treasure</h3>
+            <h3>🌴 Palm Treasure</h3>
             <button class="close-btn" @click="closeCompanyModal">
               <i class="fas fa-times"></i>
             </button>
@@ -335,22 +366,22 @@
             <div class="company-text">
               <p>
                 مرحباً بالجميع 🌟<br><br>
-                يسرّنا أن نعرفكم بشركة AI التي تأسست في إنجلترا بتاريخ 10 مارس 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية والذكاء الاصطناعي. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
+                يسرّنا أن نعرفكم بشركة Palm Treasure التي تأسست في إنجلترا بتاريخ 5 فبراير 2026، وهي شركة استثمارية متخصصة في مجال التجارة الإلكترونية. تمتلك الشركة فريقاً تقنياً محترفاً وخبرة مالية قوية، ويقع مقرها الرئيسي حالياً في منطقة الأعمال المركزية في إنجلترا.<br><br>
                 وانطلاقاً من رؤيتنا للتوسع وبناء شبكة تعاون واسعة، قمنا بإنشاء فروع ووكالات في عدد من الدول العربية مثل لبنان، الجزائر، ليبيا، والعراق، ونسعى خلال المرحلة القادمة إلى توسيع نشاطنا وانتشارنا في مختلف دول الشرق الأوسط.<br><br>
                 لقد جاء تأسيس هذه الشركة بعد دراسة عميقة لما حدث خلال عامي 2024 و2025، حيث ظهرت العديد من المنصات الوهمية التي خدعت الكثير من الناس ولم تستمر طويلاً. ومن هنا كان هدفنا واضحاً: تحويل هذا المجال إلى منصة حقيقية وموثوقة يستفيد منها الأعضاء كما تستفيد منها الشركة، ضمن نظام عادل وشفاف.<br><br>
                 وقد تحقق هذا المشروع بجهود كبيرة من الفريق التقني تحت إشراف المهندس أليكس ديروب، الذي لعب دوراً أساسياً في تطوير النظام التقني للشركة. وتقديراً لجهوده المميزة ومساهمته في نجاح هذا المشروع، تمت ترقيته إلى منصب نائب المدير.<br><br>
-                نحن في AI نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
+                نحن في Palm Treasure نؤمن بأن النجاح الحقيقي يجب أن يكون متاحاً للجميع، لذلك تم تصميم هذا المشروع ليكون فرصة متاحة لكل الناس، وخاصة للطبقة المتوسطة وذوي الدخل المحدود، حتى يتمكنوا من تحسين أوضاعهم والمشاركة في فرص الاقتصاد الرقمي.<br><br>
                 ولهذا السبب تم وضع نظام واضح وقوانين عادلة تضمن حماية حقوق الموظفين والأعضاء قبل حقوق المستثمرين، مع مراعاة الظروف الاقتصادية والاجتماعية في المجتمعات العربية.<br><br>
                 وسيتم تطبيق هذا النظام المبرمج في معظم الدول العربية ابتداءً من 1 مارس 2026 وحتى نهاية عام 2028، وخلال هذه الفترة سيتم تقييم الأداء والنتائج. وبعد ذلك قد يتم تطوير النظام وإجراء بعض التعديلات بناءً على كفاءة الأعضاء وجهودهم وإخلاصهم في العمل.<br><br>
                 كما نعمل منذ الآن على التخطيط لمجموعة من الفرص المستقبلية والمشاريع الجديدة التي ستوفر المزيد من الإمكانيات لأعضاء الشركة في السنوات القادمة.<br><br>
-                نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع AI Treasure 🤖
+                نتمنى للجميع التوفيق، ونسعد بانضمامكم إلى مجتمع Palm Treasure 🌴
               </p>
             </div>
 
             <div class="vip-section">
               <h4>📊 {{ t('vipPlans') }}</h4>
               <div class="vip-list">
-                <div v-for="vip in vipPlans" :key="vip.level" class="vip-item">
+                <div v-for="vip in vipPlans.slice(0, 4)" :key="vip.level" class="vip-item">
                   <div class="vip-level">{{ vip.level }}</div>
                   <div class="vip-info">
                     <span>{{ vip.recharge }} USDT</span>
@@ -471,7 +502,7 @@
     <transition name="slide">
       <aside v-if="sidebarOpen" class="sidebar">
         <div class="sidebar-header">
-          <span>🤖 AI Treasure</span>
+          <span>🌴 Palm Treasure</span>
           <button @click="toggleSidebar"><i class="fas fa-times"></i></button>
         </div>
         <nav class="sidebar-nav">
@@ -502,7 +533,8 @@ export default {
   data() {
     return {
       username: "جار التحميل...",
-      balance: 0,
+      vipBalance: 0,
+      depositBalance: 0,
       currentUserUid: null,
       unsubscribeUser: null,
       refreshing: false,
@@ -523,12 +555,13 @@ export default {
       },
       fakeReviews: [],
       
+      // قائمة الأسماء الوهمية للتقييمات اليومية
       reviewsList: [
         { name: "أحمد محمد", country: "🇸🇦", rating: 5, message: "منصة رائعة جداً، أرباح يومية ممتازة وسحب فوري" },
         { name: "سارة خالد", country: "🇪🇬", rating: 5, message: "تجربة ممتازة، دعم فني متجاوب وفريق محترم" },
         { name: "محمد علي", country: "🇦🇪", rating: 4, message: "منصة موثوقة وأرباحها حقيقية، أنصح بها الجميع" },
         { name: "نورة عبدالله", country: "🇰🇼", rating: 5, message: "أفضل منصة استثمارية جربتها، أرباح يومية ثابتة" },
-        { name: "عمر سعيد", country: "🇶🇦", rating: 5, message: "سحبت أرباحي بكل سهولة، شكراً لفريق AI Treasure" },
+        { name: "عمر سعيد", country: "🇶🇦", rating: 5, message: "سحبت أرباحي بكل سهولة، شكراً لفريق Palm Treasure" },
         { name: "فاطمة الزهراء", country: "🇲🇦", rating: 5, message: "منصة مذهلة وسهلة الاستخدام، أرباح رائعة" },
         { name: "يوسف حسن", country: "🇯🇴", rating: 4, message: "تجربة ممتازة وسحب سريع، أنصح بالاستثمار" },
         { name: "ليلى عماد", country: "🇱🇧", rating: 5, message: "أفضل قرار استثماري اتخذته، شكراً لكم" },
@@ -544,6 +577,7 @@ export default {
         { name: "مها السيد", country: "🇪🇬", rating: 5, message: "منصة مذهلة وسحب فوري، أنصح الجميع بالتسجيل" }
       ],
       
+      // أوقات عشوائية
       timesList: ["الآن", "قبل دقيقة", "قبل 5 دقائق", "قبل ساعة", "قبل ساعتين", "قبل 3 ساعات", "قبل 5 ساعات", "قبل يوم", "قبل يومين", "قبل 3 أيام"],
 
       // ==================== CUSTOM MODAL SYSTEM ====================
@@ -560,9 +594,9 @@ export default {
         callback: null
       },
 
-      // ==================== STATIC STATTS (تم التعديل) ====================
-      totalPaid: 75000000,
-      activeMembers: 400000,
+      // ==================== STATIC STATS ====================
+      totalPaid: 35000000,
+      activeMembers: 250000,
 
       // ==================== TOAST NOTIFICATION SYSTEM ====================
       toasts: [],
@@ -596,18 +630,17 @@ export default {
         { id: 3, day: "الاثنين", vips: "VIP6 - VIP7" }
       ],
 
-      // ==================== VIP PLANS (تم التعديل) ====================
       vipPlans: [
-        { level: 'VIP 1', recharge: '0', daily: '0.10' },
-        { level: 'VIP 2', recharge: '10', daily: '0.50' },
-        { level: 'VIP 3', recharge: '50', daily: '3.00' },
-        { level: 'VIP 4', recharge: '100', daily: '6.00' },
-        { level: 'VIP 5', recharge: '300', daily: '16.00' },
-        { level: 'VIP 6', recharge: '900', daily: '45.00' },
-        { level: 'VIP 7', recharge: '1350', daily: '75.00' },
-        { level: 'VIP 8', recharge: '1800', daily: '110.00' },
-        { level: 'VIP 9', recharge: '3600', daily: '230.00' },
-        { level: 'VIP 10', recharge: '7200', daily: '480.00' }
+        { level: 'VIP 1', recharge: '0', daily: '0.15' },
+        { level: 'VIP 2', recharge: '10', daily: '0.35' },
+        { level: 'VIP 3', recharge: '50', daily: '1.60' },
+        { level: 'VIP 4', recharge: '100', daily: '3.25' },
+        { level: 'VIP 5', recharge: '300', daily: '10' },
+        { level: 'VIP 6', recharge: '900', daily: '33' },
+        { level: 'VIP 7', recharge: '1350', daily: '51' },
+        { level: 'VIP 8', recharge: '1800', daily: '70' },
+        { level: 'VIP 9', recharge: '3600', daily: '150' },
+        { level: 'VIP 10', recharge: '7200', daily: '330' }
       ],
 
       menuItems: [
@@ -661,15 +694,19 @@ export default {
           countries: 'الدول',
           agency: 'وكالة',
           program: 'تحميل التطبيق',
-          totalPaidInfo: 'إجمالي المدفوعات: $75,000,000',
-          activeMembersInfo: 'عدد الأعضاء النشطين: 400,000 عضو',
+          totalPaidInfo: 'إجمالي المدفوعات: $35,000,000',
+          activeMembersInfo: 'عدد الأعضاء النشطين: 250,000 عضو',
           countriesInfo: 'عدد الدول: أكثر من 150 دولة حول العالم',
           termsAccepted: 'تمت الموافقة على الشروط والأحكام بنجاح ✓',
           balanceUpdated: 'تم تحديث الرصيد بنجاح ✓',
           refreshError: 'حدث خطأ في تحديث الرصيد، حاول مرة أخرى',
           languageChanged: 'تم تغيير اللغة بنجاح',
           reviewSubmitted: 'تم إرسال تقييمك بنجاح! شكراً لك على مشاركتنا رأيك',
-          pleaseSelectRating: 'الرجاء اختيار تقييم بالنجوم أولاً'
+          pleaseSelectRating: 'الرجاء اختيار تقييم بالنجوم أولاً',
+          withdrawableBalance: 'رصيد الأرباح القابل للسحب',
+          withdrawableDesc: 'أرباح VIP المتاحة للسحب',
+          upgradeBalance: 'رصيد الترقية',
+          upgradeDesc: 'مخصص للترقية إلى مستويات VIP'
         },
         EN: {
           totalBalance: 'Total Balance',
@@ -708,21 +745,29 @@ export default {
           countries: 'Countries',
           agency: 'Agency',
           program: 'Download App',
-          totalPaidInfo: 'Total Paid: $75,000,000',
-          activeMembersInfo: 'Active Members: 400,000 members',
+          totalPaidInfo: 'Total Paid: $35,000,000',
+          activeMembersInfo: 'Active Members: 250,000 members',
           countriesInfo: 'Countries: More than 150 countries worldwide',
           termsAccepted: 'Terms and conditions accepted successfully ✓',
           balanceUpdated: 'Balance updated successfully ✓',
           refreshError: 'Error refreshing balance, please try again',
           languageChanged: 'Language changed successfully',
           reviewSubmitted: 'Your review has been submitted successfully! Thank you for sharing your feedback',
-          pleaseSelectRating: 'Please select a star rating first'
+          pleaseSelectRating: 'Please select a star rating first',
+          withdrawableBalance: 'Withdrawable Balance',
+          withdrawableDesc: 'VIP profits available for withdrawal',
+          upgradeBalance: 'Upgrade Balance',
+          upgradeDesc: 'For upgrading to VIP levels'
         }
       }
     };
   },
 
   computed: {
+    totalBalance() {
+      return this.vipBalance + this.depositBalance;
+    },
+    
     averageRating() {
       if (this.fakeReviews.length === 0) return "0";
       const sum = this.fakeReviews.reduce((acc, r) => acc + r.rating, 0);
@@ -753,18 +798,23 @@ export default {
   },
 
   methods: {
+    // ==================== REVIEW SYSTEM METHODS ====================
+    
+    // جلب تقييمات عشوائية مختلفة كل يوم
     getDailyRandomReviews() {
       const today = new Date().toDateString();
       const savedDate = localStorage.getItem('reviews_date');
       let reviews = localStorage.getItem('daily_reviews');
       
       if (savedDate !== today || !reviews) {
+        // خلط الأسماء بشكل عشوائي
         const shuffled = [...this.reviewsList];
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         
+        // اختيار 8 تقييمات عشوائية وإضافة أوقات عشوائية
         reviews = shuffled.slice(0, 8).map((item) => ({
           name: item.name,
           flag: item.country,
@@ -784,11 +834,14 @@ export default {
     },
     
     loadDailyReviews() {
+      // جلب التقييمات اليومية العشوائية
       this.fakeReviews = this.getDailyRandomReviews();
       
+      // إضافة تقييمات المستخدمين السابقة إن وجدت
       const savedUserReviews = localStorage.getItem('user_reviews');
       if (savedUserReviews) {
         const userReviews = JSON.parse(savedUserReviews);
+        // إضافة تقييمات المستخدمين في الأعلى
         this.fakeReviews = [...userReviews, ...this.fakeReviews];
       }
     },
@@ -813,8 +866,10 @@ export default {
       
       this.isSubmittingReview = true;
       
+      // الحصول على اسم المستخدم الحقيقي
       let userName = this.username || "مستخدم";
       
+      // محاولة جلب اسم المستخدم من Firestore إذا كان متاحاً
       if (this.currentUserUid) {
         try {
           const userSnap = await getDoc(doc(db, "users", this.currentUserUid));
@@ -826,6 +881,7 @@ export default {
         }
       }
       
+      // إضافة التقييم الجديد
       const newReview = {
         name: userName,
         flag: "⭐",
@@ -834,11 +890,13 @@ export default {
         time: "الآن"
       };
       
+      // حفظ التقييمات في localStorage
       const savedUserReviews = localStorage.getItem('user_reviews');
       let userReviews = savedUserReviews ? JSON.parse(savedUserReviews) : [];
       userReviews.unshift(newReview);
       localStorage.setItem('user_reviews', JSON.stringify(userReviews));
       
+      // تحديث قائمة التقييمات المعروضة
       this.fakeReviews = [...userReviews, ...this.getDailyRandomReviews()];
       
       this.isSubmittingReview = false;
@@ -846,6 +904,7 @@ export default {
       this.showSuccessMessage(this.t('reviewSubmitted'));
     },
 
+    // ==================== STATS INFO METHODS ====================
     showTotalPaidInfo() {
       this.showModal({
         type: 'info',
@@ -876,6 +935,7 @@ export default {
       });
     },
 
+    // ==================== CUSTOM MODAL METHODS ====================
     showModal(options) {
       this.modal = {
         visible: true,
@@ -1152,7 +1212,8 @@ export default {
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
           this.username = "Guest";
-          this.balance = 0;
+          this.vipBalance = 0;
+          this.depositBalance = 0;
           this.$router.push("/login");
           return;
         }
@@ -1172,8 +1233,10 @@ export default {
       this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          // استخدام اسم المستخدم بدلاً من رقم الهاتف
           this.username = data.username || data.email || "User";
-          this.balance = typeof data.balance === 'number' ? data.balance : 0;
+          this.vipBalance = typeof data.vipBalance === 'number' ? data.vipBalance : 0;
+          this.depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
         }
       }, (error) => {
         console.error("Listener error:", error);
@@ -1188,7 +1251,9 @@ export default {
         const userRef = doc(db, "users", this.currentUserUid);
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
-          this.balance = docSnap.data().balance || 0;
+          const data = docSnap.data();
+          this.vipBalance = typeof data.vipBalance === 'number' ? data.vipBalance : 0;
+          this.depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
           this.showSuccessMessage(this.t('balanceUpdated'));
         }
       } catch (error) {
@@ -1266,6 +1331,97 @@ export default {
   padding-bottom: 80px;
   position: relative;
   overflow-x: hidden;
+}
+
+/* ==================== BALANCE CARDS SECTION ==================== */
+.balance-cards-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.balance-card {
+  background: linear-gradient(135deg, #1a1f2e, #0f1419);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  cursor: default;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.balance-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.balance-card.withdrawable-card {
+  border-left: 3px solid #4CAF50;
+}
+
+.balance-card.upgrade-card {
+  border-left: 3px solid #2196F3;
+}
+
+.home-container[dir="rtl"] .balance-card.withdrawable-card {
+  border-left: none;
+  border-right: 3px solid #4CAF50;
+}
+
+.home-container[dir="rtl"] .balance-card.upgrade-card {
+  border-left: none;
+  border-right: 3px solid #2196F3;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.card-icon-wrapper.withdrawable {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+}
+
+.card-icon-wrapper.upgrade {
+  background: rgba(33, 150, 243, 0.15);
+  color: #2196F3;
+}
+
+.card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.card-amount {
+  font-size: 18px;
+  font-weight: 800;
+  color: #F6E27A;
+  font-family: monospace;
+  letter-spacing: -0.5px;
+}
+
+.card-subtitle {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
 }
 
 /* ==================== CUSTOM MODAL SYSTEM ==================== */
@@ -1524,6 +1680,7 @@ export default {
   border-color: #D4AF37;
 }
 
+/* ==================== زر إرسال التقييم ==================== */
 .submit-review-btn {
   width: 100%;
   padding: 14px 20px;
@@ -1554,6 +1711,7 @@ export default {
   transform: none;
 }
 
+/* ==================== التقييمات السابقة ==================== */
 .previous-reviews {
   margin-top: 20px;
   border-top: 1px solid rgba(212, 175, 55, 0.2);
@@ -2745,6 +2903,11 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .balance-cards-section {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
   .main-menu {
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
@@ -2801,6 +2964,10 @@ export default {
     font-size: 18px;
   }
   
+  .card-amount {
+    font-size: 16px;
+  }
+  
   .toast-container {
     max-width: 260px;
     right: 10px;
@@ -2821,6 +2988,10 @@ export default {
 }
 
 @media (max-width: 480px) {
+  .balance-cards-section {
+    grid-template-columns: 1fr;
+  }
+  
   .main-menu {
     grid-template-columns: repeat(3, 1fr);
   }
