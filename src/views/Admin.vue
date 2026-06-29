@@ -1821,46 +1821,50 @@ export default {
       }
     },
     
-async loadUsers() {
-  try {
-    this.loadingUsers = true;
-    const snap = await getDocs(collection(db, "users"));
-    this.users = snap.docs.map((d) => {
-      const data = d.data() || {};
-      const createdAt = data.createdAt || data.registeredAt || null;
-      
-      // ✅ الحل النهائي
-      let vipBalance = 0;
-      let depositBalance = 0;
-      
-      if (typeof data.vipBalance === 'number') {
-        vipBalance = data.vipBalance;
-        depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
-      } else if (typeof data.balance === 'number') {
-        vipBalance = data.balance;
-        depositBalance = 0;
+    async loadUsers() {
+      try {
+        this.loadingUsers = true;
+        const snap = await getDocs(collection(db, "users"));
+        this.users = snap.docs.map((d) => {
+          const data = d.data() || {};
+          const createdAt = data.createdAt || data.registeredAt || null;
+          
+          // ✅ قراءة مستقلة لكل حقل
+          let vipBalance = 0;
+          let depositBalance = 0;
+          
+          // قراءة vipBalance - من الحقل الجديد أو القديم
+          if (typeof data.vipBalance === 'number') {
+            vipBalance = data.vipBalance;
+          } else if (typeof data.balance === 'number') {
+            vipBalance = data.balance;
+          }
+          
+          // قراءة depositBalance - بشكل مستقل
+          if (typeof data.depositBalance === 'number') {
+            depositBalance = data.depositBalance;
+          }
+          
+          return {
+            id: d.id,
+            phoneNumber: data.phoneNumber || "",
+            email: data.email || "",
+            vipBalance: vipBalance,
+            depositBalance: depositBalance,
+            blocked: data.blocked ?? false,
+            notificationsCount: data.notificationsCount ?? 0,
+            registrationMethod: data.registrationMethod || (data.phoneNumber ? 'phone' : 'email'),
+            createdAt: createdAt,
+            vipLevel: data.vipLevel || "عادي",
+            vipExpiryDate: data.vipExpiryDate || null
+          };
+        });
+      } catch (e) {
+        alert("خطأ عند تحميل المستخدمين");
+      } finally {
+        this.loadingUsers = false;
       }
-      
-      return {
-        id: d.id,
-        phoneNumber: data.phoneNumber || "",
-        email: data.email || "",
-        vipBalance: vipBalance,
-        depositBalance: depositBalance,
-        blocked: data.blocked ?? false,
-        notificationsCount: data.notificationsCount ?? 0,
-        registrationMethod: data.registrationMethod || (data.phoneNumber ? 'phone' : 'email'),
-        createdAt: createdAt,
-        vipLevel: data.vipLevel || "عادي",
-        vipExpiryDate: data.vipExpiryDate || null
-      };
-    });
-  } catch (e) {
-    alert("خطأ عند تحميل المستخدمين");
-  } finally {
-    this.loadingUsers = false;
-  }
-},
+    },
     
     promptRecharge(user) {
       const a = prompt("أدخل مبلغ التعبئة:");
