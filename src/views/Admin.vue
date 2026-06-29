@@ -61,6 +61,7 @@
             <p><strong>المحفظة:</strong> {{ req.wallet || req.walletAddress || '—' }}</p>
             <p><strong>مستوى VIP:</strong> {{ req.vipLevel || '—' }}</p>
             <p><strong>يوم السحب:</strong> {{ req.withdrawDay || '—' }}</p>
+            <p><strong>مصدر السحب:</strong> <span class="gold-text">{{ req.withdrawFrom || 'vipBalance' }}</span></p>
             <p class="muted">تم الإنشاء: {{ formatDate(req.createdAt) }}</p>
             <div class="card-actions">
               <button class="btn gold" type="button" @click.stop="openApproveModal(req, 'withdraw')" :disabled="processingId === req.id">موافقة</button>
@@ -148,7 +149,8 @@
           <div class="card user-card" v-for="u in filteredUsers" :key="u.id">
             <p><strong>رقم الهاتف:</strong> <span class="gold-text">{{ u.phoneNumber || '—' }}</span></p>
             <p><strong>البريد:</strong> <span class="gold-text">{{ u.email || '—' }}</span></p>
-            <p><strong>رصيد:</strong> <span class="gold-text">{{ u.balance ?? 0 }} USDT</span></p>
+            <p><strong>رصيد VIP:</strong> <span class="gold-text">{{ formatBalance(u.vipBalance) }} USDT</span></p>
+            <p><strong>رصيد الترقية:</strong> <span class="gold-text">{{ formatBalance(u.depositBalance) }} USDT</span></p>
             <p><strong>الحالة:</strong> {{ u.blocked ? 'محظور' : 'فعال' }}</p>
             <p><strong>طريقة التسجيل:</strong> 
               <span :class="{
@@ -211,6 +213,12 @@
         <h2>سجل السحوبات</h2>
         <div class="controls">
           <input v-model="withdrawLogFilter" placeholder="بحث بالسعر أو البريد..." />
+          <select v-model="withdrawLogSort">
+            <option value="newest">الأحدث أولاً</option>
+            <option value="oldest">الأقدم أولاً</option>
+            <option value="amount_desc">الأعلى مبلغ</option>
+            <option value="amount_asc">الأقل مبلغ</option>
+          </select>
           <button @click="loadWithdrawLogs" type="button">تحديث</button>
         </div>
       </div>
@@ -223,7 +231,6 @@
             <p><strong>رقم الهاتف:</strong> <span class="gold-text">{{ l.userPhone || l.phoneNumber || '—' }}</span></p>
             <p><strong>البريد:</strong> <span class="gold-text">{{ l.email || l.userEmail || '—' }}</span></p>
             <p><strong>المبلغ:</strong> <span class="gold-text">{{ l.amount }} USDT</span></p>
-            <!-- إضافة عرض المحفظة -->
             <p><strong>المحفظة:</strong> <span class="gold-text">{{ l.wallet || l.walletAddress || '—' }}</span></p>
             <p><strong>النوع:</strong> 
               <span :class="{
@@ -235,6 +242,7 @@
             </p>
             <p v-if="l.reason"><strong>السبب:</strong> {{ l.reason }}</p>
             <p v-if="l.adminMessage"><strong>رسالة الأدمن:</strong> {{ l.adminMessage }}</p>
+            <p><strong>مصدر السحب:</strong> <span class="gold-text">{{ l.withdrawFrom || 'vipBalance' }}</span></p>
             <p class="muted">الوقت: {{ formatDate(l.createdAt) }}</p>
           </div>
         </div>
@@ -276,6 +284,7 @@
             </p>
             <p v-if="log.reason"><strong>سبب الرفض:</strong> {{ log.reason }}</p>
             <p v-if="log.adminMessage"><strong>رسالة الأدمن:</strong> {{ log.adminMessage }}</p>
+            <p><strong>الرصيد المستهدف:</strong> <span class="gold-text">{{ log.targetBalance || 'depositBalance' }}</span></p>
             <p class="muted">التاريخ: {{ formatDate(log.createdAt) }}</p>
           </div>
         </div>
@@ -418,6 +427,8 @@
         <p><strong>رقم الهاتف:</strong> <span class="gold-text">{{ approveModalData.userPhone || approveModalData.phoneNumber || '—' }}</span></p>
         <p><strong>البريد:</strong> <span class="gold-text">{{ approveModalData.email || approveModalData.userEmail || '—' }}</span></p>
         <p><strong>النوع:</strong> {{ approveType === 'recharge' ? 'تعبئة' : 'سحب' }}</p>
+        <p v-if="approveType === 'recharge'"><strong>سيتم الإضافة إلى:</strong> <span class="gold-text">depositBalance (رصيد الترقية)</span></p>
+        <p v-if="approveType === 'withdraw'"><strong>سيتم الخصم من:</strong> <span class="gold-text">vipBalance (رصيد الأرباح)</span></p>
         
         <div class="input-box" style="margin-top: 15px;">
           <label>رسالة للمستخدم (اختياري - 0-500 حرف)</label>
@@ -544,12 +555,14 @@
         <p v-if="modalType === 'withdraw'"><strong>المحفظة:</strong> {{ modalData.wallet || modalData.walletAddress }}</p>
         <p v-if="modalType === 'withdraw'"><strong>مستوى VIP:</strong> {{ modalData.vipLevel || '—' }}</p>
         <p v-if="modalType === 'withdraw'"><strong>يوم السحب:</strong> {{ modalData.withdrawDay || '—' }}</p>
+        <p v-if="modalType === 'withdraw'"><strong>مصدر السحب:</strong> <span class="gold-text">{{ modalData.withdrawFrom || 'vipBalance' }}</span></p>
         
         <p v-if="modalType === 'recharge'"><strong>رقم الهاتف:</strong> <span class="gold-text">{{ modalData.userPhone || modalData.phoneNumber || '—' }}</span></p>
         <p v-if="modalType === 'recharge'"><strong>البريد:</strong> <span class="gold-text">{{ modalData.email || modalData.userEmail }}</span></p>
         <p v-if="modalType === 'recharge'"><strong>المبلغ:</strong> <span class="gold-text">{{ modalData.amount }} USDT</span></p>
         <p v-if="modalType === 'recharge'"><strong>الشبكة:</strong> {{ modalData.network }}</p>
         <p v-if="modalType === 'recharge' && modalData.txid"><strong>TxID:</strong> <span class="gold-text">{{ modalData.txid }}</span></p>
+        <p v-if="modalType === 'recharge'"><strong>الرصيد المستهدف:</strong> <span class="gold-text">depositBalance (رصيد الترقية)</span></p>
         
         <p class="muted">تم الإنشاء: {{ formatDate(modalData.createdAt) }}</p>
         <div class="modal-actions">
@@ -668,8 +681,15 @@
           </div>
           
           <div class="detail-item">
-            <label>الرصيد الحالي:</label>
-            <div class="detail-value gold-text">{{ formatBalance(accountDetails.balance) }} USDT</div>
+            <label>رصيد VIP:</label>
+            <div class="detail-value gold-text">{{ formatBalance(accountDetails.vipBalance) }} USDT</div>
+            <small class="vip-expiry">رصيد الأرباح القابل للسحب</small>
+          </div>
+          
+          <div class="detail-item">
+            <label>رصيد الترقية:</label>
+            <div class="detail-value gold-text">{{ formatBalance(accountDetails.depositBalance) }} USDT</div>
+            <small class="vip-expiry">رصيد الإيداع المخصص للترقية</small>
           </div>
           
           <div class="detail-item">
@@ -740,6 +760,38 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal تعديل الرصيد مع اختيار النوع -->
+    <div v-if="showBalanceModal" class="modal-backdrop" @click.self="closeBalanceModal">
+      <div class="modal">
+        <h3>{{ balanceModalType === 'add' ? 'تعبئة رصيد' : 'خصم رصيد' }}</h3>
+        <p><strong>المستخدم:</strong> <span class="gold-text">{{ balanceModalUser.email || balanceModalUser.phoneNumber || '—' }}</span></p>
+        <p><strong>المبلغ:</strong> <span class="gold-text">{{ balanceModalAmount }} USDT</span></p>
+        
+        <div class="input-box" style="margin-top: 15px;">
+          <label>اختر نوع الرصيد المراد تعديله:</label>
+          <div class="balance-type-selector">
+            <label class="radio-label">
+              <input type="radio" v-model="selectedBalanceType" value="vipBalance" />
+              <span>رصيد VIP (الأرباح القابلة للسحب)</span>
+              <small>الحالي: {{ formatBalance(balanceModalUser.vipBalance) }} USDT</small>
+            </label>
+            <label class="radio-label">
+              <input type="radio" v-model="selectedBalanceType" value="depositBalance" />
+              <span>رصيد الترقية (الإيداع)</span>
+              <small>الحالي: {{ formatBalance(balanceModalUser.depositBalance) }} USDT</small>
+            </label>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn gold" type="button" @click="confirmBalanceChange">
+            تأكيد {{ balanceModalType === 'add' ? 'التعبئة' : 'الخصم' }}
+          </button>
+          <button class="btn gold-outline" type="button" @click="closeBalanceModal">إلغاء</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -764,7 +816,8 @@ import {
   where,
   increment,
   limit,
-  setDoc
+  setDoc,
+  runTransaction
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -792,6 +845,7 @@ export default {
       withdrawLogs: [],
       loadingWithdrawLogs: false,
       withdrawLogFilter: "",
+      withdrawLogSort: "newest",
       
       rechargeLogs: [],
       loadingRechargeLogs: false,
@@ -847,7 +901,8 @@ export default {
         vipLevel: "عادي",
         vipExpiryDate: null,
         createdAt: null,
-        balance: 0,
+        vipBalance: 0,
+        depositBalance: 0,
         blocked: false,
         userId: null
       },
@@ -881,7 +936,14 @@ export default {
       },
       savingUserWheelSettings: false,
       userWheelSettingsMessage: "",
-      userWheelSettingsMessageType: ""
+      userWheelSettingsMessageType: "",
+
+      // Modal تعديل الرصيد
+      showBalanceModal: false,
+      balanceModalType: 'add',
+      balanceModalUser: {},
+      balanceModalAmount: 0,
+      selectedBalanceType: 'depositBalance'
     };
   },
   computed: {
@@ -897,10 +959,10 @@ export default {
       
       switch (this.userSort) {
         case "balance_desc":
-          list.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+          list.sort((a, b) => ((b.vipBalance || 0) + (b.depositBalance || 0)) - ((a.vipBalance || 0) + (a.depositBalance || 0)));
           break;
         case "balance_asc":
-          list.sort((a, b) => (a.balance || 0) - (b.balance || 0));
+          list.sort((a, b) => ((a.vipBalance || 0) + (a.depositBalance || 0)) - ((b.vipBalance || 0) + (b.depositBalance || 0)));
           break;
         case "phone":
           list.sort((a, b) => String(a.phoneNumber || "").localeCompare(String(b.phoneNumber || "")));
@@ -981,6 +1043,7 @@ export default {
     },
     filteredWithdrawLogs() {
       let list = [...this.withdrawLogs];
+      
       if (this.withdrawLogFilter) {
         const f = this.withdrawLogFilter.toLowerCase();
         list = list.filter(
@@ -990,6 +1053,16 @@ export default {
             (l.email || l.userEmail || "").toLowerCase().includes(f)
         );
       }
+      
+      if (this.withdrawLogSort === "newest")
+        list.sort((a, b) => this.getTimeFromDate(b.createdAt) - this.getTimeFromDate(a.createdAt));
+      else if (this.withdrawLogSort === "oldest")
+        list.sort((a, b) => this.getTimeFromDate(a.createdAt) - this.getTimeFromDate(b.createdAt));
+      else if (this.withdrawLogSort === "amount_desc")
+        list.sort((a, b) => (b.amount || 0) - (a.amount || 0));
+      else if (this.withdrawLogSort === "amount_asc")
+        list.sort((a, b) => (a.amount || 0) - (b.amount || 0));
+      
       return list;
     },
     filteredRechargeLogs() {
@@ -1320,7 +1393,8 @@ export default {
           vipLevel: vipLevel,
           vipExpiryDate: vipExpiryDate,
           createdAt: user.createdAt || null,
-          balance: user.balance || 0,
+          vipBalance: user.vipBalance || 0,
+          depositBalance: user.depositBalance || 0,
           blocked: user.blocked || false,
           userId: user.id
         };
@@ -1420,7 +1494,8 @@ export default {
         vipLevel: "عادي",
         vipExpiryDate: null,
         createdAt: null,
-        balance: 0,
+        vipBalance: 0,
+        depositBalance: 0,
         blocked: false,
         userId: null
       };
@@ -1512,7 +1587,6 @@ export default {
           level3Users: []
         };
 
-        // جلب معلومات الحساب الداعي
         const userSnap = await getDoc(doc(db, "users", user.id));
         if (userSnap.exists()) {
           const userData = userSnap.data();
@@ -1531,7 +1605,6 @@ export default {
           }
         }
 
-        // المستوى الأول - الإحالات المباشرة
         const level1Query = query(
           collection(db, "users"),
           where("invitedBy", "==", user.id)
@@ -1559,7 +1632,6 @@ export default {
         this.userDetails.level1RechargeTotal = level1Total;
         this.userDetails.level1Users = level1Users;
 
-        // المستوى الثاني - إحالات المستوى الأول
         const level2Users = [];
         let level2Total = 0;
 
@@ -1591,7 +1663,6 @@ export default {
         this.userDetails.level2RechargeTotal = level2Total;
         this.userDetails.level2Users = level2Users;
 
-        // المستوى الثالث - إحالات المستوى الثاني
         const level3Users = [];
         let level3Total = 0;
 
@@ -1762,7 +1833,8 @@ export default {
             id: d.id,
             phoneNumber: data.phoneNumber || "",
             email: data.email || "",
-            balance: data.balance ?? 0,
+            vipBalance: data.vipBalance ?? 0,
+            depositBalance: data.depositBalance ?? 0,
             blocked: data.blocked ?? false,
             notificationsCount: data.notificationsCount ?? 0,
             registrationMethod: data.registrationMethod || (data.phoneNumber ? 'phone' : 'email'),
@@ -1781,38 +1853,88 @@ export default {
     promptRecharge(user) {
       const a = prompt("أدخل مبلغ التعبئة:");
       if (!a || isNaN(a)) return;
-      this.rechargeUser(user.id, Number(a));
-    },
-    
-    async rechargeUser(userId, amount) {
-      try {
-        const r = doc(db, "users", userId);
-        const s = await getDoc(r);
-        const cur = s.exists() ? Number(s.data().balance || 0) : 0;
-        await updateDoc(r, { balance: cur + Number(amount) });
-        alert("✔ تم تعبئة الرصيد");
-        this.loadUsers();
-      } catch (e) {
-        alert("خطأ أثناء تعبئة الرصيد");
-      }
+      this.balanceModalType = 'add';
+      this.balanceModalUser = user;
+      this.balanceModalAmount = Number(a);
+      this.selectedBalanceType = 'depositBalance';
+      this.showBalanceModal = true;
     },
     
     promptDeduct(user) {
       const a = prompt("أدخل مبلغ الخصم:");
       if (!a || isNaN(a)) return;
-      this.deductUser(user.id, Number(a));
+      this.balanceModalType = 'deduct';
+      this.balanceModalUser = user;
+      this.balanceModalAmount = Number(a);
+      this.selectedBalanceType = 'vipBalance';
+      this.showBalanceModal = true;
     },
     
-    async deductUser(userId, amount) {
+    closeBalanceModal() {
+      this.showBalanceModal = false;
+      this.balanceModalUser = {};
+      this.balanceModalAmount = 0;
+      this.selectedBalanceType = 'depositBalance';
+    },
+    
+    async confirmBalanceChange() {
+      if (!this.balanceModalAmount || this.balanceModalAmount <= 0) {
+        alert("الرجاء إدخال مبلغ صحيح");
+        return;
+      }
+      
+      const userId = this.balanceModalUser.id;
+      const amount = this.balanceModalAmount;
+      const balanceField = this.selectedBalanceType;
+      const isAdd = this.balanceModalType === 'add';
+      
       try {
-        const r = doc(db, "users", userId);
-        const s = await getDoc(r);
-        const cur = s.exists() ? Number(s.data().balance || 0) : 0;
-        await updateDoc(r, { balance: Math.max(0, cur - Number(amount)) });
-        alert("✔ تم خصم المبلغ");
+        await runTransaction(db, async (transaction) => {
+          const userRef = doc(db, "users", userId);
+          const userSnap = await transaction.get(userRef);
+          
+          if (!userSnap.exists()) {
+            throw new Error("المستخدم غير موجود");
+          }
+          
+          const userData = userSnap.data();
+          const currentBalance = userData[balanceField] || 0;
+          
+          let newBalance;
+          if (isAdd) {
+            newBalance = currentBalance + amount;
+          } else {
+            if (currentBalance < amount) {
+              throw new Error(`رصيد ${balanceField === 'vipBalance' ? 'VIP' : 'الترقية'} غير كافٍ`);
+            }
+            newBalance = Math.max(0, currentBalance - amount);
+          }
+          
+          transaction.update(userRef, {
+            [balanceField]: newBalance
+          });
+        });
+        
+        // إضافة سجل المعاملة
+        await addDoc(collection(db, "transactions"), {
+          userId: userId,
+          userEmail: this.balanceModalUser.email || null,
+          userPhone: this.balanceModalUser.phoneNumber || null,
+          type: isAdd ? 'admin_recharge' : 'admin_deduct',
+          amount: amount,
+          balanceField: balanceField,
+          currency: "USDT",
+          status: "completed",
+          adminEmail: this.currentUser?.email || "admin",
+          createdAt: serverTimestamp()
+        });
+        
+        alert(`✔ تم ${isAdd ? 'تعبئة' : 'خصم'} ${amount} USDT ${isAdd ? 'إلى' : 'من'} ${balanceField === 'vipBalance' ? 'رصيد VIP' : 'رصيد الترقية'}`);
+        this.closeBalanceModal();
         this.loadUsers();
       } catch (e) {
-        alert("خطأ أثناء خصم الرصيد");
+        console.error("خطأ في تعديل الرصيد:", e);
+        alert(e.message || "خطأ أثناء تعديل الرصيد");
       }
     },
     
@@ -1866,6 +1988,7 @@ export default {
             walletAddress: data.walletAddress || data.wallet,
             vipLevel: data.vipLevel,
             withdrawDay: data.withdrawDay,
+            withdrawFrom: data.withdrawFrom || 'vipBalance',
             oldBalance: data.oldBalance ?? null,
             createdAt,
           };
@@ -1919,7 +2042,7 @@ export default {
       }
     },
 
-    async createTransactionForUser(userId, email, phoneNumber, type, amount, status, reason = "", adminMessage = "", network = "", wallet = "", vipLevel = "", withdrawDay = "") {
+    async createTransactionForUser(userId, email, phoneNumber, type, amount, status, reason = "", adminMessage = "", network = "", wallet = "", vipLevel = "", withdrawDay = "", targetBalance = "") {
       try {
         const transactionData = {
           transactionId: "TRX" + Date.now() + Math.random().toString(36).substring(2, 9),
@@ -1940,6 +2063,7 @@ export default {
           walletAddress: wallet,
           vipLevel: vipLevel,
           withdrawDay: withdrawDay,
+          targetBalance: targetBalance,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
@@ -1979,7 +2103,8 @@ export default {
             req.network,
             req.wallet || req.walletAddress,
             req.vipLevel,
-            req.withdrawDay
+            req.withdrawDay,
+            req.withdrawFrom || 'vipBalance'
           );
         }
 
@@ -1994,6 +2119,7 @@ export default {
           wallet: req.wallet || req.walletAddress,
           vipLevel: req.vipLevel,
           withdrawDay: req.withdrawDay,
+          withdrawFrom: req.withdrawFrom || 'vipBalance',
           createdAt: serverTimestamp(),
         });
         
@@ -2041,7 +2167,8 @@ export default {
         await updateDoc(pRef, { 
           status: "approved", 
           processedAt: serverTimestamp(),
-          adminMessage: message || ""
+          adminMessage: message || "",
+          targetBalance: "depositBalance"
         });
 
         if (r.userId) {
@@ -2069,7 +2196,8 @@ export default {
             r.network,
             "",
             "",
-            ""
+            "",
+            "depositBalance"
           );
         }
 
@@ -2082,13 +2210,14 @@ export default {
           adminMessage: message || "",
           network: r.network,
           txid: r.txid,
+          targetBalance: "depositBalance",
           createdAt: serverTimestamp(),
         });
 
         if (r.userId) {
           const notificationMessage = message 
-            ? `تمت إضافة ${r.amount} USDT إلى حسابك. ${message}`
-            : `تمت إضافة ${r.amount} USDT إلى حسابك. شكراً لك.`;
+            ? `تمت إضافة ${r.amount} USDT إلى رصيد الترقية الخاص بك. ${message}`
+            : `تمت إضافة ${r.amount} USDT إلى رصيد الترقية الخاص بك. شكراً لك.`;
             
           await addDoc(collection(db, "users", r.userId, "notifications"), {
             title: "تمت الموافقة على طلب التعبئة",
@@ -2099,18 +2228,25 @@ export default {
 
           try {
             const userRef = doc(db, "users", r.userId);
-            const uSnap = await getDoc(userRef);
-            const cur = uSnap.exists() ? Number(uSnap.data().balance || 0) : 0;
-            await updateDoc(userRef, { balance: cur + Number(r.amount || 0) });
+            await runTransaction(db, async (transaction) => {
+              const uSnap = await transaction.get(userRef);
+              if (uSnap.exists()) {
+                const userData = uSnap.data();
+                const currentDepositBalance = userData.depositBalance || 0;
+                transaction.update(userRef, { 
+                  depositBalance: currentDepositBalance + Number(r.amount || 0) 
+                });
+              }
+            });
 
             await this.calculateAndAddReferralEarnings(r.userId, r.amount, r.id);
 
           } catch (err) {
-            console.warn("failed to update user balance after recharge approval:", err);
+            console.warn("failed to update user depositBalance after recharge approval:", err);
           }
         }
 
-        alert("✔ تمت الموافقة على طلب التعبئة وتم إضافة أرباح الإحالة");
+        alert("✔ تمت الموافقة على طلب التعبئة وتمت إضافة المبلغ إلى رصيد الترقية");
       } catch (e) {
         console.error("approveRecharge error:", e);
         alert("خطأ أثناء الموافقة على الطلب");
@@ -2147,16 +2283,26 @@ export default {
             req.network,
             req.wallet || req.walletAddress,
             req.vipLevel,
-            req.withdrawDay
+            req.withdrawDay,
+            req.withdrawFrom || 'vipBalance'
           );
         }
 
+        // إرجاع المبلغ إلى vipBalance
         if (req.userId && req.amount) {
           try {
-            await updateDoc(doc(db, "users", req.userId), {
-              balance: increment(req.amount)
+            await runTransaction(db, async (transaction) => {
+              const userRef = doc(db, "users", req.userId);
+              const uSnap = await transaction.get(userRef);
+              if (uSnap.exists()) {
+                const userData = uSnap.data();
+                const currentVipBalance = userData.vipBalance || 0;
+                transaction.update(userRef, {
+                  vipBalance: currentVipBalance + Number(req.amount)
+                });
+              }
             });
-            console.log(`✅ تم إرجاع ${req.amount} USDT للمستخدم ${req.userId}`);
+            console.log(`✅ تم إرجاع ${req.amount} USDT إلى vipBalance للمستخدم ${req.userId}`);
           } catch (err) {
             console.error("❌ خطأ في إرجاع الرصيد:", err);
           }
@@ -2173,6 +2319,7 @@ export default {
           wallet: req.wallet || req.walletAddress,
           vipLevel: req.vipLevel,
           withdrawDay: req.withdrawDay,
+          withdrawFrom: req.withdrawFrom || 'vipBalance',
           createdAt: serverTimestamp(),
         });
 
@@ -2181,7 +2328,7 @@ export default {
             collection(db, "users", req.userId, "notifications"),
             {
               title: "تم رفض طلب السحب",
-              message: `تم رفض سحب ${req.amount} USDT. السبب: ${reason}`,
+              message: `تم رفض سحب ${req.amount} USDT. السبب: ${reason}. تم إرجاع المبلغ إلى رصيد VIP الخاص بك.`,
               read: false,
               createdAt: serverTimestamp(),
             }
@@ -2192,7 +2339,7 @@ export default {
         const ex = await getDoc(r);
         if (ex.exists()) await deleteDoc(r);
         
-        alert("❌ تم الرفض وإرجاع الرصيد");
+        alert("❌ تم الرفض وإرجاع الرصيد إلى vipBalance");
         await this.loadWithdrawRequests();
         await this.loadWithdrawLogs();
       } catch (e) {
@@ -2252,6 +2399,7 @@ export default {
             userEmail: data.userEmail || data.email,
             wallet: data.wallet || data.walletAddress || null,
             walletAddress: data.walletAddress || data.wallet || null,
+            withdrawFrom: data.withdrawFrom || 'vipBalance',
           };
         });
       } catch (e) {
@@ -2284,6 +2432,7 @@ export default {
               adminMessage: data.adminMessage || '',
               network: data.network || '',
               txid: data.txid || '',
+              targetBalance: data.targetBalance || 'depositBalance',
               createdAt: data.createdAt,
             };
           });
@@ -2317,6 +2466,7 @@ export default {
               adminMessage: data.adminMessage || '',
               network: data.network || '',
               txid: data.txid || '',
+              targetBalance: data.targetBalance || 'depositBalance',
               createdAt: data.createdAt,
             };
           });
@@ -2372,6 +2522,7 @@ export default {
               txid: data.txid || "",
               proofURL: data.proofURL || null,
               status: data.status || "pending",
+              targetBalance: data.targetBalance || "depositBalance",
               createdAt,
             };
           });
@@ -2413,6 +2564,7 @@ export default {
             txid: data.txid || "",
             proofURL: data.proofURL || null,
             status: data.status || "pending",
+            targetBalance: data.targetBalance || "depositBalance",
             createdAt,
           };
         });
@@ -2463,15 +2615,16 @@ export default {
             if (level1Snap.exists()) {
               const level1Data = level1Snap.data();
               const level1Amount = (amount * commissionRates.level1) / 100;
-              const newBalance = (level1Data.balance || 0) + level1Amount;
+              const newBalance = (level1Data.vipBalance || 0) + level1Amount;
               
-              await updateDoc(level1Ref, { balance: newBalance });
+              await updateDoc(level1Ref, { vipBalance: newBalance });
               
               await addDoc(collection(db, "referral_rewards"), {
                 receiver: userData.invitedBy,
                 fromUser: userId,
                 amount: level1Amount,
                 level: 1,
+                targetBalance: 'vipBalance',
                 createdAt: serverTimestamp()
               });
               
@@ -2484,6 +2637,7 @@ export default {
                 amount: level1Amount,
                 currency: "USDT",
                 status: "completed",
+                targetBalance: 'vipBalance',
                 details: {
                   fromUserId: userId,
                   fromEmail: userEmail,
@@ -2504,7 +2658,7 @@ export default {
                 createdAt: serverTimestamp(),
               });
               
-              console.log(`✅ إضافة ${level1Amount} USDT (${commissionRates.level1}%) للمستوى الأول: ${level1Data.email}`);
+              console.log(`✅ إضافة ${level1Amount} USDT (${commissionRates.level1}%) للمستوى الأول إلى vipBalance: ${level1Data.email}`);
             }
           } catch (error) {
             console.error("❌ خطأ في حساب أرباح المستوى الأول:", error);
@@ -2519,15 +2673,16 @@ export default {
             if (level2Snap.exists()) {
               const level2Data = level2Snap.data();
               const level2Amount = (amount * commissionRates.level2) / 100;
-              const newBalance = (level2Data.balance || 0) + level2Amount;
+              const newBalance = (level2Data.vipBalance || 0) + level2Amount;
               
-              await updateDoc(level2Ref, { balance: newBalance });
+              await updateDoc(level2Ref, { vipBalance: newBalance });
               
               await addDoc(collection(db, "referral_rewards"), {
                 receiver: userData.level2,
                 fromUser: userId,
                 amount: level2Amount,
                 level: 2,
+                targetBalance: 'vipBalance',
                 createdAt: serverTimestamp()
               });
               
@@ -2540,6 +2695,7 @@ export default {
                 amount: level2Amount,
                 currency: "USDT",
                 status: "completed",
+                targetBalance: 'vipBalance',
                 details: {
                   fromUserId: userId,
                   fromEmail: userEmail,
@@ -2560,7 +2716,7 @@ export default {
                 createdAt: serverTimestamp(),
               });
               
-              console.log(`✅ إضافة ${level2Amount} USDT (${commissionRates.level2}%) للمستوى الثاني: ${level2Data.email}`);
+              console.log(`✅ إضافة ${level2Amount} USDT (${commissionRates.level2}%) للمستوى الثاني إلى vipBalance: ${level2Data.email}`);
             }
           } catch (error) {
             console.error("❌ خطأ في حساب أرباح المستوى الثاني:", error);
@@ -2575,15 +2731,16 @@ export default {
             if (level3Snap.exists()) {
               const level3Data = level3Snap.data();
               const level3Amount = (amount * commissionRates.level3) / 100;
-              const newBalance = (level3Data.balance || 0) + level3Amount;
+              const newBalance = (level3Data.vipBalance || 0) + level3Amount;
               
-              await updateDoc(level3Ref, { balance: newBalance });
+              await updateDoc(level3Ref, { vipBalance: newBalance });
               
               await addDoc(collection(db, "referral_rewards"), {
                 receiver: userData.level3,
                 fromUser: userId,
                 amount: level3Amount,
                 level: 3,
+                targetBalance: 'vipBalance',
                 createdAt: serverTimestamp()
               });
               
@@ -2596,6 +2753,7 @@ export default {
                 amount: level3Amount,
                 currency: "USDT",
                 status: "completed",
+                targetBalance: 'vipBalance',
                 details: {
                   fromUserId: userId,
                   fromEmail: userEmail,
@@ -2616,7 +2774,7 @@ export default {
                 createdAt: serverTimestamp(),
               });
               
-              console.log(`✅ إضافة ${level3Amount} USDT (${commissionRates.level3}%) للمستوى الثالث: ${level3Data.email}`);
+              console.log(`✅ إضافة ${level3Amount} USDT (${commissionRates.level3}%) للمستوى الثالث إلى vipBalance: ${level3Data.email}`);
             }
           } catch (error) {
             console.error("❌ خطأ في حساب أرباح المستوى الثالث:", error);
@@ -2672,7 +2830,8 @@ export default {
             r.network,
             "",
             "",
-            ""
+            "",
+            "depositBalance"
           );
         }
 
@@ -2685,6 +2844,7 @@ export default {
           reason: reason,
           network: r.network,
           txid: r.txid,
+          targetBalance: "depositBalance",
           createdAt: serverTimestamp(),
         });
 
@@ -2724,6 +2884,7 @@ export default {
           type: "deleted",
           network: r.network,
           txid: r.txid,
+          targetBalance: "depositBalance",
           createdAt: serverTimestamp(),
         });
         alert("تم حذف الطلب");
@@ -3072,6 +3233,37 @@ export default {
   gap: 8px;
   margin-top: 10px;
   justify-content: flex-end;
+}
+
+.balance-type-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.radio-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  background: #1A1F2A;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  cursor: pointer;
+}
+
+.radio-label input {
+  margin: 0;
+}
+
+.radio-label span {
+  color: #D4AF37;
+  font-weight: 600;
+}
+
+.radio-label small {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .invited-by-info {
