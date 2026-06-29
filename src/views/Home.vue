@@ -197,29 +197,29 @@
     <div class="balance-cards-section">
       <!-- بطاقة رصيد الأرباح القابل للسحب -->
       <div class="balance-card withdrawable-card">
-        <div class="card-icon-wrapper withdrawable">
-          <i class="fas fa-wallet"></i>
-        </div>
         <div class="card-content">
           <div class="card-title">{{ t('withdrawableBalance') }}</div>
-          <div class="card-amount"><span class="currency-symbol withdrawable-text">USDT</span> 0.00</div>
+          <div class="card-amount"><span class="currency-symbol withdrawable-text">USDT</span> {{ formatNumber(vipBalance) }}</div>
         </div>
         <div class="card-arrow">
-          <i class="fas fa-chevron-right"></i>
+          <i class="fas fa-chevron-left"></i>
+        </div>
+        <div class="card-icon-wrapper withdrawable">
+          <i class="fas fa-wallet"></i>
         </div>
       </div>
 
       <!-- بطاقة رصيد الترقية -->
       <div class="balance-card upgrade-card">
-        <div class="card-icon-wrapper upgrade">
-          <i class="fas fa-arrow-up"></i>
-        </div>
         <div class="card-content">
           <div class="card-title">{{ t('upgradeBalance') }}</div>
-          <div class="card-amount"><span class="currency-symbol upgrade-text">USDT</span> 0.00</div>
+          <div class="card-amount"><span class="currency-symbol upgrade-text">USDT</span> {{ formatNumber(depositBalance) }}</div>
         </div>
         <div class="card-arrow">
-          <i class="fas fa-chevron-right"></i>
+          <i class="fas fa-chevron-left"></i>
+        </div>
+        <div class="card-icon-wrapper upgrade">
+          <i class="fas fa-arrow-up"></i>
         </div>
       </div>
     </div>
@@ -1337,7 +1337,7 @@ export default {
   overflow-x: hidden;
 }
 
-/* ==================== BALANCE CARDS SECTION ==================== */
+/* ==================== BALANCE CARDS SECTION (مطابق للصورة تماماً) ==================== */
 .balance-cards-section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1347,42 +1347,78 @@ export default {
 }
 
 .balance-card {
-  background: rgba(15, 20, 25, 0.6);
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: rgba(15, 20, 25, 0.5);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: space-between;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   position: relative;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.balance-card.withdrawable-card {
+  border: 1px solid rgba(76, 175, 80, 0.25);
+}
+
+.balance-card.upgrade-card {
+  border: 1px solid rgba(33, 150, 243, 0.25);
 }
 
 .balance-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(212, 175, 55, 0.4);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-.balance-card.withdrawable-card {
-  border-color: rgba(76, 175, 80, 0.25);
+/* الترتيب (السهم - النص - الأيقونة) ثابت بغض النظر عن RTL */
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
 }
 
-.balance-card.withdrawable-card:hover {
-  border-color: rgba(76, 175, 80, 0.5);
-  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.1);
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: center;
 }
 
-.balance-card.upgrade-card {
-  border-color: rgba(33, 150, 243, 0.25);
+.card-amount {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Cairo', monospace, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.balance-card.upgrade-card:hover {
-  border-color: rgba(33, 150, 243, 0.5);
-  box-shadow: 0 8px 25px rgba(33, 150, 243, 0.1);
+.currency-symbol {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff; /* اللون الافتراضي */
+}
+
+/* لون النص الخاص بـ USDT حسب البطاقة */
+.currency-symbol.withdrawable-text {
+  color: #4CAF50 !important; /* أخضر للأرباح */
+}
+
+.currency-symbol.upgrade-text {
+  color: #2196F3 !important; /* أزرق للترقية */
+}
+
+.card-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 16px;
+  padding: 4px;
+  transition: all 0.2s;
+}
+
+.balance-card:hover .card-arrow {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .card-icon-wrapper {
@@ -1406,57 +1442,6 @@ export default {
   background: rgba(33, 150, 243, 0.15);
   color: #2196F3;
   border: 1px solid rgba(33, 150, 243, 0.2);
-}
-
-.card-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.card-amount {
-  font-size: 16px;
-  font-weight: 700;
-  color: #F6E27A;
-}
-
-.currency-symbol {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.currency-symbol.withdrawable-text {
-  color: #4CAF50;
-}
-
-.currency-symbol.upgrade-text {
-  color: #2196F3;
-}
-
-.card-arrow {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 16px;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.balance-card:hover .card-arrow {
-  color: rgba(255, 255, 255, 0.8);
-  transform: translateX(3px);
-}
-
-.home-container[dir="rtl"] .balance-card:hover .card-arrow {
-  transform: translateX(-3px);
 }
 
 /* ==================== CUSTOM MODAL SYSTEM ==================== */
