@@ -512,7 +512,16 @@ export default {
         
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          this.vipBalance = userData.vipBalance || 0;
+          
+          // ✅ قراءة ذكية للرصيد - تدعم النظام القديم والجديد
+          if (typeof userData.vipBalance === 'number') {
+            this.vipBalance = userData.vipBalance;
+          } else if (typeof userData.balance === 'number') {
+            this.vipBalance = userData.balance; // 🔥 الرصيد القديم ← قابل للسحب
+          } else {
+            this.vipBalance = 0;
+          }
+          
           this.userPhone = userData.phoneNumber || "";
           this.userEmail = userData.email || "";
           
