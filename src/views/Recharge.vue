@@ -204,8 +204,21 @@ export default {
         const userDoc = await getDoc(doc(db, "users", this.userId));
         if (userDoc.exists()) {
           const data = userDoc.data();
-          // عرض مجموع الرصيدين للمستخدم
-          this.userBalance = (data.vipBalance || 0) + (data.depositBalance || 0);
+          
+          // ✅ قراءة ذكية للرصيد - تدعم النظام القديم والجديد
+          let vipBalance = 0;
+          let depositBalance = 0;
+          
+          if (typeof data.vipBalance === 'number') {
+            vipBalance = data.vipBalance;
+            depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
+          } else if (typeof data.balance === 'number') {
+            vipBalance = data.balance; // 🔥 الرصيد القديم ← vipBalance
+            depositBalance = 0;
+          }
+          
+          // عرض مجموع الرصيدين
+          this.userBalance = vipBalance + depositBalance;
         }
       } catch (error) {
         console.error("Error fetching balance:", error);
