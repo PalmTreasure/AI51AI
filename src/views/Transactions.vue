@@ -16,22 +16,6 @@
         <p>جاري تحميل المعاملات...</p>
       </div>
 
-      <div v-else-if="indexError" class="error-box">
-        <i class="fas fa-exclamation-triangle"></i>
-        <h3>تحتاج إلى إنشاء فهرس في Firebase</h3>
-        <p>لإصلاح المشكلة:</p>
-        <ol>
-          <li>اذهب لـ <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a></li>
-          <li>اختر مشروعك: <strong>american-54cbd</strong></li>
-          <li>اذهب لـ Firestore Database → Indexes</li>
-          <li>أنشئ فهرس لـ collection "transactions" مع الحقول: userId (Ascending), createdAt (Descending)</li>
-        </ol>
-        <button @click="loadTransactionsWithoutIndex" class="retry-btn">
-          <i class="fas fa-sync-alt"></i>
-          محاولة بدون فهرس
-        </button>
-      </div>
-
       <div v-else-if="transactions.length === 0" class="empty-box">
         <i class="fas fa-inbox"></i>
         <p>لا توجد معاملات حتى الآن</p>
@@ -218,8 +202,8 @@ import {
   collection,
   query,
   where,
-  orderBy,
-  getDocs
+  getDocs,
+  limit
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -230,9 +214,7 @@ export default {
     return {
       loading: true,
       transactions: [],
-      indexError: false,
-      currentUserId: "",
-      useIndex: true
+      currentUserId: ""
     };
   },
 
@@ -257,33 +239,11 @@ export default {
         this.currentUserId = user.uid;
 
         try {
-          if (this.useIndex) {
-            try {
-              const q = query(
-                collection(db, "transactions"),
-                where("userId", "==", user.uid),
-                orderBy("createdAt", "desc")
-              );
-              
-              const snapshot = await getDocs(q);
-              this.transactions = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-              }));
-              
-              this.loading = false;
-              return;
-              
-            } catch (indexError) {
-              this.indexError = true;
-              this.useIndex = false;
-            }
-          }
-
-          // طريقة بدون فهرس
+          // تحميل المعاملات بدون orderBy لتجنب الحاجة إلى فهرس
           const q = query(
             collection(db, "transactions"),
-            where("userId", "==", user.uid)
+            where("userId", "==", user.uid),
+            limit(50)
           );
           
           const snapshot = await getDocs(q);
@@ -292,10 +252,10 @@ export default {
             ...doc.data()
           }));
           
-          // ترتيب يدوي
+          // ترتيب يدوي في الذاكرة (أكثر كفاءة من إنشاء فهرس)
           transactions.sort((a, b) => {
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            const dateA = this.getTimestampValue(a.createdAt);
+            const dateB = this.getTimestampValue(b.createdAt);
             return dateB - dateA;
           });
           
@@ -303,17 +263,55 @@ export default {
           
         } catch (error) {
           console.error("خطأ في تحميل المعاملات:", error);
+          // محاولة بدون شرط userId إذا فشل
+          try {
+            const q = query(
+              collection(db, "transactions"),
+              limit(50)
+            );
+            const snapshot = await getDocs(q);
+            let transactions = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            
+            // تصفية المعاملات الخاصة بالمستخدم
+            transactions = transactions.filter(tx => tx.userId === user.uid);
+            
+            // ترتيب يدوي
+            transactions.sort((a, b) => {
+              const dateA = this.getTimestampValue(a.createdAt);
+              const dateB = this.getTimestampValue(b.createdAt);
+              return dateB - dateA;
+            });
+            
+            this.transactions = transactions;
+          } catch (err) {
+            console.error("خطأ في المحاولة الثانية:", err);
+          }
         }
 
         this.loading = false;
       });
     },
 
-    async loadTransactionsWithoutIndex() {
-      this.loading = true;
-      this.indexError = false;
-      this.useIndex = false;
-      await this.loadTransactions();
+    // دالة مساعدة لاستخراج قيمة الوقت من timestamp
+    getTimestampValue(ts) {
+      if (!ts) return 0;
+      try {
+        if (ts.toDate) {
+          return ts.toDate().getTime();
+        } else if (ts.seconds) {
+          return ts.seconds * 1000;
+        } else if (typeof ts === 'number') {
+          return ts;
+        } else if (ts instanceof Date) {
+          return ts.getTime();
+        }
+        return new Date(ts).getTime();
+      } catch (error) {
+        return 0;
+      }
     },
 
     getTypeIcon(type) {
@@ -357,8 +355,14 @@ export default {
           date = ts.toDate();
         } else if (ts.seconds) {
           date = new Date(ts.seconds * 1000);
+        } else if (typeof ts === 'number') {
+          date = new Date(ts);
         } else {
           date = new Date(ts);
+        }
+        
+        if (isNaN(date.getTime())) {
+          return "تاريخ غير صالح";
         }
         
         return date.toLocaleString("ar-EG", {
@@ -470,7 +474,7 @@ export default {
 }
 
 /* صناديق الحالات */
-.loading-box, .error-box, .empty-box {
+.loading-box, .empty-box {
   background: linear-gradient(135deg, #1A1F2A, #11151C);
   border-radius: 20px;
   padding: 40px;
@@ -485,28 +489,6 @@ export default {
   margin-bottom: 15px;
 }
 
-.error-box {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-
-.error-box i {
-  font-size: 40px;
-  margin-bottom: 15px;
-}
-
-.error-box ol {
-  text-align: right;
-  margin: 20px 0;
-  padding-right: 20px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.error-box a {
-  color: #D4AF37;
-  text-decoration: none;
-}
-
 .empty-box i {
   font-size: 50px;
   color: #D4AF37;
@@ -519,23 +501,6 @@ export default {
   color: rgba(255, 255, 255, 0.5);
   margin-top: 10px;
   direction: ltr;
-}
-
-.retry-btn {
-  background: linear-gradient(135deg, #D4AF37, #F6E27A);
-  color: #0A0C10;
-  border: none;
-  padding: 12px 30px;
-  border-radius: 50px;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 20px;
-  transition: all 0.3s ease;
-}
-
-.retry-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
 }
 
 /* إحصائيات */
