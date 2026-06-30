@@ -514,7 +514,8 @@ export default {
           const userSnap = await transaction.get(userDocRef);
           
           if (userSnap.exists()) {
-            const currentVipBalance = userSnap.data().vipBalance || 0;
+            // ✅ الإصلاح النهائي: استخدام Nullish Coalescing للحفاظ على الرصيد القديم
+            const currentVipBalance = userSnap.data().vipBalance ?? userSnap.data().balance ?? 0;
             const newVipBalance = currentVipBalance + reward;
             transaction.update(userDocRef, { vipBalance: newVipBalance });
             
@@ -702,8 +703,8 @@ export default {
           
           const newDepositBalance = depositBalance - this.selectedPlan.price;
           
-          // خصم من depositBalance فقط وإضافة المكافأة الأولى إلى vipBalance
-          const currentVipBalance = userSnap.data().vipBalance || 0;
+          // ✅ الإصلاح النهائي: استخدام Nullish Coalescing للحفاظ على الرصيد القديم
+          const currentVipBalance = userSnap.data().vipBalance ?? userSnap.data().balance ?? 0;
           const firstReward = this.selectedPlan.daily;
           const newVipBalance = currentVipBalance + firstReward;
           
