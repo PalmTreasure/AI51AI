@@ -810,7 +810,6 @@ import {
   deleteDoc,
   serverTimestamp,
   getDoc,
-  onSnapshot,
   query,
   orderBy,
   where,
@@ -1129,20 +1128,14 @@ export default {
         console.error("admin check", e);
         return this.$router.replace("/403");
       }
-      await Promise.all([
-        this.loadWithdrawRequests(),
-        this.loadUsers(),
-        this.loadWithdrawLogs(),
-        this.loadWheelSettings()
-      ]);
-      this.attachRechargeListener();
+      
+      // تحميل جميع البيانات مرة واحدة فقط عند تسجيل الدخول
+      await this.loadAllData();
     });
   },
   beforeUnmount() {
-    if (this.rechargeUnsubscribe) {
-      try { this.rechargeUnsubscribe(); } catch (e) {}
-      this.rechargeUnsubscribe = null;
-    }
+    // إلغاء الـ listener عند مغادرة الصفحة
+    this.detachRechargeListener();
   },
   methods: {
     getTimeFromDate(date) {
@@ -1157,6 +1150,18 @@ export default {
       }
       
       return new Date(date).getTime();
+    },
+    
+    // تحميل جميع البيانات مرة واحدة
+    async loadAllData() {
+      await Promise.all([
+        this.loadWithdrawRequests(),
+        this.loadUsers(),
+        this.loadWithdrawLogs(),
+        this.loadWheelSettings(),
+        this.loadRechargeRequests(),
+        this.loadRechargeLogs()
+      ]);
     },
     
     async loadWheelSettings() {
@@ -1806,17 +1811,21 @@ export default {
     
     switchTab(tab) {
       this.activeTab = tab;
-      if (tab === "withdraws") this.loadWithdrawRequests();
-      else if (tab === "users") this.loadUsers();
-      else if (tab === "notifications") this.loadAllNotifications();
-      else if (tab === "withdrawLogs") this.loadWithdrawLogs();
-      else if (tab === "recharges") {
+      // عند التبديل بين التبويبات، نستخدم البيانات المحملة مسبقاً
+      // ولا نعيد تحميل البيانات إلا إذا كانت فارغة
+      if (tab === "withdraws" && this.withdraws.length === 0) {
+        this.loadWithdrawRequests();
+      } else if (tab === "users" && this.users.length === 0) {
+        this.loadUsers();
+      } else if (tab === "notifications" && this.allNotifications.length === 0) {
+        this.loadAllNotifications();
+      } else if (tab === "withdrawLogs" && this.withdrawLogs.length === 0) {
+        this.loadWithdrawLogs();
+      } else if (tab === "recharges" && this.rechargeRequests.length === 0) {
         this.reloadRechargeRequests();
-      }
-      else if (tab === "rechargeLogs") {
+      } else if (tab === "rechargeLogs" && this.rechargeLogs.length === 0) {
         this.loadRechargeLogs();
-      }
-      else if (tab === "wheelSettings") {
+      } else if (tab === "wheelSettings") {
         this.loadWheelSettings();
       }
     },
@@ -1829,18 +1838,15 @@ export default {
           const data = d.data() || {};
           const createdAt = data.createdAt || data.registeredAt || null;
           
-          // ✅ قراءة مستقلة لكل حقل
           let vipBalance = 0;
           let depositBalance = 0;
           
-          // قراءة vipBalance - من الحقل الجديد أو القديم
           if (typeof data.vipBalance === 'number') {
             vipBalance = data.vipBalance;
           } else if (typeof data.balance === 'number') {
             vipBalance = data.balance;
           }
           
-          // قراءة depositBalance - بشكل مستقل
           if (typeof data.depositBalance === 'number') {
             depositBalance = data.depositBalance;
           }
@@ -1931,7 +1937,6 @@ export default {
           });
         });
         
-        // إضافة سجل المعاملة
         await addDoc(collection(db, "transactions"), {
           userId: userId,
           userEmail: this.balanceModalUser.email || null,
@@ -2304,7 +2309,6 @@ export default {
           );
         }
 
-        // إرجاع المبلغ إلى vipBalance
         if (req.userId && req.amount) {
           try {
             await runTransaction(db, async (transaction) => {
@@ -2512,52 +2516,8 @@ export default {
       }
     },
     
-    attachRechargeListener() {
-      try {
-        if (this.rechargeUnsubscribe) {
-          try { this.rechargeUnsubscribe(); } catch (e) {}
-          this.rechargeUnsubscribe = null;
-        }
-        const q = query(collection(db, "payments"), orderBy("createdAt", "desc"));
-        this.rechargeUnsubscribe = onSnapshot(q, (snap) => {
-          const arr = snap.docs.map((d) => {
-            const data = d.data() || {};
-            let createdAt = Date.now();
-            if (data.createdAt) {
-              if (typeof data.createdAt === "number") createdAt = data.createdAt;
-              else if (data.createdAt.toMillis) createdAt = data.createdAt.toMillis();
-            }
-            return {
-              id: d.id,
-              userId: data.userId || null,
-              userPhone: data.userPhone || data.phoneNumber || null,
-              userEmail: data.email || data.userEmail || "",
-              email: data.email || data.userEmail || "",
-              amount: data.amount || 0,
-              network: data.network || "",
-              txid: data.txid || "",
-              proofURL: data.proofURL || null,
-              status: data.status || "pending",
-              targetBalance: data.targetBalance || "depositBalance",
-              createdAt,
-            };
-          });
-          this.rechargeRequests = arr;
-          this.loadingRecharges = false;
-          const pendingCount = arr.filter(a => (a.status || 'pending') === 'pending').length;
-          if (pendingCount > 0) {
-            console.info(`طلبات تعبئة جديدة: ${pendingCount}`);
-          }
-        }, (err) => {
-          console.error("recharge listener error:", err);
-          this.loadingRecharges = false;
-        });
-      } catch (e) {
-        console.error("attachRechargeListener error:", e);
-        this.loadingRecharges = false;
-      }
-    },
-    
+    // تم إزالة onSnapshot بالكامل واستخدام getDocs فقط
+    // هذا يقلل بشكل كبير من عدد القراءات
     async reloadRechargeRequests() {
       this.loadingRecharges = true;
       try {
