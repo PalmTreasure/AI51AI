@@ -528,7 +528,7 @@
 
 <script>
 import { auth, db } from "../firebase";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default {
@@ -540,7 +540,6 @@ export default {
       vipBalance: 0,
       depositBalance: 0,
       currentUserUid: null,
-      unsubscribeUser: null,
       refreshing: false,
       
       showCompany: false,
@@ -791,9 +790,6 @@ export default {
   },
 
   beforeUnmount() {
-    if (this.unsubscribeUser) {
-      this.unsubscribeUser();
-    }
     if (this.toastInterval) {
       clearInterval(this.toastInterval);
     }
@@ -1223,36 +1219,26 @@ export default {
         }
 
         this.currentUserUid = user.uid;
-        this.setupRealtimeListener(user.uid);
+        await this.fetchUserData(user.uid);
       });
     },
 
-    setupRealtimeListener(uid) {
-      if (this.unsubscribeUser) {
-        this.unsubscribeUser();
-      }
-
-      const userRef = doc(db, "users", uid);
-      
-      this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
+    async fetchUserData(uid) {
+      try {
+        const userRef = doc(db, "users", uid);
+        const docSnap = await getDoc(userRef);
+        
         if (docSnap.exists()) {
           const data = docSnap.data();
           this.username = data.username || data.email || "User";
           
-          // ✅ قراءة الرصيد القديم تلقائياً
-          if (typeof data.vipBalance === 'number') {
-            this.vipBalance = data.vipBalance;
-          } else if (typeof data.balance === 'number') {
-            this.vipBalance = data.balance; // 🔥 الرصيد القديم ← حقل السحب
-          } else {
-            this.vipBalance = 0;
-          }
-          
-          this.depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
+          // ✅ الإصلاح النهائي باستخدام Nullish Coalescing
+          this.vipBalance = Number(data.vipBalance ?? data.balance ?? 0);
+          this.depositBalance = Number(data.depositBalance ?? 0);
         }
-      }, (error) => {
-        console.error("Listener error:", error);
-      });
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
     },
 
     async refreshBalance() {
@@ -1265,16 +1251,9 @@ export default {
         if (docSnap.exists()) {
           const data = docSnap.data();
           
-          // ✅ قراءة الرصيد القديم تلقائياً
-          if (typeof data.vipBalance === 'number') {
-            this.vipBalance = data.vipBalance;
-          } else if (typeof data.balance === 'number') {
-            this.vipBalance = data.balance; // 🔥 الرصيد القديم ← حقل السحب
-          } else {
-            this.vipBalance = 0;
-          }
-          
-          this.depositBalance = typeof data.depositBalance === 'number' ? data.depositBalance : 0;
+          // ✅ الإصلاح النهائي باستخدام Nullish Coalescing
+          this.vipBalance = Number(data.vipBalance ?? data.balance ?? 0);
+          this.depositBalance = Number(data.depositBalance ?? 0);
           
           this.showSuccessMessage(this.t('balanceUpdated'));
         }
