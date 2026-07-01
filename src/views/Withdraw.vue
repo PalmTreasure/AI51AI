@@ -651,15 +651,36 @@ export default {
         twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
         const withdrawRequestsRef = collection(db, "withdraw_requests");
+        
+        // استعلام بدون createdAt لتجنب الحاجة إلى فهرس مركب
         const q = query(
           withdrawRequestsRef,
-          where("userId", "==", user.uid),
-          where("createdAt", ">=", twentyFourHoursAgo)
+          where("userId", "==", user.uid)
         );
         const querySnapshot = await getDocs(q);
 
-        // التحقق من وجود أي طلب سحب خلال آخر 24 ساعة
-        if (!querySnapshot.empty) {
+        // التحقق من وجود أي طلب سحب خلال آخر 24 ساعة (تصفية يدوية)
+        let hasRecentRequest = false;
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.createdAt) {
+            // تحويل createdAt إلى Date
+            let createdAtDate;
+            if (data.createdAt.toDate) {
+              createdAtDate = data.createdAt.toDate();
+            } else if (data.createdAt instanceof Date) {
+              createdAtDate = data.createdAt;
+            } else {
+              createdAtDate = new Date(data.createdAt);
+            }
+            
+            if (createdAtDate >= twentyFourHoursAgo) {
+              hasRecentRequest = true;
+            }
+          }
+        });
+
+        if (hasRecentRequest) {
           this.showMessage("❌ يمكنك إرسال طلب سحب واحد فقط كل 24 ساعة.", "error");
           this.isLoading = false;
           return;
