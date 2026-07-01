@@ -272,7 +272,7 @@
 
 <script>
 import { auth, db } from "../firebase";
-import { doc, getDoc, runTransaction, collection, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, runTransaction, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default {
@@ -640,6 +640,27 @@ export default {
           await signInWithEmailAndPassword(auth, user.email, this.password);
         } catch (authError) {
           this.showMessage("❌ كلمة المرور غير صحيحة. تحقق من كلمة المرور.", "error");
+          this.isLoading = false;
+          return;
+        }
+
+        // ===================================================
+        // الشرط الجديد: التحقق من آخر طلب سحب خلال 24 ساعة
+        // ===================================================
+        const twentyFourHoursAgo = new Date();
+        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+        const withdrawRequestsRef = collection(db, "withdraw_requests");
+        const q = query(
+          withdrawRequestsRef,
+          where("userId", "==", user.uid),
+          where("createdAt", ">=", twentyFourHoursAgo)
+        );
+        const querySnapshot = await getDocs(q);
+
+        // التحقق من وجود أي طلب سحب خلال آخر 24 ساعة
+        if (!querySnapshot.empty) {
+          this.showMessage("❌ يمكنك إرسال طلب سحب واحد فقط كل 24 ساعة.", "error");
           this.isLoading = false;
           return;
         }
