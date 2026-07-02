@@ -335,6 +335,8 @@ export default {
       currentPage: 1,
       showConfirmModal: false,
       selectedPlan: null,
+      // ✅ منع التوزيع المتكرر في نفس الدورة
+      lastDistributedCycle: null,
 
       plans: [
         { level: 1, name: "VIP 1", price: 5, tasks: 1, daily: 0.15, durationSeconds: 365 * 86400 },
@@ -500,6 +502,7 @@ export default {
       return Math.max(0, diffDays);
     },
 
+    // ✅ تحسين: حساب الأرباح دون كتابة في Firestore (يتم في settleAndReward فقط عند الحاجة)
     async distributeRewards(userId, vipData, transaction) {
       const now = new Date();
       const lastRewardAt = vipData.lastRewardAt?.toDate() || vipData.vipStart?.toDate() || now;
@@ -514,7 +517,6 @@ export default {
           const userSnap = await transaction.get(userDocRef);
           
           if (userSnap.exists()) {
-            // ✅ الإصلاح النهائي: استخدام Nullish Coalescing للحفاظ على الرصيد القديم
             const currentVipBalance = userSnap.data().vipBalance ?? userSnap.data().balance ?? 0;
             const newVipBalance = currentVipBalance + reward;
             transaction.update(userDocRef, { vipBalance: newVipBalance });
@@ -569,6 +571,7 @@ export default {
       }
     },
 
+    // ✅ تحسين: يتم استدعاؤها فقط عند الحاجة (عند بدء التشغيل أو عند انتهاء الدورة)
     async settleAndReward() {
       if (!this.userVip?.level) return;
       const user = auth.currentUser;
@@ -599,10 +602,9 @@ export default {
       }
     },
 
+    // ✅ تحسين: استخدام setInterval فقط للتحديث البصري، وتقليل عدد مرات استدعاء settleAndReward
     startTimer() {
       if (this.intervalId) clearInterval(this.intervalId);
-      
-      let lastDistributedCycle = null;
       
       const update = () => {
         if (!this.userVip || !this.userVip.level) return;
@@ -622,13 +624,15 @@ export default {
           }
         }
         
+        // ✅ التحقق من انتهاء الدورة مرة واحدة فقط عند الوصول إلى الصفر
         if (this.remainingMs <= 0) {
           const currentCycleKey = nextCycle.toISOString().split('T')[0];
           
-          if (lastDistributedCycle !== currentCycleKey) {
+          // ✅ منع التوزيع المتكرر في نفس الدورة
+          if (this.lastDistributedCycle !== currentCycleKey) {
+            this.lastDistributedCycle = currentCycleKey;
             console.log("توزيع الأرباح التلقائي - الدورة:", currentCycleKey);
             this.settleAndReward().then(() => {
-              lastDistributedCycle = currentCycleKey;
               const newNextCycle = this.getNextGlobalCycle(new Date());
               this.remainingMs = newNextCycle.getTime() - Date.now();
             }).catch(error => {
@@ -703,7 +707,6 @@ export default {
           
           const newDepositBalance = depositBalance - this.selectedPlan.price;
           
-          // ✅ الإصلاح النهائي: استخدام Nullish Coalescing للحفاظ على الرصيد القديم
           const currentVipBalance = userSnap.data().vipBalance ?? userSnap.data().balance ?? 0;
           const firstReward = this.selectedPlan.daily;
           const newVipBalance = currentVipBalance + firstReward;
@@ -775,7 +778,6 @@ export default {
     },
 
     goToShares() {
-      // ✅ التحقق من مستوى VIP 8
       if (!this.userVip || this.userVip.level < 8) {
         this.showError('🔒 يجب تفعيل مستوى VIP 8 للوصول إلى أسهم الشركة');
         return;
