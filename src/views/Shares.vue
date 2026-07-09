@@ -143,6 +143,20 @@
         </div>
       </div>
 
+      <!-- عرض الرصيد -->
+      <div class="balance-card" v-if="!loading">
+        <div class="balance-display">
+          <div class="balance-icon">💰</div>
+          <div class="balance-content">
+            <span class="balance-label">رصيدك المتاح</span>
+            <span class="balance-amount">{{ formatPrice(userBalance) }} USDT</span>
+          </div>
+          <button @click="refreshBalance" class="refresh-btn" title="تحديث الرصيد">
+            <i class="fas fa-sync-alt" :class="{ spinning: refreshing }"></i>
+          </button>
+        </div>
+      </div>
+
       <!-- Trade Buttons -->
       <div class="trade-buttons" v-if="!loading && stockData">
         <button 
@@ -202,14 +216,18 @@
               />
             </div>
 
-            <div class="total-calculation">
-              <span>المجموع:</span>
-              <span class="total-value">{{ formatPrice(tradeQuantity * stockData.currentPrice) }} USDT</span>
+            <div v-if="tradeType === 'buy' && tradeQuantity > 0" class="cost-info">
+              <span>💵 المبلغ المطلوب:</span>
+              <span class="cost-value" :class="{ 'insufficient': tradeQuantity * stockData.currentPrice > userBalance }">
+                {{ formatPrice(tradeQuantity * stockData.currentPrice) }} USDT
+              </span>
             </div>
 
             <div v-if="tradeType === 'buy'" class="balance-info">
-              <span>رصيدك:</span>
-              <span class="balance-value">{{ formatPrice(userBalance) }} USDT</span>
+              <span>💰 رصيدك المتاح:</span>
+              <span class="balance-value" :class="{ 'insufficient-balance': userBalance <= 0 }">
+                {{ formatPrice(userBalance) }} USDT
+              </span>
             </div>
 
             <div v-if="errorMessage" class="error-message">
@@ -244,7 +262,19 @@
 </template>
 
 <script>
-import { auth, db, serverTimestamp, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc } from "../firebase";
+import { auth, db } from "../firebase";
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  collection, 
+  addDoc,
+  serverTimestamp,
+  runTransaction,
+  onSnapshot
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default {
@@ -252,6 +282,7 @@ export default {
   data() {
     return {
       loading: true,
+      refreshing: false,
       processing: false,
       stockData: null,
       userShares: null,
@@ -266,7 +297,8 @@ export default {
       lastUpdateTime: '--',
       dailyChange: 0,
       stockReady: false,
-      simulationInterval: null
+      simulationInterval: null,
+      unsubscribeUser: null
     };
   },
 
@@ -322,6 +354,9 @@ export default {
     if (this.simulationInterval) {
       clearInterval(this.simulationInterval);
     }
+    if (this.unsubscribeUser) {
+      this.unsubscribeUser();
+    }
   },
 
   methods: {
@@ -332,7 +367,6 @@ export default {
           return;
         }
         
-        // ✅ بيانات محلية بالكامل
         this.stockData = {
           currentPrice: 650,
           previousPrice: 650,
@@ -348,11 +382,67 @@ export default {
         this.dailyChange = 0;
         this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
         this.stockReady = true;
-        this.loading = false;
         
         await this.loadUserData();
+        this.listenToUserBalance();
+        
+        this.loading = false;
         this.startPriceSimulation();
       });
+    },
+
+    listenToUserBalance() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      if (this.unsubscribeUser) {
+        this.unsubscribeUser();
+      }
+
+      const userRef = doc(db, "users", user.uid);
+      this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          // ✅ استخدام vipBalance (نفس رصيد صفحة الرئيسية)
+          this.userBalance = data.vipBalance || data.withdrawBalance || 0;
+          console.log("✅ تم تحديث الرصيد:", this.userBalance);
+        }
+      }, (error) => {
+        console.error("❌ خطأ في الاستماع لرصيد المستخدم:", error);
+      });
+    },
+
+    async loadUserData() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          // ✅ استخدام vipBalance (نفس رصيد صفحة الرئيسية)
+          this.userBalance = data.vipBalance || data.withdrawBalance || 0;
+          console.log("✅ تم تحميل الرصيد:", this.userBalance);
+        }
+
+        const sharesDoc = await getDoc(doc(db, "users", user.uid, "shares", "portfolio"));
+        if (sharesDoc.exists()) {
+          this.userShares = sharesDoc.data();
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    },
+
+    async refreshBalance() {
+      this.refreshing = true;
+      await this.loadUserData();
+      setTimeout(() => {
+        this.refreshing = false;
+      }, 500);
+      this.showNotificationMessage('success', `✅ تم تحديث الرصيد: ${this.formatPrice(this.userBalance)} USDT`);
     },
 
     startPriceSimulation() {
@@ -389,30 +479,14 @@ export default {
       }, 3000);
     },
 
-    async loadUserData() {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          this.userBalance = userDoc.data().balance || 0;
-        }
-
-        const sharesDoc = await getDoc(doc(db, "users", user.uid, "shares", "portfolio"));
-        if (sharesDoc.exists()) {
-          this.userShares = sharesDoc.data();
-        }
-      } catch (error) {
-        console.error("Error loading user data:", error);
-      }
-    },
-
-    openTradeModal(type) {
+    async openTradeModal(type) {
       if (!this.stockData || !this.stockReady) {
         this.showNotificationMessage('error', '❌ جاري تحميل بيانات السهم، يرجى الانتظار لحظة...');
         return;
       }
+      
+      await this.loadUserData();
+      
       this.tradeType = type;
       this.tradeQuantity = 1;
       this.errorMessage = '';
@@ -441,7 +515,7 @@ export default {
       if (this.tradeType === 'buy' && this.stockData) {
         const totalCost = this.tradeQuantity * this.stockData.currentPrice;
         if (totalCost > this.userBalance) {
-          this.errorMessage = 'رصيدك غير كافٍ لإتمام عملية الشراء';
+          this.errorMessage = `رصيدك غير كافٍ (المطلوب: ${this.formatPrice(totalCost)} USDT، المتاح: ${this.formatPrice(this.userBalance)} USDT)`;
           return;
         }
       }
@@ -466,124 +540,119 @@ export default {
         const userRef = doc(db, "users", user.uid);
         const sharesRef = doc(db, "users", user.uid, "shares", "portfolio");
         
-        const userDoc = await getDoc(userRef);
-        const sharesDoc = await getDoc(sharesRef);
-        
-        if (!userDoc.exists()) throw new Error("المستخدم غير موجود");
-        
-        const userData = userDoc.data();
-        const userBalance = userData.balance || 0;
-        
-        if (this.tradeType === 'buy') {
-          if (this.stockData.availableShares < quantity) {
-            throw new Error("الأسهم المتاحة غير كافية");
-          }
+        await runTransaction(db, async (transaction) => {
+          // ✅ قراءة جميع المستندات أولاً
+          const userDoc = await transaction.get(userRef);
+          if (!userDoc.exists()) throw new Error("المستخدم غير موجود");
           
-          if (userBalance < totalAmount) {
-            throw new Error("رصيدك غير كافٍ");
-          }
+          const sharesDoc = await transaction.get(sharesRef);
           
-          await updateDoc(userRef, {
-            balance: userBalance - totalAmount
-          });
+          const userData = userDoc.data();
+          // ✅ استخدام vipBalance (نفس رصيد صفحة الرئيسية)
+          const userBalance = userData.vipBalance || userData.withdrawBalance || 0;
           
-          this.stockData.availableShares -= quantity;
-          this.stockData.soldShares += quantity;
-          this.stockData.volume += totalAmount;
-          this.userBalance = userBalance - totalAmount;
+          console.log("💰 الرصيد من Firestore:", userBalance);
           
-          if (sharesDoc.exists()) {
+          if (this.tradeType === 'buy') {
+            if (this.stockData.availableShares < quantity) {
+              throw new Error("الأسهم المتاحة غير كافية");
+            }
+            
+            if (userBalance < totalAmount) {
+              throw new Error(`رصيدك غير كافٍ (المطلوب: ${this.formatPrice(totalAmount)} USDT، المتاح: ${this.formatPrice(userBalance)} USDT)`);
+            }
+            
+            // ✅ خصم من vipBalance (نفس رصيد صفحة الرئيسية)
+            transaction.update(userRef, {
+              vipBalance: userBalance - totalAmount
+            });
+            
+            this.userBalance = userBalance - totalAmount;
+            
+            if (sharesDoc.exists()) {
+              const currentShares = sharesDoc.data();
+              const newTotalShares = (currentShares.shares || 0) + quantity;
+              const newInvested = (currentShares.invested || 0) + totalAmount;
+              const newAvgPrice = newInvested / newTotalShares;
+              
+              transaction.update(sharesRef, {
+                shares: newTotalShares,
+                avgPrice: newAvgPrice,
+                invested: newInvested,
+                updatedAt: serverTimestamp()
+              });
+            } else {
+              transaction.set(sharesRef, {
+                shares: quantity,
+                avgPrice: price,
+                invested: totalAmount,
+                totalProfit: 0,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              });
+            }
+            
+          } else {
+            if (!sharesDoc.exists()) throw new Error("لا تمتلك أي أسهم");
+            
             const currentShares = sharesDoc.data();
-            const newTotalShares = (currentShares.shares || 0) + quantity;
-            const newInvested = (currentShares.invested || 0) + totalAmount;
-            const newAvgPrice = newInvested / newTotalShares;
+            const userSharesCount = currentShares.shares || 0;
             
-            await updateDoc(sharesRef, {
-              shares: newTotalShares,
-              avgPrice: newAvgPrice,
-              invested: newInvested,
-              updatedAt: serverTimestamp()
+            if (userSharesCount < quantity) {
+              throw new Error("لا تمتلك هذا العدد من الأسهم");
+            }
+            
+            const newShares = userSharesCount - quantity;
+            const sellRatio = quantity / userSharesCount;
+            const soldInvested = currentShares.invested * sellRatio;
+            const newInvested = currentShares.invested - soldInvested;
+            const profit = totalAmount - soldInvested;
+            
+            // ✅ إضافة إلى vipBalance (نفس رصيد صفحة الرئيسية)
+            transaction.update(userRef, {
+              vipBalance: userBalance + totalAmount
             });
             
-            this.userShares = {
-              shares: newTotalShares,
-              avgPrice: newAvgPrice,
-              invested: newInvested,
-              totalProfit: currentShares.totalProfit || 0
-            };
+            this.userBalance = userBalance + totalAmount;
+            
+            if (newShares > 0) {
+              transaction.update(sharesRef, {
+                shares: newShares,
+                invested: newInvested,
+                avgPrice: newInvested > 0 ? newInvested / newShares : 0,
+                totalProfit: (currentShares.totalProfit || 0) + profit,
+                updatedAt: serverTimestamp()
+              });
+            } else {
+              transaction.delete(sharesRef);
+            }
+          }
+          
+          // ✅ تحديث الأسهم المتاحة محلياً
+          if (this.tradeType === 'buy') {
+            this.stockData.availableShares -= quantity;
+            this.stockData.soldShares += quantity;
           } else {
-            await setDoc(sharesRef, {
-              shares: quantity,
-              avgPrice: price,
-              invested: totalAmount,
-              totalProfit: 0,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            });
-            
-            this.userShares = {
-              shares: quantity,
-              avgPrice: price,
-              invested: totalAmount,
-              totalProfit: 0
-            };
+            this.stockData.availableShares += quantity;
+            this.stockData.soldShares -= quantity;
           }
-          
-        } else {
-          if (!sharesDoc.exists()) throw new Error("لا تمتلك أي أسهم");
-          
-          const currentShares = sharesDoc.data();
-          const userSharesCount = currentShares.shares || 0;
-          
-          if (userSharesCount < quantity) {
-            throw new Error("لا تمتلك هذا العدد من الأسهم");
-          }
-          
-          const newShares = userSharesCount - quantity;
-          const sellRatio = quantity / userSharesCount;
-          const soldInvested = currentShares.invested * sellRatio;
-          const newInvested = currentShares.invested - soldInvested;
-          const profit = totalAmount - soldInvested;
-          
-          await updateDoc(userRef, {
-            balance: userBalance + totalAmount
-          });
-          
-          this.stockData.availableShares += quantity;
-          this.stockData.soldShares -= quantity;
           this.stockData.volume += totalAmount;
-          this.userBalance = userBalance + totalAmount;
           
-          if (newShares > 0) {
-            await updateDoc(sharesRef, {
-              shares: newShares,
-              invested: newInvested,
-              avgPrice: newInvested > 0 ? newInvested / newShares : 0,
-              totalProfit: (currentShares.totalProfit || 0) + profit,
-              updatedAt: serverTimestamp()
-            });
-            
-            this.userShares = {
-              shares: newShares,
-              avgPrice: newInvested > 0 ? newInvested / newShares : 0,
-              invested: newInvested,
-              totalProfit: (currentShares.totalProfit || 0) + profit
-            };
-          } else {
-            await deleteDoc(sharesRef);
-            this.userShares = null;
-          }
-        }
-        
-        await addDoc(collection(db, "transactions"), {
-          userId: user.uid,
-          type: this.tradeType === 'buy' ? 'stock_buy' : 'stock_sell',
-          amount: totalAmount,
-          quantity: quantity,
-          price: price,
-          createdAt: serverTimestamp(),
-          status: 'completed'
+          // ✅ تسجيل المعاملة
+          const transactionsRef = collection(db, "transactions");
+          const logRef = doc(transactionsRef);
+          transaction.set(logRef, {
+            userId: user.uid,
+            type: this.tradeType === 'buy' ? 'stock_buy' : 'stock_sell',
+            amount: totalAmount,
+            quantity: quantity,
+            price: price,
+            createdAt: serverTimestamp(),
+            status: 'completed'
+          });
         });
+        
+        await this.loadUserData();
         
         this.showNotificationMessage('success', this.tradeType === 'buy' 
           ? `✅ تم شراء ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`
@@ -1092,6 +1161,74 @@ export default {
   color: #ff4444;
 }
 
+.balance-card {
+  background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
+  border: 2px solid #fcd535;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 20px rgba(252, 213, 53, 0.15);
+}
+
+.balance-display {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.balance-icon {
+  font-size: 28px;
+  animation: pulse-icon 2s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.balance-content {
+  flex: 1;
+}
+
+.balance-label {
+  display: block;
+  font-size: 12px;
+  color: #848e9c;
+  font-weight: 600;
+}
+
+.balance-amount {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fcd535;
+  text-shadow: 0 0 20px rgba(252, 213, 53, 0.3);
+}
+
+.refresh-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(252, 213, 53, 0.3);
+  color: #fcd535;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+  background: rgba(252, 213, 53, 0.15);
+  border-color: #fcd535;
+  transform: rotate(45deg);
+}
+
+.refresh-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+
 .trade-buttons {
   display: flex;
   gap: 12px;
@@ -1271,37 +1408,47 @@ export default {
   box-shadow: 0 0 0 3px rgba(252, 213, 53, 0.1);
 }
 
-.total-calculation {
+.cost-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px;
-  background: rgba(252, 213, 53, 0.08);
-  border-radius: 12px;
-  margin-bottom: 14px;
-  font-size: 15px;
-  font-weight: 700;
+  padding: 10px 14px;
+  background: rgba(252, 213, 53, 0.06);
   border: 1px solid rgba(252, 213, 53, 0.15);
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 14px;
 }
 
-.total-value {
+.cost-value {
+  font-weight: 700;
   color: #fcd535;
-  font-size: 17px;
+}
+
+.cost-value.insufficient {
+  color: #ff4444;
 }
 
 .balance-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 14px;
+  background: rgba(252, 213, 53, 0.08);
+  border: 1px solid rgba(252, 213, 53, 0.2);
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 14px;
+  margin-bottom: 14px;
 }
 
 .balance-value {
   color: #fcd535;
   font-weight: 700;
+  font-size: 16px;
+}
+
+.balance-value.insufficient-balance {
+  color: #ff4444;
 }
 
 .error-message {
@@ -1460,6 +1607,10 @@ export default {
   
   .stat-item.full-width {
     grid-column: span 1;
+  }
+  
+  .balance-amount {
+    font-size: 18px;
   }
 }
 </style>
