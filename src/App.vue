@@ -431,7 +431,7 @@ export default {
           offerDescription2: 'عند انضمامك إلينا، ستحصل على فرصة لتصبح مشرفاً على فريقك الخاص، حيث يمكنك إدارة فريقك وتنميته من خلال دعوة أعضاء جدد عبر رابط الإحالة الخاص بك.',
           monthlyRewardsTable: 'جدول المكافآت الشهرية', numberOfPeople: 'عدد الأشخاص', salaryValue: 'قيمة الراتب',
           monthlyRewards: 'مكافآت شهرية مجزية', flexibleSystem: 'نظام عمل مرن', growthOpportunities: 'فرص نمو مستمرة',
-          importantNote: 'ملاحظة مهمة', vip2Required: 'يجب على كل عضو ينضم إلى فريقك شراء مستوى VIP 2 حتى يتم احتسابه ضمن أعضاء فريقك في نظام المكافآت.',
+          importantNote: 'ملاحظة مهمة', vip2Required: 'يجب على كل عضو ينضم إلى فريقك شراء مستوى VIP 3 حتى يتم احتسابه ضمن أعضاء فريقك في نظام المكافآت.',
           understoodThanks: 'فهمت وشكراً', aboutCompany: 'عن الشركة',
           globalPartnerships: 'شراكات عالمية مع Amazon, eBay, TikTok, Aliexpress, Alibaba, Shopee',
           membershipPlans: 'خطط العضوية والأرباح', subscription: 'الاشتراك', dailyProfit: 'الربح اليومي',
