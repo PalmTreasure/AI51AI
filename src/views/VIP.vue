@@ -104,7 +104,7 @@
         <div class="vip-list">
           <div
             class="vip-card-item"
-            v-for="plan in paginatedPlans"
+            v-for="plan in filteredPlans"
             :key="plan.level"
             :class="{ 
               'is-active': userVip && userVip.level === plan.level,
@@ -192,17 +192,6 @@
               نشط الآن
             </div>
           </div>
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination" v-if="filteredPlans.length > itemsPerPage">
-          <button @click="currentPage--" :disabled="currentPage === 1" class="page-btn">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-          <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-          <button @click="currentPage++" :disabled="currentPage === totalPages" class="page-btn">
-            <i class="fas fa-chevron-left"></i>
-          </button>
         </div>
 
         <!-- شارة النخبة في الأسفل -->
@@ -331,8 +320,6 @@ export default {
       showNotification: false,
       notificationMessage: '',
       filterLevel: 'all',
-      itemsPerPage: 6,
-      currentPage: 1,
       showConfirmModal: false,
       selectedPlan: null,
       // ✅ منع التوزيع المتكرر في نفس الدورة
@@ -381,26 +368,10 @@ export default {
       return this.plans;
     },
 
-    paginatedPlans() {
-      const start = (this.currentPage - 1) * this.itemsPerPage;
-      const end = start + this.itemsPerPage;
-      return this.filteredPlans.slice(start, end);
-    },
-
-    totalPages() {
-      return Math.ceil(this.filteredPlans.length / this.itemsPerPage);
-    },
-
     canUpgrade() {
       if (!this.userVip) return false;
       const nextLevel = this.userVip.level + 1;
       return this.plans.some(p => p.level === nextLevel);
-    }
-  },
-
-  watch: {
-    filterLevel() {
-      this.currentPage = 1;
     }
   },
 
@@ -1253,42 +1224,6 @@ export default {
 }
 .active-ribbon.basic {
   background: rgba(252, 213, 53, 0.8);
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin-top: 20px;
-  padding: 15px;
-}
-
-.page-btn {
-  background: #1e2329;
-  border: 1px solid rgba(252, 213, 53, 0.3);
-  color: #fcd535;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: #fcd535;
-  color: #0b0e11;
-  border-color: #fcd535;
-}
-
-.page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.page-info {
-  color: #fcd535;
-  font-weight: 700;
 }
 
 /* شارة النخبة في الأسفل */
