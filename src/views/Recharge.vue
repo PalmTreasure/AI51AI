@@ -24,6 +24,7 @@
         <div class="balance-info">
           <span class="label">الرصيد الحالي</span>
           <span class="value">{{ userBalance.toFixed(2) }} USDT</span>
+          <span class="user-identifier">{{ userIdentifier }}</span>
         </div>
       </div>
 
@@ -184,15 +185,26 @@ export default {
       message: "",
       messageType: "info",
       addresses: {
-        TRC20: "TLTLkfQFYcmwtYQW7T58pBkFTDPjUuvgAg",
-        ERC20: "0x73036029C6eE099674E6052533d1Fe207Eb6dcD8",
-        BEP20: "0x73036029C6eE099674E6052533d1Fe207Eb6dcD8",
-        SOL: "8jfBQWgGqSvSVTgkhoGQ22SMc7BwrAWJkQqN8WZXY7Qx",
+        TRC20: "TJKb61v5XW4kTRzRTzDYZm42H1UXQ9BpQy",
+        ERC20: "0x5B9Bc2f3cF994a4ffD74F8BbDE9160Eb131f124A",
+        BEP20: "0x5B9Bc2f3cF994a4ffD74F8BbDE9160Eb131f124A",
+        SOL: "7GfbAVrSfjBGbDSd74aGciVPUNbtuqduhg7NpztkEhw3",
       },
       userEmail: "",
       userId: "",
       userBalance: 0,
+      userPhone: "",
     };
+  },
+  computed: {
+    userIdentifier() {
+      if (this.userPhone) {
+        return this.userPhone;
+      } else if (this.userEmail) {
+        return this.userEmail;
+      }
+      return "";
+    }
   },
   mounted() {
     this.initializeUser();
@@ -219,6 +231,11 @@ export default {
           
           // عرض مجموع الرصيدين
           this.userBalance = vipBalance + depositBalance;
+
+          // قراءة رقم الهاتف
+          if (data.phone) {
+            this.userPhone = data.phone;
+          }
         }
       } catch (error) {
         console.error("Error fetching balance:", error);
@@ -426,6 +443,15 @@ export default {
   font-weight: 700;
   color: #fcd535;
   font-size: 14px;
+}
+
+.user-identifier {
+  display: block;
+  font-size: 10px;
+  color: #848e9c;
+  margin-top: 2px;
+  direction: ltr;
+  text-align: left;
 }
 
 /* Dropdown - مسافات أقل */
