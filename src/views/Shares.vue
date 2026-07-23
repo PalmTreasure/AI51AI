@@ -297,7 +297,6 @@ export default {
       lastUpdateTime: '--',
       dailyChange: 0,
       stockReady: false,
-      simulationInterval: null,
       unsubscribeUser: null
     };
   },
@@ -351,9 +350,6 @@ export default {
   },
 
   beforeUnmount() {
-    if (this.simulationInterval) {
-      clearInterval(this.simulationInterval);
-    }
     if (this.unsubscribeUser) {
       this.unsubscribeUser();
     }
@@ -387,7 +383,6 @@ export default {
         this.listenToUserBalance();
         
         this.loading = false;
-        this.startPriceSimulation();
       });
     },
 
@@ -403,7 +398,6 @@ export default {
       this.unsubscribeUser = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // ✅ استخدام vipBalance (نفس رصيد صفحة الرئيسية)
           this.userBalance = data.vipBalance || data.withdrawBalance || 0;
           console.log("✅ تم تحديث الرصيد:", this.userBalance);
         }
@@ -422,7 +416,6 @@ export default {
         
         if (userDoc.exists()) {
           const data = userDoc.data();
-          // ✅ استخدام vipBalance (نفس رصيد صفحة الرئيسية)
           this.userBalance = data.vipBalance || data.withdrawBalance || 0;
           console.log("✅ تم تحميل الرصيد:", this.userBalance);
         }
@@ -445,38 +438,17 @@ export default {
       this.showNotificationMessage('success', `✅ تم تحديث الرصيد: ${this.formatPrice(this.userBalance)} USDT`);
     },
 
-    startPriceSimulation() {
-      this.simulationInterval = setInterval(() => {
-        if (!this.stockData || !this.stockReady) return;
-        
-        const currentPrice = this.stockData.currentPrice;
-        const minPrice = 500;
-        const maxPrice = 850;
-        
-        const change = (Math.random() * 40) - 20;
-        let newPrice = currentPrice + change;
-        
-        if (newPrice > maxPrice) {
-          newPrice = maxPrice - (Math.random() * 30);
-        }
-        if (newPrice < minPrice) {
-          newPrice = minPrice + (Math.random() * 30);
-        }
-        
-        newPrice = Math.max(minPrice, Math.min(maxPrice, newPrice));
-        
-        this.stockData.previousPrice = currentPrice;
-        this.stockData.currentPrice = newPrice;
-        this.stockData.highPrice = Math.min(Math.max(this.stockData.highPrice, newPrice), 850);
-        this.stockData.lowPrice = Math.max(Math.min(this.stockData.lowPrice, newPrice), 0.10);
-        
-        const volumeIncrease = Math.floor(Math.random() * 50000) + 10000;
-        this.stockData.volume += volumeIncrease;
-        
-        this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
-        this.dailyChange = newPrice - this.stockData.openingPrice;
-        
-      }, 3000);
+    // دالة لحساب السعر الجديد بعد الشراء (ينخفض بنسبة 0.5%)
+    calculateNewPriceAfterBuy(currentPrice) {
+      const minPrice = 0.10;
+      const decreaseAmount = currentPrice * 0.005;
+      let newPrice = currentPrice - decreaseAmount;
+      
+      if (newPrice < minPrice) {
+        newPrice = minPrice;
+      }
+      
+      return newPrice;
     },
 
     async openTradeModal(type) {
@@ -541,14 +513,12 @@ export default {
         const sharesRef = doc(db, "users", user.uid, "shares", "portfolio");
         
         await runTransaction(db, async (transaction) => {
-          // ✅ قراءة جميع المستندات أولاً
           const userDoc = await transaction.get(userRef);
           if (!userDoc.exists()) throw new Error("المستخدم غير موجود");
           
           const sharesDoc = await transaction.get(sharesRef);
           
           const userData = userDoc.data();
-          // ✅ استخدام vipBalance (نفس رصيد صفحة الرئيسية)
           const userBalance = userData.vipBalance || userData.withdrawBalance || 0;
           
           console.log("💰 الرصيد من Firestore:", userBalance);
@@ -562,7 +532,21 @@ export default {
               throw new Error(`رصيدك غير كافٍ (المطلوب: ${this.formatPrice(totalAmount)} USDT، المتاح: ${this.formatPrice(userBalance)} USDT)`);
             }
             
-            // ✅ خصم من vipBalance (نفس رصيد صفحة الرئيسية)
+            // حساب السعر الجديد (ينخفض)
+            const newPrice = this.calculateNewPriceAfterBuy(price);
+            
+            // تحديث السعر محلياً فقط
+            this.stockData.previousPrice = price;
+            this.stockData.currentPrice = newPrice;
+            this.stockData.highPrice = Math.max(this.stockData.highPrice, newPrice);
+            this.stockData.lowPrice = Math.min(this.stockData.lowPrice, newPrice);
+            this.stockData.availableShares -= quantity;
+            this.stockData.soldShares += quantity;
+            this.stockData.volume += totalAmount;
+            this.dailyChange = newPrice - this.stockData.openingPrice;
+            this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
+            
+            // خصم من رصيد المستخدم
             transaction.update(userRef, {
               vipBalance: userBalance - totalAmount
             });
@@ -593,6 +577,7 @@ export default {
             }
             
           } else {
+            // عملية بيع - لا تؤثر على سعر السهم
             if (!sharesDoc.exists()) throw new Error("لا تمتلك أي أسهم");
             
             const currentShares = sharesDoc.data();
@@ -608,7 +593,13 @@ export default {
             const newInvested = currentShares.invested - soldInvested;
             const profit = totalAmount - soldInvested;
             
-            // ✅ إضافة إلى vipBalance (نفس رصيد صفحة الرئيسية)
+            // تحديث الأسهم المتاحة محلياً فقط (السعر لا يتغير)
+            this.stockData.availableShares += quantity;
+            this.stockData.soldShares -= quantity;
+            this.stockData.volume += totalAmount;
+            this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
+            
+            // إضافة إلى رصيد المستخدم
             transaction.update(userRef, {
               vipBalance: userBalance + totalAmount
             });
@@ -628,17 +619,7 @@ export default {
             }
           }
           
-          // ✅ تحديث الأسهم المتاحة محلياً
-          if (this.tradeType === 'buy') {
-            this.stockData.availableShares -= quantity;
-            this.stockData.soldShares += quantity;
-          } else {
-            this.stockData.availableShares += quantity;
-            this.stockData.soldShares -= quantity;
-          }
-          this.stockData.volume += totalAmount;
-          
-          // ✅ تسجيل المعاملة
+          // تسجيل المعاملة
           const transactionsRef = collection(db, "transactions");
           const logRef = doc(transactionsRef);
           transaction.set(logRef, {
@@ -647,6 +628,7 @@ export default {
             amount: totalAmount,
             quantity: quantity,
             price: price,
+            newPrice: this.tradeType === 'buy' ? this.stockData.currentPrice : null,
             createdAt: serverTimestamp(),
             status: 'completed'
           });
@@ -655,7 +637,7 @@ export default {
         await this.loadUserData();
         
         this.showNotificationMessage('success', this.tradeType === 'buy' 
-          ? `✅ تم شراء ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`
+          ? `✅ تم شراء ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT\n📉 السعر الجديد: ${this.formatPrice(this.stockData.currentPrice)} USDT`
           : `✅ تم بيع ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`);
         
         this.closeTradeModal();
