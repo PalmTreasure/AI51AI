@@ -297,7 +297,16 @@ export default {
       lastUpdateTime: '--',
       dailyChange: 0,
       stockReady: false,
-      unsubscribeUser: null
+      unsubscribeUser: null,
+      
+      // ===== متغيرات نظام السعر الجديد =====
+      priceInterval: null,
+      hasShareholders: false,      // هل يوجد مالكين للأسهم؟
+      minimumPrice: 0.10,          // الحد الأدنى للسعر
+      declineSpeed: 0.0005,        // سرعة الانخفاض (0.05% لكل تحديث)
+      naturalVolatility: 0.008,    // تقلب السعر الطبيعي (0.8%)
+      priceUpdateInterval: 5000,   // مدة التحديث (5 ثواني)
+      // =====================================
     };
   },
 
@@ -353,6 +362,9 @@ export default {
     if (this.unsubscribeUser) {
       this.unsubscribeUser();
     }
+    if (this.priceInterval) {
+      clearInterval(this.priceInterval);
+    }
   },
 
   methods: {
@@ -382,9 +394,106 @@ export default {
         await this.loadUserData();
         this.listenToUserBalance();
         
+        // بدء تحديث السعر التلقائي
+        this.startPriceUpdates();
+        
         this.loading = false;
       });
     },
+
+    // ================================================================
+    // ===== نظام تحريك السعر الجديد (تم تعديله فقط هنا) =====
+    // ================================================================
+
+    startPriceUpdates() {
+      if (this.priceInterval) {
+        clearInterval(this.priceInterval);
+      }
+      
+      this.priceInterval = setInterval(() => {
+        this.updateStockPrice();
+      }, this.priceUpdateInterval);
+    },
+
+    updateStockPrice() {
+      if (!this.stockData) return;
+      
+      // حفظ السعر السابق
+      this.stockData.previousPrice = this.stockData.currentPrice;
+      
+      // التحقق من وجود مالكين (بناءً على أسهم المستخدم الحالي)
+      // في حالة وجود مالك واحد على الأقل (المستخدم الحالي أو غيره)
+      // سيتم التحديث بناءً على هذا الشرط
+      const hasShareholders = this.userShares && this.userShares.shares > 0;
+      
+      if (hasShareholders) {
+        // === وضع الانخفاض التدريجي (لا يرتفع أبداً) ===
+        this.updatePriceDeclining();
+      } else {
+        // === وضع الحركة الطبيعية (صعود وهبوط) ===
+        this.updatePriceNatural();
+      }
+      
+      // تحديث أعلى وأدنى سعر
+      if (this.stockData.currentPrice > this.stockData.highPrice) {
+        this.stockData.highPrice = this.stockData.currentPrice;
+      }
+      if (this.stockData.currentPrice < this.stockData.lowPrice) {
+        this.stockData.lowPrice = this.stockData.currentPrice;
+      }
+      
+      // تحديث وقت آخر تحديث
+      this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
+      
+      // تحديث التغير اليومي
+      this.dailyChange = this.stockData.currentPrice - this.stockData.openingPrice;
+    },
+
+    // دالة الانخفاض التدريجي (تنزل فقط حتى الحد الأدنى)
+    updatePriceDeclining() {
+      const currentPrice = this.stockData.currentPrice;
+      const targetPrice = this.minimumPrice;
+      
+      // إذا كان السعر عند الحد الأدنى أو أقل، يبقى ثابت
+      if (currentPrice <= targetPrice) {
+        this.stockData.currentPrice = targetPrice;
+        return;
+      }
+      
+      // حساب مقدار الانخفاض
+      let declineAmount = currentPrice * this.declineSpeed;
+      
+      // التأكد من عدم النزول تحت الحد الأدنى
+      if (currentPrice - declineAmount < targetPrice) {
+        this.stockData.currentPrice = targetPrice;
+      } else {
+        this.stockData.currentPrice = Math.round((currentPrice - declineAmount) * 100) / 100;
+      }
+    },
+
+    // دالة الحركة الطبيعية (صعود وهبوط عشوائي)
+    updatePriceNatural() {
+      const currentPrice = this.stockData.currentPrice;
+      
+      // تغير عشوائي بين -0.8% و +0.8%
+      const randomChange = (Math.random() * 2 - 1) * this.naturalVolatility;
+      let newPrice = currentPrice * (1 + randomChange);
+      
+      // التأكد من عدم النزول تحت الحد الأدنى
+      if (newPrice < this.minimumPrice) {
+        newPrice = this.minimumPrice;
+      }
+      
+      // منع الارتفاع المفاجئ الكبير (حماية)
+      if (newPrice > currentPrice * 1.05) {
+        newPrice = currentPrice * 1.05;
+      }
+      
+      this.stockData.currentPrice = Math.round(newPrice * 100) / 100;
+    },
+
+    // ===== نهاية نظام تحريك السعر =====
+    // ================================================================
 
     listenToUserBalance() {
       const user = auth.currentUser;
@@ -423,6 +532,8 @@ export default {
         const sharesDoc = await getDoc(doc(db, "users", user.uid, "shares", "portfolio"));
         if (sharesDoc.exists()) {
           this.userShares = sharesDoc.data();
+        } else {
+          this.userShares = null;
         }
       } catch (error) {
         console.error("Error loading user data:", error);
@@ -436,19 +547,6 @@ export default {
         this.refreshing = false;
       }, 500);
       this.showNotificationMessage('success', `✅ تم تحديث الرصيد: ${this.formatPrice(this.userBalance)} USDT`);
-    },
-
-    // دالة لحساب السعر الجديد بعد الشراء (ينخفض بنسبة 0.5%)
-    calculateNewPriceAfterBuy(currentPrice) {
-      const minPrice = 0.10;
-      const decreaseAmount = currentPrice * 0.005;
-      let newPrice = currentPrice - decreaseAmount;
-      
-      if (newPrice < minPrice) {
-        newPrice = minPrice;
-      }
-      
-      return newPrice;
     },
 
     async openTradeModal(type) {
@@ -532,18 +630,13 @@ export default {
               throw new Error(`رصيدك غير كافٍ (المطلوب: ${this.formatPrice(totalAmount)} USDT، المتاح: ${this.formatPrice(userBalance)} USDT)`);
             }
             
-            // حساب السعر الجديد (ينخفض)
-            const newPrice = this.calculateNewPriceAfterBuy(price);
+            // ✅ تم التعديل: لا يتم تغيير السعر عند الشراء،
+            // السعر سيتغير تدريجياً عن طريق نظام التحديث التلقائي
             
-            // تحديث السعر محلياً فقط
-            this.stockData.previousPrice = price;
-            this.stockData.currentPrice = newPrice;
-            this.stockData.highPrice = Math.max(this.stockData.highPrice, newPrice);
-            this.stockData.lowPrice = Math.min(this.stockData.lowPrice, newPrice);
+            // تحديث الأسهم فقط
             this.stockData.availableShares -= quantity;
             this.stockData.soldShares += quantity;
             this.stockData.volume += totalAmount;
-            this.dailyChange = newPrice - this.stockData.openingPrice;
             this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
             
             // خصم من رصيد المستخدم
@@ -577,7 +670,7 @@ export default {
             }
             
           } else {
-            // عملية بيع - لا تؤثر على سعر السهم
+            // عملية بيع
             if (!sharesDoc.exists()) throw new Error("لا تمتلك أي أسهم");
             
             const currentShares = sharesDoc.data();
@@ -593,7 +686,9 @@ export default {
             const newInvested = currentShares.invested - soldInvested;
             const profit = totalAmount - soldInvested;
             
-            // تحديث الأسهم المتاحة محلياً فقط (السعر لا يتغير)
+            // ✅ تم التعديل: لا يتم تغيير السعر عند البيع
+            // السعر سيتغير حسب نظام التحديث التلقائي
+            
             this.stockData.availableShares += quantity;
             this.stockData.soldShares -= quantity;
             this.stockData.volume += totalAmount;
@@ -628,7 +723,6 @@ export default {
             amount: totalAmount,
             quantity: quantity,
             price: price,
-            newPrice: this.tradeType === 'buy' ? this.stockData.currentPrice : null,
             createdAt: serverTimestamp(),
             status: 'completed'
           });
@@ -637,7 +731,7 @@ export default {
         await this.loadUserData();
         
         this.showNotificationMessage('success', this.tradeType === 'buy' 
-          ? `✅ تم شراء ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT\n📉 السعر الجديد: ${this.formatPrice(this.stockData.currentPrice)} USDT`
+          ? `✅ تم شراء ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`
           : `✅ تم بيع ${quantity} سهم بنجاح بقيمة ${this.formatPrice(totalAmount)} USDT`);
         
         this.closeTradeModal();
