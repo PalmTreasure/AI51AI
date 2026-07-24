@@ -52,228 +52,316 @@
         <p>يجب أن يكون لديك اشتراك VIP للسحب</p>
       </div>
 
-      <!-- مبلغ السحب -->
-      <div class="input-group">
-        <label>
-          <i class="fas fa-coins"></i>
-          المبلغ
-        </label>
-        <div class="amount-input-wrapper">
-          <input 
-            type="number" 
-            v-model.number="amount" 
-            placeholder="0.00" 
-            class="gold-input"
-            @input="validateAmount"
-            autocomplete="off"
-            name="amount_field_x"
-          />
-          <span class="input-currency-badge">USDT</span>
+      <!-- ============================================================ -->
+      <!-- قسم المهمة الإلزامية (تظهر بدلاً من نموذج السحب إذا لم تكتمل) -->
+      <!-- ============================================================ -->
+      <div v-if="!isWithdrawAllowed && userVipLevel">
+        <div class="task-card">
+          <div class="task-header">
+            <i class="fas fa-lock task-lock-icon"></i>
+            <div>
+              <h3 class="task-title">🔒 إكمال مهمة السحب</h3>
+              <p class="task-subtitle">لفتح السحب يجب إكمال المهمة التالية</p>
+            </div>
+          </div>
+
+          <div class="task-body">
+            <div class="task-requirement">
+              <div class="task-icon-wrapper">
+                <i class="fas fa-user-plus"></i>
+              </div>
+              <div class="task-description">
+                <p class="task-desc-text">دعوة عضو جديد واحد</p>
+                <p class="task-desc-sub">يجب أن يقوم العضو بتفعيل VIP {{ requiredVipLevel }} أو أعلى</p>
+              </div>
+            </div>
+
+            <div class="task-progress">
+              <div class="task-progress-info">
+                <span class="task-progress-label">المطلوب</span>
+                <span class="task-progress-value">1</span>
+              </div>
+              <div class="task-progress-info">
+                <span class="task-progress-label">المكتمل</span>
+                <span class="task-progress-value" :class="{ 'completed': taskCompletedCount >= 1 }">
+                  {{ taskCompletedCount }}/1
+                </span>
+              </div>
+            </div>
+
+            <div class="task-progress-bar">
+              <div class="task-progress-track">
+                <div 
+                  class="task-progress-fill" 
+                  :style="{ width: Math.min((taskCompletedCount / 1) * 100, 100) + '%' }"
+                ></div>
+              </div>
+              <span class="task-progress-percent">{{ Math.min((taskCompletedCount / 1) * 100, 100) }}%</span>
+            </div>
+          </div>
+
+          <button 
+            class="task-confirm-btn" 
+            @click="checkTaskCompletion"
+            :disabled="taskLoading"
+          >
+            <i class="fas fa-check-circle" v-if="!taskLoading"></i>
+            <i class="fas fa-spinner fa-spin" v-else></i>
+            {{ taskLoading ? 'جاري التحقق...' : '✅ تأكيد المهام' }}
+          </button>
+
+          <div v-if="taskMessage" class="task-message" :class="taskMessageType">
+            <i :class="taskMessageType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
+            {{ taskMessage }}
+          </div>
         </div>
-        <span v-if="amountError" class="input-error">{{ amountError }}</span>
       </div>
 
-      <!-- الشبكة -->
-      <div class="input-group">
-        <label>
-          <i class="fas fa-network-wired"></i>
-          الشبكة
-        </label>
-        <div class="custom-dropdown-wrapper">
-          <div class="custom-dropdown">
-            <div class="dropdown-trigger" @click="toggleNetworkDropdown">
-              <div v-if="network" class="selected-network">
-                <img :src="getNetworkIcon(network)" :alt="network" class="dropdown-icon">
-                <span>{{ getNetworkLabel(network) }}</span>
-              </div>
-              <div v-else class="placeholder">اختر الشبكة</div>
-              <i class="fas fa-chevron-down" :class="{ 'rotate': showNetworkDropdown }"></i>
-            </div>
-            <div v-if="showNetworkDropdown" class="dropdown-menu">
-              <div 
-                v-for="net in networks" 
-                :key="net.value"
-                class="dropdown-item"
-                :class="{ 'active': network === net.value }"
-                @click="selectNetwork(net.value)"
-              >
-                <img :src="getNetworkIcon(net.value)" :alt="net.value" class="dropdown-item-icon">
-                <div class="dropdown-item-content">
-                  <div class="dropdown-item-name">{{ net.label }}</div>
-                  <div class="dropdown-item-symbol">{{ net.value }}</div>
+      <!-- ============================================================ -->
+      <!-- نموذج السحب (يظهر فقط عند اكتمال المهمة) -->
+      <!-- ============================================================ -->
+      <div v-if="isWithdrawAllowed && userVipLevel">
+        <!-- مبلغ السحب -->
+        <div class="input-group">
+          <label>
+            <i class="fas fa-coins"></i>
+            المبلغ
+          </label>
+          <div class="amount-input-wrapper">
+            <input 
+              type="number" 
+              v-model.number="amount" 
+              placeholder="0.00" 
+              class="gold-input"
+              @input="validateAmount"
+              autocomplete="off"
+              name="amount_field_x"
+            />
+            <span class="input-currency-badge">USDT</span>
+          </div>
+          <span v-if="amountError" class="input-error">{{ amountError }}</span>
+        </div>
+
+        <!-- الشبكة -->
+        <div class="input-group">
+          <label>
+            <i class="fas fa-network-wired"></i>
+            الشبكة
+          </label>
+          <div class="custom-dropdown-wrapper">
+            <div class="custom-dropdown">
+              <div class="dropdown-trigger" @click="toggleNetworkDropdown">
+                <div v-if="network" class="selected-network">
+                  <img :src="getNetworkIcon(network)" :alt="network" class="dropdown-icon">
+                  <span>{{ getNetworkLabel(network) }}</span>
                 </div>
-                <i v-if="network === net.value" class="fas fa-check"></i>
+                <div v-else class="placeholder">اختر الشبكة</div>
+                <i class="fas fa-chevron-down" :class="{ 'rotate': showNetworkDropdown }"></i>
+              </div>
+              <div v-if="showNetworkDropdown" class="dropdown-menu">
+                <div 
+                  v-for="net in networks" 
+                  :key="net.value"
+                  class="dropdown-item"
+                  :class="{ 'active': network === net.value }"
+                  @click="selectNetwork(net.value)"
+                >
+                  <img :src="getNetworkIcon(net.value)" :alt="net.value" class="dropdown-item-icon">
+                  <div class="dropdown-item-content">
+                    <div class="dropdown-item-name">{{ net.label }}</div>
+                    <div class="dropdown-item-symbol">{{ net.value }}</div>
+                  </div>
+                  <i v-if="network === net.value" class="fas fa-check"></i>
+                </div>
               </div>
             </div>
           </div>
+          <span v-if="networkError" class="input-error">{{ networkError }}</span>
         </div>
-        <span v-if="networkError" class="input-error">{{ networkError }}</span>
-      </div>
 
-      <!-- حاجز فاصل بين قسم المحفظة وقسم كلمة المرور -->
-      <div class="fields-separator"></div>
+        <!-- حاجز فاصل بين قسم المحفظة وقسم كلمة المرور -->
+        <div class="fields-separator"></div>
 
-      <!-- عنوان المحفظة - قسم مستقل -->
-      <div class="isolated-section">
-        <!-- حقول وهمية خاصة بقسم المحفظة -->
-        <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="off" name="w_fake_1" tabindex="-1">
-        <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="new-password" name="w_fake_2" tabindex="-1">
-        
-        <div class="input-group wallet-section">
-          <label>
-            <i class="fas fa-qrcode"></i>
-            عنوان المحفظة
-          </label>
-          <div class="wallet-input-wrapper">
-            <input 
-              ref="walletInput"
-              type="text" 
-              v-model="wallet" 
-              placeholder="أدخل عنوان محفظتك USDT" 
-              class="gold-input"
-              @input="validateWallet"
-              autocomplete="off"
-              name="wallet_address_field"
-              spellcheck="false"
-              data-lpignore="true"
-              data-form-type="other"
-              data-browser-autofill="off"
-            />
-          </div>
-          <span v-if="walletError" class="input-error">{{ walletError }}</span>
-        </div>
-      </div>
-
-      <!-- حاجز فاصل بين قسم المحفظة وقسم كلمة المرور -->
-      <div class="fields-separator"></div>
-
-      <!-- كلمة المرور - قسم مستقل -->
-      <div class="isolated-section">
-        <!-- حقول وهمية خاصة بقسم كلمة المرور -->
-        <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="username" name="p_fake_1" tabindex="-1">
-        <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="current-password" name="p_fake_2" tabindex="-1">
-        
-        <div class="input-group password-section">
-          <label>
-            <i class="fas fa-lock"></i>
-            كلمة المرور
-          </label>
-          <div class="password-input-wrapper">
-            <input 
-              ref="passwordInput"
-              :type="showPassword ? 'text' : 'password'" 
-              v-model="password" 
-              placeholder="أدخل كلمة المرور" 
-              class="gold-input"
-              autocomplete="off"
-              name="password_field_y"
-              spellcheck="false"
-              data-lpignore="true"
-              data-form-type="other"
-              data-browser-autofill="off"
-            />
-            <button type="button" class="toggle-password-btn" @click="showPassword = !showPassword" tabindex="-1">
-              <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-            </button>
+        <!-- عنوان المحفظة - قسم مستقل -->
+        <div class="isolated-section">
+          <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="off" name="w_fake_1" tabindex="-1">
+          <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="new-password" name="w_fake_2" tabindex="-1">
+          
+          <div class="input-group wallet-section">
+            <label>
+              <i class="fas fa-qrcode"></i>
+              عنوان المحفظة
+            </label>
+            <div class="wallet-input-wrapper">
+              <input 
+                ref="walletInput"
+                type="text" 
+                v-model="wallet" 
+                placeholder="أدخل عنوان محفظتك USDT" 
+                class="gold-input"
+                @input="validateWallet"
+                autocomplete="off"
+                name="wallet_address_field"
+                spellcheck="false"
+                data-lpignore="true"
+                data-form-type="other"
+                data-browser-autofill="off"
+              />
+            </div>
+            <span v-if="walletError" class="input-error">{{ walletError }}</span>
           </div>
         </div>
+
+        <!-- حاجز فاصل بين قسم المحفظة وقسم كلمة المرور -->
+        <div class="fields-separator"></div>
+
+        <!-- كلمة المرور - قسم مستقل -->
+        <div class="isolated-section">
+          <input type="text" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="username" name="p_fake_1" tabindex="-1">
+          <input type="password" style="display:none!important;position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;" autocomplete="current-password" name="p_fake_2" tabindex="-1">
+          
+          <div class="input-group password-section">
+            <label>
+              <i class="fas fa-lock"></i>
+              كلمة المرور
+            </label>
+            <div class="password-input-wrapper">
+              <input 
+                ref="passwordInput"
+                :type="showPassword ? 'text' : 'password'" 
+                v-model="password" 
+                placeholder="أدخل كلمة المرور" 
+                class="gold-input"
+                autocomplete="off"
+                name="password_field_y"
+                spellcheck="false"
+                data-lpignore="true"
+                data-form-type="other"
+                data-browser-autofill="off"
+              />
+              <button type="button" class="toggle-password-btn" @click="showPassword = !showPassword" tabindex="-1">
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ملخص الطلب -->
+        <div v-if="showSummary" class="summary-box">
+          <h3>📋 ملخص طلب السحب</h3>
+          
+          <div class="summary-item">
+            <span>معلومات الاتصال:</span>
+            <span class="summary-value">{{ userContact }}</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>مستوى VIP:</span>
+            <span class="summary-value">{{ userVipLevel || 'لا يوجد' }}</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>المبلغ المطلوب:</span>
+            <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>الرسوم (5%):</span>
+            <span class="summary-value fee">-{{ fee.toFixed(2) }} USDT</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>المبلغ الصافي:</span>
+            <span class="summary-value net">{{ netAmount.toFixed(2) }} USDT</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>الشبكة:</span>
+            <span class="summary-value">{{ network }}</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>عنوان المحفظة:</span>
+            <span class="summary-value address">{{ wallet.substring(0, 10) }}...{{ wallet.substring(wallet.length - 10) }}</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>يوم السحب:</span>
+            <span class="summary-value">{{ isVIP8OrAbove ? 'أي يوم' : withdrawDay }}</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>الحد الأدنى:</span>
+            <span class="summary-value">{{ isVIP8OrAbove ? 'بدون حد أدنى' : minWithdrawAmount + ' USDT' }}</span>
+          </div>
+          
+          <div class="summary-item total">
+            <span>سيتم خصم من رصيد VIP:</span>
+            <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
+          </div>
+          
+          <div class="summary-item">
+            <span>رصيد VIP بعد السحب:</span>
+            <span class="summary-value">{{ (vipBalance - Number(amount)).toFixed(2) }} USDT</span>
+          </div>
+        </div>
+
+        <!-- تحذيرات -->
+        <div class="warning-box">
+          <i class="fas fa-shield-alt"></i>
+          <div class="warning-text">
+            <p>يرجى التأكد من صحة المعلومات قبل الإرسال</p>
+            <p class="small">سيتم خصم {{ Number(amount) || 0 }} USDT من رصيد VIP الخاص بك. ستستلم {{ netAmount.toFixed(2) }} USDT بعد خصم 5% رسوم</p>
+          </div>
+        </div>
+
+        <!-- زر السحب -->
+        <button 
+          class="gold-button" 
+          @click="submitWithdraw"
+          :disabled="isLoading || !isFormValid"
+        >
+          <i class="fas fa-paper-plane" v-if="!isLoading"></i>
+          <i class="fas fa-spinner fa-spin" v-else></i>
+          {{ isLoading ? 'جاري المعالجة...' : 'تأكيد السحب' }}
+        </button>
+
+        <!-- رسائل الخطأ والنجاح -->
+        <transition name="fade">
+          <div v-if="message" class="message" :class="messageType">
+            <i :class="messageType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
+            {{ message }}
+          </div>
+        </transition>
       </div>
-
-      <!-- ملخص الطلب -->
-      <div v-if="showSummary" class="summary-box">
-        <h3>📋 ملخص طلب السحب</h3>
-        
-        <div class="summary-item">
-          <span>معلومات الاتصال:</span>
-          <span class="summary-value">{{ userContact }}</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>مستوى VIP:</span>
-          <span class="summary-value">{{ userVipLevel || 'لا يوجد' }}</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>المبلغ المطلوب:</span>
-          <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>الرسوم (5%):</span>
-          <span class="summary-value fee">-{{ fee.toFixed(2) }} USDT</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>المبلغ الصافي:</span>
-          <span class="summary-value net">{{ netAmount.toFixed(2) }} USDT</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>الشبكة:</span>
-          <span class="summary-value">{{ network }}</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>عنوان المحفظة:</span>
-          <span class="summary-value address">{{ wallet.substring(0, 10) }}...{{ wallet.substring(wallet.length - 10) }}</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>يوم السحب:</span>
-          <span class="summary-value">{{ isVIP8OrAbove ? 'أي يوم' : withdrawDay }}</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>الحد الأدنى:</span>
-          <span class="summary-value">{{ isVIP8OrAbove ? 'بدون حد أدنى' : minWithdrawAmount + ' USDT' }}</span>
-        </div>
-        
-        <div class="summary-item total">
-          <span>سيتم خصم من رصيد VIP:</span>
-          <span class="summary-value">{{ Number(amount).toFixed(2) }} USDT</span>
-        </div>
-        
-        <div class="summary-item">
-          <span>رصيد VIP بعد السحب:</span>
-          <span class="summary-value">{{ (vipBalance - Number(amount)).toFixed(2) }} USDT</span>
-        </div>
-      </div>
-
-      <!-- تحذيرات -->
-      <div class="warning-box">
-        <i class="fas fa-shield-alt"></i>
-        <div class="warning-text">
-          <p>يرجى التأكد من صحة المعلومات قبل الإرسال</p>
-          <p class="small">سيتم خصم {{ Number(amount) || 0 }} USDT من رصيد VIP الخاص بك. ستستلم {{ netAmount.toFixed(2) }} USDT بعد خصم 5% رسوم</p>
-        </div>
-      </div>
-
-      <!-- زر السحب -->
-      <button 
-        class="gold-button" 
-        @click="submitWithdraw"
-        :disabled="isLoading || !isFormValid"
-      >
-        <i class="fas fa-paper-plane" v-if="!isLoading"></i>
-        <i class="fas fa-spinner fa-spin" v-else></i>
-        {{ isLoading ? 'جاري المعالجة...' : 'تأكيد السحب' }}
-      </button>
-
-      <!-- رسائل الخطأ والنجاح -->
-      <transition name="fade">
-        <div v-if="message" class="message" :class="messageType">
-          <i :class="messageType === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"></i>
-          {{ message }}
-        </div>
-      </transition>
     </div>
   </div>
 </template>
 
 <script>
 import { auth, db } from "../firebase";
-import { doc, getDoc, runTransaction, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, runTransaction, collection, serverTimestamp, query, where, getDocs, getCountFromServer, addDoc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
+
+// ========== نظام التخزين المؤقت المحلي ==========
+const dataCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 دقائق
+
+function getCachedData(key) {
+  const cached = dataCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  dataCache.delete(key);
+  return null;
+}
+
+function setCachedData(key, data) {
+  dataCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+}
 
 export default {
   name: "Withdraw",
@@ -335,7 +423,23 @@ export default {
         10: "أي يوم", 11: "أي يوم",
         12: "أي يوم", 13: "أي يوم",
         14: "أي يوم", 15: "أي يوم"
-      }
+      },
+
+      // متغيرات جديدة للتحسين
+      dataLoaded: false,
+      cacheKey: '',
+      
+      // ====================
+      // نظام المهام الإلزامية
+      // ====================
+      withdrawTask: null,          // بيانات المهمة من Firestore
+      taskCompletedCount: 0,       // عدد الدعوات المكتملة
+      requiredVipLevel: null,      // مستوى VIP المطلوب للمدعو
+      taskLoading: false,
+      taskMessage: "",
+      taskMessageType: "info",
+      isWithdrawAllowed: false,    // هل اكتملت المهمة ويمكن السحب؟
+      taskCheckDone: false,        // تم التحقق من المهمة في الجلسة الحالية
     };
   },
 
@@ -351,7 +455,6 @@ export default {
     isAllowedDay() {
       if (!this.userVipLevel) return false;
       
-      // VIP 8+ يمكنهم السحب في أي يوم
       if (this.isVIP8OrAbove) return true;
       
       const dayMap = {
@@ -370,20 +473,17 @@ export default {
       return today === dayMap[allowedDay];
     },
 
-    // حساب الرسوم
     fee() {
       if (!this.amount) return 0;
       return (Number(this.amount) * this.feePercentage) / 100;
     },
 
-    // حساب المبلغ الصافي
     netAmount() {
       if (!this.amount) return 0;
       return Number(this.amount) - this.fee;
     },
 
     isFormValid() {
-      // لـ VIP 8+ الشروط مختلفة
       if (this.isVIP8OrAbove) {
         return (
           this.amount && 
@@ -399,7 +499,6 @@ export default {
         );
       }
       
-      // للـ VIP العادي
       return (
         this.amount && 
         !this.amountError &&
@@ -447,12 +546,29 @@ export default {
         } else {
           this.minWithdrawAmount = 0;
         }
+        // تحديث المستوى المطلوب للمهمة
+        this.requiredVipLevel = this.userVipLevel - 1;
+        if (this.requiredVipLevel < 1) this.requiredVipLevel = 1;
       }
     }
   },
 
   async created() {
+    const user = auth.currentUser;
+    if (user) {
+      this.cacheKey = `user_data_${user.uid}`;
+      const cachedData = getCachedData(this.cacheKey);
+      if (cachedData && !this.dataLoaded) {
+        this.applyUserData(cachedData);
+        // تحميل المهمة بعد تطبيق بيانات المستخدم
+        await this.loadWithdrawTask();
+        return;
+      }
+    }
+    
     await this.loadUserData();
+    // تحميل المهمة بعد تحميل بيانات المستخدم
+    await this.loadWithdrawTask();
   },
 
   mounted() {
@@ -463,7 +579,6 @@ export default {
   methods: {
     clearBrowserAutofill() {
       this.$nextTick(() => {
-        // تنظيف حقول المحفظة وكلمة المرور من أي قيم مترسبة من المتصفح
         if (this.$refs.walletInput) {
           this.$refs.walletInput.value = '';
           this.wallet = '';
@@ -476,7 +591,6 @@ export default {
     },
 
     preventAutocomplete() {
-      // إزالة أي سمات autocomplete قد تكون أضافها المتصفح
       this.$nextTick(() => {
         setTimeout(() => {
           const allInputs = document.querySelectorAll('input');
@@ -486,7 +600,6 @@ export default {
             input.setAttribute('data-form-type', 'other');
             input.setAttribute('data-browser-autofill', 'off');
             
-            // مسح أي قيمة مترسبة
             if (input.name === 'wallet_address_field' || input.name === 'password_field_y') {
               const currentValue = input.value;
               if (currentValue && !this.wallet && !this.password) {
@@ -498,6 +611,27 @@ export default {
       });
     },
 
+    applyUserData(userData) {
+      if (typeof userData.vipBalance === 'number') {
+        this.vipBalance = userData.vipBalance;
+      } else if (typeof userData.balance === 'number') {
+        this.vipBalance = userData.balance;
+      } else {
+        this.vipBalance = 0;
+      }
+      
+      this.userPhone = userData.phoneNumber || "";
+      this.userEmail = userData.email || "";
+      
+      if (userData.vipLevel) {
+        this.userVipLevel = userData.vipLevel;
+      } else if (userData.vipData) {
+        this.userVipLevel = userData.vipData.level;
+      }
+      
+      this.dataLoaded = true;
+    },
+
     async loadUserData() {
       const user = auth.currentUser;
       if (!user) {
@@ -506,38 +640,40 @@ export default {
       }
 
       try {
-        // تحميل بيانات المستخدم من Firestore
+        const cacheKey = this.cacheKey || `user_data_${user.uid}`;
+        const cachedData = getCachedData(cacheKey);
+        
+        if (cachedData) {
+          this.applyUserData(cachedData);
+          return;
+        }
+
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
           const userData = userSnap.data();
           
-          // ✅ قراءة ذكية للرصيد - تدعم النظام القديم والجديد
-          if (typeof userData.vipBalance === 'number') {
-            this.vipBalance = userData.vipBalance;
-          } else if (typeof userData.balance === 'number') {
-            this.vipBalance = userData.balance; // 🔥 الرصيد القديم ← قابل للسحب
-          } else {
-            this.vipBalance = 0;
-          }
-          
-          this.userPhone = userData.phoneNumber || "";
-          this.userEmail = userData.email || "";
-          
-          // قراءة مستوى VIP من بيانات المستخدم مباشرةً (الوظيفة الأصلية)
-          if (userData.vipLevel) {
-            this.userVipLevel = userData.vipLevel;
-          }
-        }
+          const cacheData = {
+            vipBalance: userData.vipBalance || userData.balance || 0,
+            phoneNumber: userData.phoneNumber || "",
+            email: userData.email || "",
+            vipLevel: userData.vipLevel || null,
+            vipData: null
+          };
 
-        // إذا لم يكن VIP موجوداً في بيانات المستخدم، نحاول من subcollection (الوظيفة الأصلية)
-        if (!this.userVipLevel) {
-          const vipRef = doc(db, "users", user.uid, "vip", "current");
-          const vipSnap = await getDoc(vipRef);
-          if (vipSnap.exists()) {
-            this.userVipLevel = vipSnap.data().level;
-          } else {
+          if (!cacheData.vipLevel) {
+            const vipRef = doc(db, "users", user.uid, "vip", "current");
+            const vipSnap = await getDoc(vipRef);
+            if (vipSnap.exists()) {
+              cacheData.vipData = { level: vipSnap.data().level };
+            }
+          }
+
+          setCachedData(cacheKey, cacheData);
+          this.applyUserData(cacheData);
+          
+          if (!this.userVipLevel && !cacheData.vipData) {
             this.showMessage("لا يوجد اشتراك VIP نشط", "error");
           }
         }
@@ -547,11 +683,293 @@ export default {
       }
     },
 
+    // ================================================================
+    // نظام المهام الإلزامية
+    // ================================================================
+
+    /**
+     * تحميل مهمة السحب الحالية للمستخدم
+     */
+    async loadWithdrawTask() {
+      const user = auth.currentUser;
+      if (!user || !this.userVipLevel) return;
+
+      try {
+        const taskRef = collection(db, "users", user.uid, "withdrawTasks");
+        const q = query(taskRef, where("status", "==", "pending"));
+        const snapshot = await getDocs(q);
+        
+        let taskDoc = null;
+        let taskData = null;
+
+        if (!snapshot.empty) {
+          // يوجد مهمة معلقة
+          taskDoc = snapshot.docs[0];
+          taskData = taskDoc.data();
+          this.withdrawTask = {
+            id: taskDoc.id,
+            ...taskData
+          };
+        } else {
+          // لا توجد مهمة - ننشئ واحدة جديدة
+          await this.createNewWithdrawTask();
+          return;
+        }
+
+        // التحقق من انتهاء المهمة (يمكن إضافة صلاحية زمنية إذا أردت)
+        // الآن نحسب عدد الدعوات المكتملة
+        await this.calculateTaskProgress(taskDoc.id, taskData.createdAt);
+        
+        // التحقق إذا كانت المهمة مكتملة بالفعل
+        if (this.taskCompletedCount >= 1) {
+          this.isWithdrawAllowed = true;
+          // تحديث حالة المهمة في Firestore إلى completed
+          await updateDoc(doc(db, "users", user.uid, "withdrawTasks", taskDoc.id), {
+            status: "completed",
+            completedAt: serverTimestamp()
+          });
+          this.withdrawTask.status = "completed";
+        } else {
+          this.isWithdrawAllowed = false;
+        }
+
+      } catch (error) {
+        console.error("خطأ في تحميل المهمة:", error);
+        // في حالة الخطأ نحاول إنشاء مهمة جديدة
+        await this.createNewWithdrawTask();
+      }
+    },
+
+    /**
+     * إنشاء مهمة سحب جديدة
+     */
+    async createNewWithdrawTask() {
+      const user = auth.currentUser;
+      if (!user || !this.userVipLevel) return;
+
+      try {
+        // المستوى المطلوب للمدعو = مستوى المستخدم - 1
+        let requiredLevel = this.userVipLevel - 1;
+        if (requiredLevel < 1) requiredLevel = 1;
+        this.requiredVipLevel = requiredLevel;
+
+        const taskRef = collection(db, "users", user.uid, "withdrawTasks");
+        const newTask = {
+          userId: user.uid,
+          userVipLevel: this.userVipLevel,
+          requiredVipLevel: requiredLevel,
+          requiredCount: 1,
+          completedCount: 0,
+          status: "pending",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        const docRef = await addDoc(taskRef, newTask);
+        this.withdrawTask = {
+          id: docRef.id,
+          ...newTask
+        };
+        this.taskCompletedCount = 0;
+        this.isWithdrawAllowed = false;
+        
+        console.log("✅ تم إنشاء مهمة سحب جديدة للمستخدم:", user.uid);
+      } catch (error) {
+        console.error("❌ خطأ في إنشاء المهمة:", error);
+      }
+    },
+
+    /**
+     * حساب تقدم المهمة - عدد الدعوات المكتملة
+     * الشرط: يجب أن يكون مستوى VIP للمدعو >= المستوى المطلوب
+     */
+    async calculateTaskProgress(taskId, taskCreatedAt) {
+      const user = auth.currentUser;
+      if (!user || !this.userVipLevel) return;
+
+      try {
+        // تحويل وقت إنشاء المهمة إلى Date
+        let createdAtDate;
+        if (taskCreatedAt && taskCreatedAt.toDate) {
+          createdAtDate = taskCreatedAt.toDate();
+        } else if (taskCreatedAt instanceof Date) {
+          createdAtDate = taskCreatedAt;
+        } else if (taskCreatedAt) {
+          createdAtDate = new Date(taskCreatedAt);
+        } else {
+          // إذا لم يكن هناك وقت، نستخدم وقت الحالي - 1 دقيقة للتأكد
+          createdAtDate = new Date();
+          createdAtDate.setMinutes(createdAtDate.getMinutes() - 1);
+        }
+
+        const requiredLevel = this.requiredVipLevel || this.userVipLevel - 1;
+        if (requiredLevel < 1) {
+          this.taskCompletedCount = 1; // إذا كان المستوى 1، المهمة تلقائياً مكتملة
+          return;
+        }
+
+        // البحث عن المستخدمين الذين:
+        // 1. استخدموا رابط إحالة هذا المستخدم (referredBy = user.uid)
+        // 2. تاريخ تسجيلهم > createdAtDate
+        // 3. مستوى VIP الخاص بهم >= requiredLevel (المستوى المطلوب أو أعلى)
+        
+        const usersRef = collection(db, "users");
+        
+        // استعلام: المستخدمون الذين تمت دعوتهم بواسطة هذا المستخدم
+        const q = query(
+          usersRef,
+          where("referredBy", "==", user.uid)
+        );
+        
+        const snapshot = await getDocs(q);
+        let completedCount = 0;
+
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+          
+          // التحقق من تاريخ التسجيل
+          let userCreatedAt;
+          if (data.createdAt && data.createdAt.toDate) {
+            userCreatedAt = data.createdAt.toDate();
+          } else if (data.createdAt instanceof Date) {
+            userCreatedAt = data.createdAt;
+          } else if (data.createdAt) {
+            userCreatedAt = new Date(data.createdAt);
+          } else {
+            // إذا لم يكن هناك تاريخ، نعتبره قديم ولا نعتد به
+            continue;
+          }
+
+          // يجب أن يكون تاريخ التسجيل بعد تاريخ إنشاء المهمة
+          if (userCreatedAt <= createdAtDate) {
+            continue; // تم التسجيل قبل المهمة - لا يحتسب
+          }
+
+          // الحصول على مستوى VIP للمستخدم المدعو
+          let invitedUserVipLevel = data.vipLevel || 0;
+          
+          // إذا لم يكن vipLevel موجوداً في بيانات المستخدم، نتحقق من subcollection
+          if (!invitedUserVipLevel) {
+            try {
+              const vipRef = doc(db, "users", docSnap.id, "vip", "current");
+              const vipSnap = await getDoc(vipRef);
+              if (vipSnap.exists()) {
+                invitedUserVipLevel = vipSnap.data().level || 0;
+              }
+            } catch (e) {
+              // تجاهل الخطأ
+            }
+          }
+
+          // ============================================================
+          // الشرط الصحيح: المستوى المطلوب أو أي مستوى أعلى
+          // invitedUserVipLevel >= requiredLevel
+          // ============================================================
+          if (invitedUserVipLevel >= requiredLevel) {
+            completedCount++;
+          }
+        }
+
+        this.taskCompletedCount = completedCount;
+        
+        // تحديث completedCount في Firestore
+        if (this.withdrawTask && this.withdrawTask.id) {
+          await updateDoc(doc(db, "users", user.uid, "withdrawTasks", this.withdrawTask.id), {
+            completedCount: completedCount,
+            updatedAt: serverTimestamp()
+          });
+          this.withdrawTask.completedCount = completedCount;
+        }
+
+      } catch (error) {
+        console.error("❌ خطأ في حساب تقدم المهمة:", error);
+        this.taskCompletedCount = 0;
+      }
+    },
+
+    /**
+     * التحقق من اكتمال المهمة (عند الضغط على زر التأكيد)
+     */
+    async checkTaskCompletion() {
+      const user = auth.currentUser;
+      if (!user || !this.withdrawTask) {
+        this.taskMessage = "لا توجد مهمة نشطة";
+        this.taskMessageType = "error";
+        return;
+      }
+
+      this.taskLoading = true;
+      this.taskMessage = "";
+
+      try {
+        // إعادة حساب التقدم
+        await this.calculateTaskProgress(
+          this.withdrawTask.id,
+          this.withdrawTask.createdAt
+        );
+
+        if (this.taskCompletedCount >= 1) {
+          // المهمة مكتملة!
+          this.isWithdrawAllowed = true;
+          
+          // تحديث حالة المهمة في Firestore
+          await updateDoc(doc(db, "users", user.uid, "withdrawTasks", this.withdrawTask.id), {
+            status: "completed",
+            completedAt: serverTimestamp()
+          });
+          this.withdrawTask.status = "completed";
+          
+          this.taskMessage = "✅ تم إكمال المهمة بنجاح! يمكنك الآن السحب.";
+          this.taskMessageType = "success";
+          
+          // تحديث حالة السحب
+          this.isWithdrawAllowed = true;
+        } else {
+          this.taskMessage = `❌ لم تكتمل المهمة بعد. المطلوب: 1 دعوة، المكتمل: ${this.taskCompletedCount}/1`;
+          this.taskMessageType = "error";
+          this.isWithdrawAllowed = false;
+        }
+      } catch (error) {
+        console.error("❌ خطأ في التحقق من المهمة:", error);
+        this.taskMessage = "حدث خطأ في التحقق من المهمة";
+        this.taskMessageType = "error";
+      } finally {
+        this.taskLoading = false;
+      }
+    },
+
+    /**
+     * إعادة تعيين المهمة بعد السحب الناجح
+     */
+    async resetWithdrawTask() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        // حذف المهمة الحالية
+        if (this.withdrawTask && this.withdrawTask.id) {
+          await deleteDoc(doc(db, "users", user.uid, "withdrawTasks", this.withdrawTask.id));
+        }
+        
+        // إنشاء مهمة جديدة
+        await this.createNewWithdrawTask();
+        this.isWithdrawAllowed = false;
+        this.taskCompletedCount = 0;
+        
+        console.log("✅ تم إعادة تعيين المهمة بعد السحب الناجح");
+      } catch (error) {
+        console.error("❌ خطأ في إعادة تعيين المهمة:", error);
+      }
+    },
+
+    // ================================================================
+    // دوال التحقق من الحقول
+    // ================================================================
+
     validateAmount() {
       if (!this.amount) {
         this.amountError = "الرجاء إدخال المبلغ";
       } else if (this.isVIP8OrAbove) {
-        // VIP 8+ يمكنهم إدخال أي مبلغ
         if (this.amount > this.vipBalance) {
           this.amountError = "المبلغ أكبر من رصيد VIP الخاص بك";
         } else if (this.amount <= 0) {
@@ -624,7 +1042,17 @@ export default {
       }, 5000);
     },
 
+    // ================================================================
+    // تقديم طلب السحب
+    // ================================================================
+
     async submitWithdraw() {
+      // التأكد من اكتمال المهمة قبل السحب
+      if (!this.isWithdrawAllowed) {
+        this.showMessage("❌ يجب إكمال مهمة السحب أولاً", "error");
+        return;
+      }
+
       if (!this.isFormValid) return;
 
       this.isLoading = true;
@@ -644,52 +1072,63 @@ export default {
           return;
         }
 
-        // ===================================================
-        // الشرط الجديد: التحقق من آخر طلب سحب خلال 24 ساعة
-        // ===================================================
+        // التحقق من طلبات السحب السابقة (خلال 24 ساعة)
         const twentyFourHoursAgo = new Date();
         twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
         const withdrawRequestsRef = collection(db, "withdraw_requests");
-        
-        // استعلام بدون createdAt لتجنب الحاجة إلى فهرس مركب
         const q = query(
           withdrawRequestsRef,
-          where("userId", "==", user.uid)
+          where("userId", "==", user.uid),
+          where("createdAt", ">=", twentyFourHoursAgo)
         );
-        const querySnapshot = await getDocs(q);
 
-        // التحقق من وجود أي طلب سحب خلال آخر 24 ساعة (تصفية يدوية)
-        let hasRecentRequest = false;
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.createdAt) {
-            // تحويل createdAt إلى Date
-            let createdAtDate;
-            if (data.createdAt.toDate) {
-              createdAtDate = data.createdAt.toDate();
-            } else if (data.createdAt instanceof Date) {
-              createdAtDate = data.createdAt;
-            } else {
-              createdAtDate = new Date(data.createdAt);
-            }
-            
-            if (createdAtDate >= twentyFourHoursAgo) {
-              hasRecentRequest = true;
-            }
+        try {
+          const countSnapshot = await getCountFromServer(q);
+          if (countSnapshot.data().count > 0) {
+            this.showMessage("❌ يمكنك إرسال طلب سحب واحد فقط كل 24 ساعة.", "error");
+            this.isLoading = false;
+            return;
           }
-        });
+        } catch (indexError) {
+          console.warn("الفهرس غير موجود، استخدام الطريقة البديلة", indexError);
+          
+          const fallbackQuery = query(
+            withdrawRequestsRef,
+            where("userId", "==", user.uid)
+          );
+          
+          const querySnapshot = await getDocs(fallbackQuery);
+          
+          let hasRecentRequest = false;
+          querySnapshot.forEach((doc) => {
+            if (!hasRecentRequest) {
+              const data = doc.data();
+              if (data.createdAt) {
+                let createdAtDate;
+                if (data.createdAt.toDate) {
+                  createdAtDate = data.createdAt.toDate();
+                } else if (data.createdAt instanceof Date) {
+                  createdAtDate = data.createdAt;
+                } else {
+                  createdAtDate = new Date(data.createdAt);
+                }
+                
+                if (createdAtDate >= twentyFourHoursAgo) {
+                  hasRecentRequest = true;
+                }
+              }
+            }
+          });
 
-        if (hasRecentRequest) {
-          this.showMessage("❌ يمكنك إرسال طلب سحب واحد فقط كل 24 ساعة.", "error");
-          this.isLoading = false;
-          return;
+          if (hasRecentRequest) {
+            this.showMessage("❌ يمكنك إرسال طلب سحب واحد فقط كل 24 ساعة.", "error");
+            this.isLoading = false;
+            return;
+          }
         }
 
-        // ===================================================
-        // استخدام مراجع المستندات مسبقاً
-        // لتجنب خطأ الأذونات داخل runTransaction
-        // ===================================================
+        // استخدام مراجع المستندات
         const userRef = doc(db, "users", user.uid);
         const withdrawDocRef = doc(collection(db, "withdraw_requests"));
         const transactionDocRef = doc(collection(db, "transactions"));
@@ -712,22 +1151,22 @@ export default {
             throw new Error("حسابك محظور من السحب");
           }
 
-          // 1. تحديث vipBalance - خصم المبلغ المطلوب فقط
+          // 1. تحديث vipBalance
           transaction.update(userRef, {
             vipBalance: currentVipBalance - withdrawAmount
           });
 
-          // 2. إنشاء طلب السحب مع تفاصيل الرسوم
+          // 2. إنشاء طلب السحب
           transaction.set(withdrawDocRef, {
             transactionId: transactionId,
             userId: user.uid,
             userPhone: this.userPhone || null,
             userEmail: this.userEmail || null,
-            amount: withdrawAmount,           // المبلغ المطلوب
-            fee: feeAmount,                   // قيمة الرسوم (5%)
-            netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
-            feePercentage: this.feePercentage, // نسبة الرسوم
-            totalDeduct: withdrawAmount,      // المبلغ المخصوم من رصيد VIP
+            amount: withdrawAmount,
+            fee: feeAmount,
+            netAmount: netAmountValue,
+            feePercentage: this.feePercentage,
+            totalDeduct: withdrawAmount,
             network: this.network,
             wallet: this.wallet,
             walletAddress: this.wallet,
@@ -740,21 +1179,24 @@ export default {
             userMessage: "",
             reason: "",
             isVIP8OrAbove: this.isVIP8OrAbove,
-            withdrawFrom: "vipBalance"
+            withdrawFrom: "vipBalance",
+            // إضافة معلومات المهمة
+            taskCompleted: true,
+            taskId: this.withdrawTask ? this.withdrawTask.id : null
           });
 
-          // 3. إنشاء سجل المعاملة مع تفاصيل الرسوم
+          // 3. إنشاء سجل المعاملة
           transaction.set(transactionDocRef, {
             transactionId: transactionId,
             userId: user.uid,
             userPhone: this.userPhone || null,
             userEmail: this.userEmail || null,
             type: "withdraw",
-            amount: withdrawAmount,           // المبلغ المطلوب
-            fee: feeAmount,                   // قيمة الرسوم (5%)
-            netAmount: netAmountValue,        // المبلغ الصافي بعد خصم الرسوم
-            feePercentage: this.feePercentage, // نسبة الرسوم
-            totalDeduct: withdrawAmount,      // المبلغ المخصوم من رصيد VIP
+            amount: withdrawAmount,
+            fee: feeAmount,
+            netAmount: netAmountValue,
+            feePercentage: this.feePercentage,
+            totalDeduct: withdrawAmount,
             currency: "USDT",
             network: this.network,
             wallet: this.wallet,
@@ -765,12 +1207,27 @@ export default {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             isVIP8OrAbove: this.isVIP8OrAbove,
-            withdrawFrom: "vipBalance"
+            withdrawFrom: "vipBalance",
+            taskCompleted: true,
+            taskId: this.withdrawTask ? this.withdrawTask.id : null
           });
         });
 
         this.vipBalance -= withdrawAmount;
+        
+        // تحديث الذاكرة المؤقتة
+        if (this.cacheKey) {
+          const cachedData = getCachedData(this.cacheKey) || {};
+          cachedData.vipBalance = this.vipBalance;
+          setCachedData(this.cacheKey, cachedData);
+        }
+        
         this.showMessage(`✅ تم إرسال طلب السحب بنجاح. المبلغ الصافي بعد الرسوم: ${netAmountValue.toFixed(2)} USDT`, "success");
+        
+        // ==========================================
+        // إعادة تعيين المهمة بعد السحب الناجح
+        // ==========================================
+        await this.resetWithdrawTask();
         
         // تفريغ الحقول
         this.amount = "";
@@ -790,6 +1247,10 @@ export default {
 </script>
 
 <style scoped>
+/* ============================================================ */
+/* الأنماط الحالية (بدون تغيير) */
+/* ============================================================ */
+
 .withdraw-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
@@ -842,7 +1303,6 @@ export default {
   margin: 0;
 }
 
-/* صندوق الرصيد */
 .balance-box {
   background: rgba(212, 175, 55, 0.08);
   border-radius: 16px;
@@ -896,7 +1356,6 @@ export default {
   border-radius: 6px;
 }
 
-/* حالة VIP */
 .vip-status-box {
   background: rgba(212, 175, 55, 0.08);
   border-radius: 16px;
@@ -965,7 +1424,6 @@ export default {
   border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
-/* رسائل */
 .message {
   padding: 12px 16px;
   border-radius: 12px;
@@ -989,7 +1447,6 @@ export default {
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-/* مجموعات الإدخال */
 .input-group {
   margin-bottom: 20px;
 }
@@ -1044,14 +1501,12 @@ export default {
   margin-top: 6px;
 }
 
-/* فاصل بين الأقسام */
 .fields-separator {
   height: 1px;
   background: transparent;
   margin: 5px 0;
 }
 
-/* أقسام معزولة */
 .isolated-section {
   position: relative;
 }
@@ -1062,7 +1517,6 @@ export default {
   z-index: 1;
 }
 
-/* زر إظهار/إخفاء كلمة المرور */
 .toggle-password-btn {
   background: transparent;
   border: none;
@@ -1077,7 +1531,6 @@ export default {
   color: #fcd535;
 }
 
-/* قائمة مخصصة للشبكات */
 .custom-dropdown {
   position: relative;
 }
@@ -1160,7 +1613,6 @@ export default {
   font-size: 11px;
 }
 
-/* صندوق الملخص */
 .summary-box {
   background: rgba(212, 175, 55, 0.08);
   border-radius: 16px;
@@ -1204,7 +1656,6 @@ export default {
   color: #86efac;
 }
 
-/* صندوق التحذير */
 .warning-box {
   background: rgba(217, 119, 6, 0.1);
   border-radius: 12px;
@@ -1230,7 +1681,6 @@ export default {
   font-size: 11px;
 }
 
-/* الزر */
 .gold-button {
   width: 100%;
   padding: 14px;
@@ -1256,5 +1706,264 @@ export default {
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+
+/* ============================================================ */
+/* أنماط بطاقة المهمة الجديدة */
+/* ============================================================ */
+
+.task-card {
+  background: rgba(212, 175, 55, 0.06);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  margin-bottom: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.task-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.task-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.task-lock-icon {
+  font-size: 28px;
+  color: #fcd535;
+  background: rgba(212, 175, 55, 0.15);
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.task-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #eaecef;
+  margin: 0;
+}
+
+.task-subtitle {
+  font-size: 13px;
+  color: #848e9c;
+  margin: 4px 0 0 0;
+}
+
+.task-body {
+  padding: 0 4px;
+}
+
+.task-requirement {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(212, 175, 55, 0.05);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.task-icon-wrapper {
+  background: rgba(212, 175, 55, 0.12);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.task-icon-wrapper i {
+  font-size: 20px;
+  color: #fcd535;
+}
+
+.task-description {
+  flex: 1;
+}
+
+.task-desc-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #eaecef;
+  margin: 0 0 4px 0;
+}
+
+.task-desc-sub {
+  font-size: 12px;
+  color: #848e9c;
+  margin: 0;
+}
+
+.task-progress {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.task-progress-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-progress-label {
+  font-size: 12px;
+  color: #848e9c;
+}
+
+.task-progress-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #eaecef;
+}
+
+.task-progress-value.completed {
+  color: #10b981;
+}
+
+.task-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.task-progress-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.task-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #fcd535, #d4af37);
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+}
+
+.task-progress-percent {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fcd535;
+  min-width: 40px;
+  text-align: left;
+}
+
+.task-confirm-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #fcd535 0%, #d4af37 100%);
+  color: #0f1419;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.task-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
+}
+
+.task-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.task-message {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-message.error {
+  background: rgba(220, 38, 38, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.task-message.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #86efac;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.task-message.info {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* ============================================================ */
+/* استجابة للشاشات الصغيرة */
+/* ============================================================ */
+
+@media (max-width: 480px) {
+  .card {
+    padding: 18px;
+  }
+  
+  .title {
+    font-size: 22px;
+  }
+  
+  .task-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .task-requirement {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .task-progress {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .task-progress-bar {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .task-progress-percent {
+    text-align: center;
+  }
 }
 </style>
