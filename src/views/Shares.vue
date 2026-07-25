@@ -375,17 +375,39 @@ export default {
           return;
         }
         
-        this.stockData = {
-          currentPrice: 650,
-          previousPrice: 650,
-          highPrice: 850,
-          lowPrice: 0.10,
-          volume: 50000000,
-          totalShares: 300000000,
-          availableShares: 100000,
-          soldShares: 299900000,
-          openingPrice: 650
-        };
+        // محاولة تحميل السعر من localStorage
+        const savedPrice = this.loadPriceFromLocalStorage();
+        
+        if (savedPrice) {
+          // استخدام السعر المحفوظ
+          this.stockData = {
+            currentPrice: savedPrice.currentPrice,
+            previousPrice: savedPrice.currentPrice,
+            highPrice: savedPrice.highPrice || 850,
+            lowPrice: savedPrice.lowPrice || 0.10,
+            volume: 50000000,
+            totalShares: 300000000,
+            availableShares: 100000,
+            soldShares: 299900000,
+            openingPrice: savedPrice.openingPrice || savedPrice.currentPrice
+          };
+        } else {
+          // إنشاء سعر ابتدائي جديد
+          const initialPrice = 650;
+          this.stockData = {
+            currentPrice: initialPrice,
+            previousPrice: initialPrice,
+            highPrice: 850,
+            lowPrice: 0.10,
+            volume: 50000000,
+            totalShares: 300000000,
+            availableShares: 100000,
+            soldShares: 299900000,
+            openingPrice: initialPrice
+          };
+          // حفظ السعر في localStorage
+          this.savePriceToLocalStorage(this.stockData);
+        }
         
         this.dailyChange = 0;
         this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
@@ -399,6 +421,40 @@ export default {
         
         this.loading = false;
       });
+    },
+
+    // ================================================================
+    // ===== دوال حفظ وقراءة السعر من localStorage =====
+    // ================================================================
+
+    savePriceToLocalStorage(stockData) {
+      try {
+        const priceData = {
+          currentPrice: stockData.currentPrice,
+          highPrice: stockData.highPrice,
+          lowPrice: stockData.lowPrice,
+          openingPrice: stockData.openingPrice,
+          lastUpdate: Date.now()
+        };
+        localStorage.setItem('palmTreasurePrice', JSON.stringify(priceData));
+        console.log('✅ تم حفظ السعر في localStorage:', priceData.currentPrice);
+      } catch (error) {
+        console.error('❌ خطأ في حفظ السعر:', error);
+      }
+    },
+
+    loadPriceFromLocalStorage() {
+      try {
+        const savedData = localStorage.getItem('palmTreasurePrice');
+        if (savedData) {
+          const priceData = JSON.parse(savedData);
+          console.log('✅ تم تحميل السعر من localStorage:', priceData.currentPrice);
+          return priceData;
+        }
+      } catch (error) {
+        console.error('❌ خطأ في قراءة السعر:', error);
+      }
+      return null;
     },
 
     // ================================================================
@@ -422,8 +478,6 @@ export default {
       this.stockData.previousPrice = this.stockData.currentPrice;
       
       // التحقق من وجود مالكين (بناءً على أسهم المستخدم الحالي)
-      // في حالة وجود مالك واحد على الأقل (المستخدم الحالي أو غيره)
-      // سيتم التحديث بناءً على هذا الشرط
       const hasShareholders = this.userShares && this.userShares.shares > 0;
       
       if (hasShareholders) {
@@ -441,6 +495,9 @@ export default {
       if (this.stockData.currentPrice < this.stockData.lowPrice) {
         this.stockData.lowPrice = this.stockData.currentPrice;
       }
+      
+      // حفظ السعر في localStorage بعد كل تحديث
+      this.savePriceToLocalStorage(this.stockData);
       
       // تحديث وقت آخر تحديث
       this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
@@ -639,6 +696,9 @@ export default {
             this.stockData.volume += totalAmount;
             this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
             
+            // حفظ السعر بعد التحديث
+            this.savePriceToLocalStorage(this.stockData);
+            
             // خصم من رصيد المستخدم
             transaction.update(userRef, {
               vipBalance: userBalance - totalAmount
@@ -693,6 +753,9 @@ export default {
             this.stockData.soldShares -= quantity;
             this.stockData.volume += totalAmount;
             this.lastUpdateTime = new Date().toLocaleTimeString('ar-SA');
+            
+            // حفظ السعر بعد التحديث
+            this.savePriceToLocalStorage(this.stockData);
             
             // إضافة إلى رصيد المستخدم
             transaction.update(userRef, {
