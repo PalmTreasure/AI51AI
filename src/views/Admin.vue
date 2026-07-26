@@ -711,6 +711,20 @@
           </button>
         </div>
         
+        <!-- زر حذف سجل المستخدم بالكامل -->
+        <div class="danger-zone">
+          <h4 style="color: #dc3545; margin: 15px 0 10px 0; border-top: 2px solid #dc3545; padding-top: 15px;">
+            ⚠️ منطقة الخطر - حذف سجل المستخدم
+          </h4>
+          <p style="font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 10px;">
+            سيتم حذف جميع سجلات هذا المستخدم (السحوبات، التعبئة، المعاملات، الإشعارات، الإحالات) نهائياً.
+            <br><strong style="color: #dc3545;">لا يمكن التراجع عن هذا الإجراء!</strong>
+          </p>
+          <button class="btn delete-all-logs-btn" type="button" @click="confirmDeleteAllUserLogs(accountDetails.userId)" :disabled="processingId === accountDetails.userId" style="width: 100%;">
+            {{ processingId === accountDetails.userId ? 'جاري الحذف...' : '🗑️ حذف جميع سجلات المستخدم نهائياً' }}
+          </button>
+        </div>
+        
         <div v-if="showWithdrawHistory" class="history-section">
           <h4>سجل السحوبات</h4>
           <div v-if="accountWithdrawHistory.length === 0" class="empty-text">لا توجد سحوبات</div>
@@ -2882,7 +2896,273 @@ export default {
     async markAllRechargeNotificationsReadServerSide() {
       alert("ميزة وضع الإشعارات كمقروءة تحتاج تنفيذ على حسب تصميم قاعدة البيانات.");
     },
-  },
+
+    // ========== دالة حذف جميع سجلات المستخدم بالكامل ==========
+    async confirmDeleteAllUserLogs(userId) {
+      if (!userId) {
+        alert("معرف المستخدم غير صالح");
+        return;
+      }
+      
+      const allowed = await this.ensureAdmin();
+      if (!allowed) return alert("غير مصرح لك");
+      
+      // البحث عن المستخدم
+      const user = this.users.find(u => u.id === userId);
+      if (!user) {
+        alert("المستخدم غير موجود");
+        return;
+      }
+      
+      const userName = user.email || user.phoneNumber || userId;
+      
+      // حساب عدد السجلات قبل الحذف
+      let totalLogs = 0;
+      try {
+        const withdrawLogsSnap = await getDocs(query(collection(db, "withdraw_logs"), where("userId", "==", userId)));
+        const rechargeLogsSnap = await getDocs(query(collection(db, "recharge_logs"), where("userId", "==", userId)));
+        const transactionsSnap = await getDocs(query(collection(db, "transactions"), where("userId", "==", userId)));
+        const notificationsSnap = await getDocs(collection(db, "users", userId, "notifications"));
+        const referralSnap = await getDocs(query(collection(db, "referral_rewards"), where("receiver", "==", userId)));
+        const withdrawRequestsSnap = await getDocs(query(collection(db, "withdraw_requests"), where("userId", "==", userId)));
+        const paymentsSnap = await getDocs(query(collection(db, "payments"), where("userId", "==", userId)));
+        const vipPurchasesSnap = await getDocs(query(collection(db, "vip_purchases"), where("userId", "==", userId)));
+        
+        totalLogs = withdrawLogsSnap.size + rechargeLogsSnap.size + transactionsSnap.size + 
+                    notificationsSnap.size + referralSnap.size + withdrawRequestsSnap.size +
+                    paymentsSnap.size + vipPurchasesSnap.size;
+      } catch (e) {
+        console.log("⚠️ خطأ في حساب السجلات:", e);
+      }
+      
+      // رسالة تأكيد
+      const confirmMessage = `
+  ⚠️ تحذير: أنت على وشك حذف جميع سجلات المستخدم!
+  
+  📌 اسم المستخدم: ${userName}
+  📌 رصيد VIP: ${user.vipBalance || 0} USDT
+  📌 رصيد الترقية: ${user.depositBalance || 0} USDT
+  📌 عدد السجلات المراد حذفها: ${totalLogs} سجل
+  
+  سيتم حذف:
+  • جميع سجلات السحوبات
+  • جميع سجلات التعبئة
+  • جميع المعاملات
+  • جميع الإشعارات
+  • سجل الإحالات
+  • طلبات السحب المعلقة
+  • طلبات التعبئة المعلقة
+  • مشتريات VIP
+  • إعدادات العجلة الخاصة
+  
+  ⚠️ سيتم الاحتفاظ بحساب المستخدم نفسه (البريد، رقم الهاتف، الرصيد)
+  ⚠️ هذا الإجراء لا يمكن التراجع عنه أبداً!
+  `;
+      
+      if (!confirm(confirmMessage)) return;
+      
+      // تأكيد إضافي
+      if (!confirm("تأكيد نهائي: هل أنت متأكد من حذف جميع سجلات هذا المستخدم نهائياً؟")) return;
+      
+      // تأكيد نهائي بكتابة "حذف"
+      const finalConfirm = prompt(`للتأكيد النهائي، اكتب كلمة "حذف" في الحقل أدناه:`);
+      if (finalConfirm !== "حذف") {
+        alert("❌ لم يتم تأكيد الحذف - الكلمة غير صحيحة");
+        return;
+      }
+      
+      this.processingId = userId;
+      
+      try {
+        const deletePromises = [];
+        const deletedCounts = {
+          withdrawLogs: 0,
+          rechargeLogs: 0,
+          transactions: 0,
+          notifications: 0,
+          referralRewards: 0,
+          withdrawRequests: 0,
+          payments: 0,
+          vipPurchases: 0,
+          userWheelSettings: 0
+        };
+        
+        // 1. حذف سجلات السحوبات
+        try {
+          const withdrawLogsQuery = await getDocs(query(
+            collection(db, "withdraw_logs"),
+            where("userId", "==", userId)
+          ));
+          for (const docSnap of withdrawLogsQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "withdraw_logs", docSnap.id)));
+            deletedCounts.withdrawLogs++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف سجلات السحوبات:", e);
+        }
+        
+        // 2. حذف سجلات التعبئة
+        try {
+          const rechargeLogsQuery = await getDocs(query(
+            collection(db, "recharge_logs"),
+            where("userId", "==", userId)
+          ));
+          for (const docSnap of rechargeLogsQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "recharge_logs", docSnap.id)));
+            deletedCounts.rechargeLogs++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف سجلات التعبئة:", e);
+        }
+        
+        // 3. حذف المعاملات
+        try {
+          const transactionsQuery = await getDocs(query(
+            collection(db, "transactions"),
+            where("userId", "==", userId)
+          ));
+          for (const docSnap of transactionsQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "transactions", docSnap.id)));
+            deletedCounts.transactions++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف المعاملات:", e);
+        }
+        
+        // 4. حذف الإشعارات
+        try {
+          const notificationsQuery = await getDocs(
+            collection(db, "users", userId, "notifications")
+          );
+          for (const docSnap of notificationsQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "users", userId, "notifications", docSnap.id)));
+            deletedCounts.notifications++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف الإشعارات:", e);
+        }
+        
+        // 5. حذف سجل الإحالات
+        try {
+          const referralQuery = await getDocs(query(
+            collection(db, "referral_rewards"),
+            where("receiver", "==", userId)
+          ));
+          for (const docSnap of referralQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "referral_rewards", docSnap.id)));
+            deletedCounts.referralRewards++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف سجل الإحالات:", e);
+        }
+        
+        // 6. حذف طلبات السحب المعلقة
+        try {
+          const withdrawRequestsQuery = await getDocs(query(
+            collection(db, "withdraw_requests"),
+            where("userId", "==", userId)
+          ));
+          for (const docSnap of withdrawRequestsQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "withdraw_requests", docSnap.id)));
+            deletedCounts.withdrawRequests++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف طلبات السحب:", e);
+        }
+        
+        // 7. حذف طلبات التعبئة المعلقة
+        try {
+          const paymentsQuery = await getDocs(query(
+            collection(db, "payments"),
+            where("userId", "==", userId)
+          ));
+          for (const docSnap of paymentsQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "payments", docSnap.id)));
+            deletedCounts.payments++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف طلبات التعبئة:", e);
+        }
+        
+        // 8. حذف مشتريات VIP
+        try {
+          const vipQuery = await getDocs(query(
+            collection(db, "vip_purchases"),
+            where("userId", "==", userId)
+          ));
+          for (const docSnap of vipQuery.docs) {
+            deletePromises.push(deleteDoc(doc(db, "vip_purchases", docSnap.id)));
+            deletedCounts.vipPurchases++;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف مشتريات VIP:", e);
+        }
+        
+        // 9. حذف إعدادات العجلة الخاصة
+        try {
+          const wheelSettingsRef = doc(db, "user_wheel_settings", userId);
+          const wheelSettingsSnap = await getDoc(wheelSettingsRef);
+          if (wheelSettingsSnap.exists()) {
+            deletePromises.push(deleteDoc(wheelSettingsRef));
+            deletedCounts.userWheelSettings = 1;
+          }
+        } catch (e) {
+          console.log("⚠️ خطأ في حذف إعدادات العجلة:", e);
+        }
+        
+        // تنفيذ جميع عمليات الحذف
+        await Promise.all(deletePromises);
+        
+        // حساب إجمالي السجلات المحذوفة
+        const totalDeleted = Object.values(deletedCounts).reduce((a, b) => a + b, 0);
+        
+        // تسجيل عملية الحذف في سجل الإدارة
+        await addDoc(collection(db, "admin_logs"), {
+          action: "delete_user_logs_permanently",
+          userId: userId,
+          userEmail: user.email || null,
+          userPhone: user.phoneNumber || null,
+          deletedCounts: deletedCounts,
+          totalDeleted: totalDeleted,
+          adminEmail: this.currentUser?.email || "admin",
+          timestamp: serverTimestamp()
+        });
+        
+        // تحديث القوائم المحلية
+        this.accountWithdrawHistory = [];
+        this.accountRechargeHistory = [];
+        this.showWithdrawHistory = false;
+        this.showRechargeHistory = false;
+        
+        // إعادة تحميل السجلات العامة
+        await this.loadWithdrawLogs();
+        await this.loadRechargeLogs();
+        await this.loadWithdrawRequests();
+        await this.reloadRechargeRequests();
+        
+        alert(`✅ تم حذف جميع سجلات المستخدم "${userName}" بنجاح!
+        
+  📊 ملخص الحذف:
+  • سجلات السحوبات: ${deletedCounts.withdrawLogs}
+  • سجلات التعبئة: ${deletedCounts.rechargeLogs}
+  • المعاملات: ${deletedCounts.transactions}
+  • الإشعارات: ${deletedCounts.notifications}
+  • سجل الإحالات: ${deletedCounts.referralRewards}
+  • طلبات السحب: ${deletedCounts.withdrawRequests}
+  • طلبات التعبئة: ${deletedCounts.payments}
+  • مشتريات VIP: ${deletedCounts.vipPurchases}
+  • إعدادات العجلة: ${deletedCounts.userWheelSettings}
+  📌 المجموع الكلي: ${totalDeleted} سجل`);
+        
+      } catch (e) {
+        console.error("❌ خطأ في حذف سجلات المستخدم:", e);
+        alert(`❌ حدث خطأ أثناء حذف السجلات: ${e.message || 'خطأ غير معروف'}`);
+      } finally {
+        this.processingId = null;
+        this.closeAccountDetailsModal();
+      }
+    }
+  }
 };
 </script>
 
@@ -3209,6 +3489,38 @@ export default {
   gap: 8px;
   margin-top: 10px;
   justify-content: flex-end;
+}
+
+.danger-zone {
+  background: rgba(220, 53, 69, 0.1);
+  border: 2px solid #dc3545;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.delete-all-logs-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.delete-all-logs-btn:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.delete-all-logs-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .balance-type-selector {
