@@ -338,7 +338,7 @@ export default {
         2: 7,
         3: 25,
         4: 50,
-        5: 100, // VIP 5 حد أدنى 100 USDT
+        5: 100,
         6: 450,
         7: 675,
         8: 0,
@@ -457,6 +457,7 @@ export default {
         this.password &&
         this.userVipLevel &&
         this.canWithdraw &&
+        this.isAllowedDay &&
         this.vipBalance >= Number(this.amount)
       );
     },
