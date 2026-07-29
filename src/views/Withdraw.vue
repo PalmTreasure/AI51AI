@@ -34,8 +34,8 @@
           {{ userContact }}
         </div>
         <div class="withdraw-condition">
-          <i class="fas fa-check-circle" :class="{ 'condition-met': canWithdraw }"></i>
-          <span>الحد الأدنى: <strong>{{ getMinWithdrawDisplay() }}</strong></span>
+          <i class="fas fa-check-circle" :class="{ 'condition-met': isVIP8OrAbove || vipBalance >= minWithdrawAmount }"></i>
+          <span>الحد الأدنى: <strong>{{ isVIP8OrAbove ? 'بدون حد أدنى' : minWithdrawAmount + ' USDT' }}</strong></span>
         </div>
         <div class="withdraw-condition">
           <i class="fas fa-check-circle" :class="{ 'condition-met': isAllowedDay }"></i>
@@ -44,10 +44,6 @@
         <div v-if="isVIP8OrAbove" class="vip-special-badge">
           <i class="fas fa-star"></i>
           مميزات VIP 8+: سحب أي مبلغ في أي وقت
-        </div>
-        <div v-else-if="userVipLevel >= 4 && userVipLevel <= 6" class="vip-special-badge">
-          <i class="fas fa-calendar-day"></i>
-          يوم السحب: الأحد فقط
         </div>
       </div>
 
@@ -229,7 +225,7 @@
         
         <div class="summary-item">
           <span>الحد الأدنى:</span>
-          <span class="summary-value">{{ getMinWithdrawDisplay() }}</span>
+          <span class="summary-value">{{ isVIP8OrAbove ? 'بدون حد أدنى' : minWithdrawAmount + ' USDT' }}</span>
         </div>
         
         <div class="summary-item total">
@@ -338,7 +334,7 @@ export default {
         2: 7,
         3: 25,
         4: 50,
-        5: 100,
+        5: 150,
         6: 450,
         7: 675,
         8: 0,
@@ -354,7 +350,7 @@ export default {
       withdrawDays: {
         1: "السبت", 2: "السبت", 3: "السبت",
         4: "الأحد", 5: "الأحد",
-        6: "الأحد", 7: "الاثنين",
+        6: "الاثنين", 7: "الاثنين",
         8: "أي يوم", 9: "أي يوم",
         10: "أي يوم", 11: "أي يوم",
         12: "أي يوم", 13: "أي يوم",
@@ -363,26 +359,7 @@ export default {
 
       // متغيرات جديدة للتحسين
       dataLoaded: false,
-      cacheKey: '',
-      
-      // قيمة رأس المال لكل مستوى VIP
-      vipCapital: {
-        1: 10,
-        2: 15,
-        3: 50,
-        4: 100,
-        5: 200,
-        6: 900,
-        7: 1350,
-        8: 0,
-        9: 0,
-        10: 0,
-        11: 0,
-        12: 0,
-        13: 0,
-        14: 0,
-        15: 0
-      }
+      cacheKey: ''
     };
   },
 
@@ -456,8 +433,8 @@ export default {
         !this.walletError &&
         this.password &&
         this.userVipLevel &&
-        this.canWithdraw &&
         this.isAllowedDay &&
+        Number(this.amount) === this.minWithdrawAmount &&
         this.vipBalance >= Number(this.amount)
       );
     },
@@ -474,24 +451,6 @@ export default {
       } else {
         return "لا يوجد";
       }
-    },
-    
-    // شرط نصف رأس المال
-    canWithdraw() {
-      if (!this.userVipLevel) return false;
-      if (this.isVIP8OrAbove) return true;
-      
-      const capital = this.vipCapital[this.userVipLevel] || 0;
-      if (capital === 0) return false;
-      
-      const halfCapital = capital / 2;
-      return this.vipBalance >= halfCapital;
-    },
-    
-    // الحد الأدنى للسحب حسب المستوى
-    getMinWithdrawLimit() {
-      if (this.isVIP8OrAbove) return 0;
-      return this.vipLimits[this.userVipLevel] || 5;
     }
   },
 
@@ -665,10 +624,7 @@ export default {
     validateAmount() {
       if (!this.amount) {
         this.amountError = "الرجاء إدخال المبلغ";
-        return;
-      }
-      
-      if (this.isVIP8OrAbove) {
+      } else if (this.isVIP8OrAbove) {
         if (this.amount > this.vipBalance) {
           this.amountError = "المبلغ أكبر من رصيد VIP الخاص بك";
         } else if (this.amount <= 0) {
@@ -676,33 +632,13 @@ export default {
         } else {
           this.amountError = "";
         }
-        return;
-      }
-      
-      // شروط السحب الجديدة للمستويات 1-7
-      const minLimit = this.getMinWithdrawLimit();
-      
-      // التحقق من شرط نصف رأس المال
-      if (!this.canWithdraw) {
-        const capital = this.vipCapital[this.userVipLevel] || 0;
-        const halfCapital = capital / 2;
-        this.amountError = `يجب أن يصل رصيدك إلى ${halfCapital.toFixed(2)} USDT (نصف قيمة الاشتراك) للسحب`;
-        return;
-      }
-      
-      // التحقق من الحد الأدنى للمبلغ
-      if (this.amount < minLimit) {
-        this.amountError = `الحد الأدنى للسحب ${minLimit} USDT`;
-        return;
-      }
-      
-      // التحقق من أن المبلغ لا يتجاوز الرصيد
-      if (this.amount > this.vipBalance) {
+      } else if (Number(this.amount) !== this.minWithdrawAmount) {
+        this.amountError = `يجب سحب ${this.minWithdrawAmount} USDT فقط`;
+      } else if (this.amount > this.vipBalance) {
         this.amountError = "رصيد VIP غير كافٍ للسحب";
-        return;
+      } else {
+        this.amountError = "";
       }
-      
-      this.amountError = "";
     },
 
     validateNetwork() {
@@ -760,39 +696,9 @@ export default {
         this.message = "";
       }, 5000);
     },
-    
-    getMinWithdrawDisplay() {
-      if (this.isVIP8OrAbove) return 'بدون حد أدنى';
-      const minLimit = this.getMinWithdrawLimit();
-      return minLimit + ' USDT';
-    },
 
     async submitWithdraw() {
       if (!this.isFormValid) return;
-
-      // التحقق الإضافي قبل إرسال الطلب
-      if (!this.isVIP8OrAbove) {
-        // التحقق من شرط نصف رأس المال
-        if (!this.canWithdraw) {
-          const capital = this.vipCapital[this.userVipLevel] || 0;
-          const halfCapital = capital / 2;
-          this.showMessage(`❌ يجب أن يصل رصيدك إلى ${halfCapital.toFixed(2)} USDT (نصف قيمة الاشتراك) للسحب`, "error");
-          return;
-        }
-        
-        // التحقق من يوم السحب
-        if (!this.isAllowedDay) {
-          this.showMessage(`❌ يوم السحب المسموح به هو ${this.withdrawDay} فقط`, "error");
-          return;
-        }
-        
-        // التحقق من الحد الأدنى للمبلغ
-        const minLimit = this.getMinWithdrawLimit();
-        if (Number(this.amount) < minLimit) {
-          this.showMessage(`❌ الحد الأدنى للسحب ${minLimit} USDT`, "error");
-          return;
-        }
-      }
 
       this.isLoading = true;
       const user = auth.currentUser;
@@ -926,10 +832,7 @@ export default {
             userMessage: "",
             reason: "",
             isVIP8OrAbove: this.isVIP8OrAbove,
-            withdrawFrom: "vipBalance",
-            // إضافة معلومات جديدة للشروط
-            halfCapitalMet: this.canWithdraw,
-            minLimitMet: Number(this.amount) >= this.getMinWithdrawLimit()
+            withdrawFrom: "vipBalance"
           });
 
           // 3. إنشاء سجل المعاملة مع تفاصيل الرسوم
@@ -954,10 +857,7 @@ export default {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             isVIP8OrAbove: this.isVIP8OrAbove,
-            withdrawFrom: "vipBalance",
-            // إضافة معلومات جديدة للشروط
-            halfCapitalMet: this.canWithdraw,
-            minLimitMet: Number(this.amount) >= this.getMinWithdrawLimit()
+            withdrawFrom: "vipBalance"
           });
         });
 
