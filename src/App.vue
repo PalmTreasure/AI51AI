@@ -165,6 +165,9 @@
     <transition name="modal">
       <div v-if="showOfferMessage" class="modal-overlay" @click="closeOfferMessage">
         <div class="modal-container offer-modal" @click.stop>
+          <div class="festival-animation">
+            🎆 🎇 ✨ 🎉 🎊 ✨ 🎇 🎆
+          </div>
           <div class="modal-header">
             <div class="sender-info">
               <div class="sender-avatar">🎁</div>
@@ -179,6 +182,26 @@
           </div>
           <div class="modal-body">
             <div class="offer-content">
+              <div class="festival-banner">
+                <div class="festival-icon">🎉🇬🇧</div>
+                <h2>أعظم مهرجان في إنجلترا</h2>
+                <p>
+                  احتفالاً بالمهرجان الكبير في إنجلترا، تقدم Palm Treasure عرضاً حصرياً لجميع الأعضاء.
+                </p>
+              </div>
+              <div class="special-offer-box">
+                <h3>🎁 العرض الخاص</h3>
+                <p>
+                  عند قيام أي شخص بالتسجيل من خلال رابط الدعوة الخاص بك وإجراء أول عملية شحن، ستحصل مباشرة على <span class="offer-percent">10%</span> من قيمة الشحن كمكافأة.
+                </p>
+                <div class="offer-example">
+                  <strong>مثال:</strong><br>
+                  إذا قام أحد المدعوين بشحن 100 USDT ستحصل أنت على 10 USDT كمكافأة مباشرة.
+                </div>
+                <div style="margin-top: 15px; background: #ff006e; color: white; padding: 12px; border-radius: 10px; font-weight: bold; font-size: 18px; animation: pulse 1.5s infinite;">
+                  ⏳ 3 أيام فقط – ينتهي العرض قريباً!
+                </div>
+              </div>
               <div class="offer-title">
                 <i class="fas fa-rocket"></i>
                 <span>{{ t('joinOurTeam') }}</span>
@@ -429,7 +452,7 @@ export default {
           offerDescription1: 'نحن نقدم لك فرصة حقيقية لتكون جزءاً من فريق طموح ومتطور. يمكنك الآن دعوة أعضاء جدد إلى فريقك عبر رابط الإحالة الخاص بك والعمل معهم لتحقيق النجاح المشترك.',
           rewardsSystem: 'نظام المكافآت: كلما توسع فريقك وزاد عدد الأعضاء فيه، زادت فرصك للحصول على مكافآت مالية مجزية.',
           offerDescription2: 'عند انضمامك إلينا، ستحصل على فرصة لتصبح مشرفاً على فريقك الخاص، حيث يمكنك إدارة فريقك وتنميته من خلال دعوة أعضاء جدد عبر رابط الإحالة الخاص بك.',
-          monthlyRewardsTable: 'جدول المكافآت الشهرية', numberOfPeople: 'عدد الأشخاص', salaryValue: 'قيمة الراتب',
+          monthlyRewardsTable: 'جدول المكافآت الشهرية', numberOfPeople: 'عدد الأشخاص', salaryValue: 'قيمة المكافآت',
           monthlyRewards: 'مكافآت شهرية مجزية', flexibleSystem: 'نظام عمل مرن', growthOpportunities: 'فرص نمو مستمرة',
           importantNote: 'ملاحظة مهمة', vip2Required: 'يجب على كل عضو ينضم إلى فريقك شراء مستوى VIP 3 حتى يتم احتسابه ضمن أعضاء فريقك في نظام المكافآت.',
           understoodThanks: 'فهمت وشكراً', aboutCompany: 'عن الشركة',
@@ -509,12 +532,9 @@ export default {
   },
 
   methods: {
-    // ✅ تم استبدال onSnapshot بـ getDoc مع فحص دوري لتقليل القراءات
     startBlockCheck(userId) {
       this.stopBlockCheck();
-      // فحص الحظر عند بدء التشغيل
       this.checkBlockStatus(userId);
-      // فحص دوري كل 30 ثانية بدلاً من الاستماع المستمر
       this.blockCheckInterval = setInterval(() => {
         this.checkBlockStatus(userId);
       }, 30000);
@@ -785,8 +805,17 @@ export default {
             if (className && positions[className]) { 
               btn.style.right = positions[className].right; 
               btn.style.bottom = positions[className].bottom; 
-            } 
-          }); 
+            }
+          });
+          // إذا لم تكن هناك مواقع محفوظة لزر العرض، نضعه في المنتصف
+          if (!positions['offer-btn']) {
+            const offerBtn = document.querySelector('.offer-btn');
+            if (offerBtn) {
+              offerBtn.style.right = '50%';
+              offerBtn.style.bottom = '50%';
+              offerBtn.style.transform = 'translate(50%, 50%)';
+            }
+          }
         }, 100);
       });
     },
@@ -855,12 +884,96 @@ body { font-family: 'Cairo', sans-serif; background: linear-gradient(135deg, #0A
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 
 .lang-btn { right: 10px; bottom: 95px; }
-.offer-btn { right: 60px; bottom: 95px; background: linear-gradient(135deg, #D4AF37, #F6E27A, #C5A028); }
-.offer-btn i { color: #0A0C10; }
+.offer-btn { 
+  right: 50%; 
+  bottom: 50%; 
+  transform: translate(50%, 50%);
+  width: 70px; 
+  height: 70px; 
+  background: linear-gradient(135deg, #ff006e, #ffbe0b, #8338ec); 
+  border: 3px solid #fff; 
+  animation: festivalGlow 1.5s infinite; 
+  box-shadow: 0 0 20px #ff006e, 0 0 40px #ffbe0b, 0 0 60px #8338ec;
+}
+.offer-btn i { color: #fff; font-size: 28px; }
+.offer-btn:hover {
+  animation: none;
+  transform: translate(50%, 50%) scale(1.1);
+  box-shadow: 0 0 30px #ff006e, 0 0 60px #ffbe0b, 0 0 90px #8338ec;
+  background: linear-gradient(135deg, #ff006e, #ffbe0b, #8338ec);
+  color: #fff;
+}
+.offer-btn.dragging {
+  animation: none;
+}
+@keyframes festivalGlow { 
+  0% { box-shadow: 0 0 15px #ff006e, 0 0 30px #ffbe0b, 0 0 45px #8338ec; } 
+  50% { box-shadow: 0 0 30px #ff006e, 0 0 60px #ffbe0b, 0 0 90px #8338ec; } 
+  100% { box-shadow: 0 0 15px #ff006e, 0 0 30px #ffbe0b, 0 0 45px #8338ec; } 
+}
 .support-btn { right: 110px; bottom: 95px; background: linear-gradient(135deg, #D4AF37, #F6E27A, #C5A028); }
 .support-btn i { color: #0A0C10; font-size: 18px; }
 .x-btn { right: 160px; bottom: 95px; background: linear-gradient(135deg, #D4AF37, #F6E27A, #C5A028); color: #0A0C10; display: flex; align-items: center; justify-content: center; }
 .x-btn svg { width: 20px; height: 20px; fill: #0A0C10; }
+
+/* تأثير المهرجان داخل النافذة */
+.festival-animation {
+  text-align: center;
+  font-size: 38px;
+  animation: fireworks 1.2s infinite alternate;
+  padding: 10px 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fireworks {
+  0% { transform: scale(0.9) rotate(-2deg); filter: brightness(1); }
+  100% { transform: scale(1.1) rotate(2deg); filter: brightness(1.6); }
+}
+
+/* بانر المهرجان */
+.festival-banner {
+  text-align: center;
+  padding: 20px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff);
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.festival-icon {
+  font-size: 60px;
+  margin-bottom: 10px;
+}
+
+/* صندوق العرض الخاص */
+.special-offer-box {
+  background: #1b2230;
+  border: 2px solid gold;
+  border-radius: 18px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.special-offer-box h3 {
+  color: #FFD700;
+  margin-bottom: 15px;
+  font-size: 20px;
+}
+
+.offer-percent {
+  color: #FFD700;
+  font-size: 34px;
+  font-weight: bold;
+}
+
+.offer-example {
+  margin-top: 18px;
+  background: #263248;
+  padding: 15px;
+  border-radius: 12px;
+  color: #fff;
+}
 
 .support-menu, .lang-menu {
   position: fixed; background: linear-gradient(135deg, #11151C, #1A1F2A); border-radius: 20px;
@@ -1008,7 +1121,11 @@ body { font-family: 'Cairo', sans-serif; background: linear-gradient(135deg, #0A
 @media (max-width: 768px) {
   .circle-btn { width: 40px; height: 40px; font-size: 16px; }
   .lang-btn { right: 8px; bottom: 90px; }
-  .offer-btn { right: 55px; bottom: 90px; }
+  .offer-btn { 
+    width: 60px; 
+    height: 60px; 
+  }
+  .offer-btn i { font-size: 24px; }
   .support-btn { right: 100px; bottom: 90px; }
   .x-btn { right: 145px; bottom: 90px; }
   .support-menu { right: 55px; bottom: 140px; min-width: 220px; }
@@ -1023,7 +1140,11 @@ body { font-family: 'Cairo', sans-serif; background: linear-gradient(135deg, #0A
 
 @media (max-width: 480px) {
   .lang-btn { right: 5px; bottom: 85px; }
-  .offer-btn { right: 48px; bottom: 85px; }
+  .offer-btn { 
+    width: 55px; 
+    height: 55px; 
+  }
+  .offer-btn i { font-size: 22px; }
   .support-btn { right: 90px; bottom: 85px; }
   .x-btn { right: 132px; bottom: 85px; }
   .circle-btn { width: 38px; height: 38px; }
