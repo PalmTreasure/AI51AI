@@ -161,7 +161,7 @@
       </div>
     </transition>
 
-    <!-- نافذة العرض الخاص -->
+    <!-- نافذة العرض الخاص (الحالية) -->
     <transition name="modal">
       <div v-if="showOfferMessage" class="modal-overlay" @click="closeOfferMessage">
         <div class="modal-container offer-modal" @click.stop>
@@ -229,6 +229,98 @@
             <button class="btn-primary" @click.stop="closeOfferMessage">
               <i class="fas fa-check-circle"></i>
               {{ t('understoodThanks') }} 🎯
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ==================== العرض الخاص الجديد (3 أيام) ==================== -->
+    
+    <!-- البانر المتحرك للعرض الخاص -->
+    <transition name="slideBanner">
+      <div v-if="showSpecialOfferBanner && isOfferActive" class="special-offer-banner" @click="openSpecialOfferModal">
+        <div class="banner-content">
+          <div class="banner-icon">🎁</div>
+          <div class="banner-text">
+            <span class="banner-title">عرض خاص 3 أيام</span>
+            <span class="banner-subtitle">مكافأة 20%</span>
+          </div>
+          <div class="banner-timer">
+            <i class="fas fa-clock"></i>
+            <span>{{ remainingDays }} يوم</span>
+          </div>
+          <div class="banner-arrow">
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- نافذة العرض الخاص الجديد -->
+    <transition name="modal">
+      <div v-if="showSpecialOfferModal" class="modal-overlay" @click.self="closeSpecialOfferModal">
+        <div class="modal-container special-offer-modal" @click.stop>
+          <div class="special-offer-header">
+            <div class="offer-glow"></div>
+            <div class="header-content">
+              <div class="offer-icon">🎁</div>
+              <div class="offer-title-text">
+                <h2>عرض خاص لمدة 3 أيام فقط</h2>
+                <div class="offer-timer-badge">
+                  <i class="fas fa-clock"></i>
+                  <span>متبقي {{ remainingDays }} أيام</span>
+                </div>
+              </div>
+              <button class="modal-close special-close" @click.stop="closeSpecialOfferModal">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          <div class="special-offer-body">
+            <div class="offer-message">
+              <p class="greeting">
+                نقدم لكم عرضًا خاصًا تقديرًا لصبركم ودعمكم خلال التحديث الجديد. ❤️
+              </p>
+              <p class="info-text">
+                نعرف أن فترة التحديث الأخيرة كانت تحتاج إلى بعض الصبر، ولذلك أردنا أن نقدم لكم فرصة إضافية للاستفادة خلال هذه الفترة.
+              </p>
+              <div class="offer-highlight">
+                <div class="highlight-icon">🔥</div>
+                <div class="highlight-text">
+                  <strong>مكافأة الإحالة الخاصة:</strong>
+                  <p>عند إضافة شخص جديد من خلال رابط الإحالة الخاص بك، وإذا قام هذا الشخص بإضافة/إيداع 100 دولار وفق شروط العرض، تحصل على نسبة ربح 20% حسب نظام المكافأة المعتمد.</p>
+                </div>
+              </div>
+              <div class="reward-box">
+                <div class="reward-amount">
+                  <span class="reward-label">💰 100$</span>
+                  <span class="reward-arrow">=</span>
+                  <span class="reward-value">مكافأة إحالة 20%</span>
+                </div>
+              </div>
+              <div class="timer-box">
+                <i class="fas fa-hourglass-half"></i>
+                <span>⏰ العرض متاح لمدة 3 أيام فقط وينتهي بعد انتهاء المدة.</span>
+              </div>
+              <div class="appreciation-text">
+                <p>
+                  هذا العرض مقدم كنوع من التقدير والتعويض للمستخدمين الذين صبروا معنا خلال التحديث الجديد، ونشكر كل شخص استمر معنا ودعم المنصة. 🌟
+                </p>
+                <p class="action-text">
+                  استغل فترة العرض قبل انتهائها، وشارك رابط الإحالة الخاص بك مع الأشخاص المهتمين.
+                </p>
+              </div>
+              <div class="terms-note">
+                <i class="fas fa-info-circle"></i>
+                <span>تطبق شروط وأحكام العرض، وتُحتسب المكافأة فقط عند تحقق شروط الإحالة المطلوبة.</span>
+              </div>
+            </div>
+          </div>
+          <div class="special-offer-footer">
+            <button class="btn-primary special-offer-btn" @click="goToTeamPage">
+              <i class="fas fa-gift"></i>
+              استفد من العرض الآن
             </button>
           </div>
         </div>
@@ -364,6 +456,11 @@ export default {
       hasNewOffer: true,
       showBlockedModal: false,
       currentLang: "AR",
+      // متغيرات العرض الخاص الجديد
+      showSpecialOfferBanner: false,
+      showSpecialOfferModal: false,
+      offerStartDate: null,
+      offerDurationDays: 3,
       whatsappNumbers: {
         support: {
           number: "447348577110",
@@ -504,10 +601,38 @@ export default {
     };
   },
 
+  computed: {
+    showBottomNav() {
+      if (!this.user) return false;
+      const path = this.$route.path;
+      const hiddenPaths = ["/login", "/register", "/admin", "/403"];
+      return !hiddenPaths.some((p) => path.startsWith(p));
+    },
+    isOfferActive() {
+      if (!this.offerStartDate) return false;
+      const now = Date.now();
+      const endDate = this.offerStartDate + (this.offerDurationDays * 24 * 60 * 60 * 1000);
+      return now < endDate;
+    },
+    remainingDays() {
+      if (!this.offerStartDate) return this.offerDurationDays;
+      const now = Date.now();
+      const endDate = this.offerStartDate + (this.offerDurationDays * 24 * 60 * 60 * 1000);
+      const diff = endDate - now;
+      if (diff <= 0) return 0;
+      const days = Math.ceil(diff / (24 * 60 * 60 * 1000));
+      return days > 0 ? days : 0;
+    }
+  },
+
   created() {
     const auth = getAuth();
     const savedLang = localStorage.getItem("app_language");
     if (savedLang) this.currentLang = savedLang;
+    
+    // تهيئة تاريخ بدء العرض
+    this.initOfferDates();
+    
     onAuthStateChanged(auth, (user) => {
       this.user = user;
       this.authLoaded = true;
@@ -516,9 +641,17 @@ export default {
         this.settleAndReward(user.uid);
         this.startVipProfitInterval(user.uid);
         setTimeout(() => { this.showAd = true; }, 1000);
+        // إظهار العرض الخاص للمستخدمين المسجلين بعد 1.5 ثانية مع حركة انزلاق
+        setTimeout(() => {
+          if (this.isOfferActive) {
+            this.showSpecialOfferBanner = true;
+          }
+        }, 1500);
       } else {
         this.stopBlockCheck();
         this.stopVipProfitInterval();
+        this.showSpecialOfferBanner = false;
+        this.showSpecialOfferModal = false;
       }
     });
     this.loadButtonPositions();
@@ -544,16 +677,44 @@ export default {
     this.stopVipProfitInterval();
   },
 
-  computed: {
-    showBottomNav() {
-      if (!this.user) return false;
-      const path = this.$route.path;
-      const hiddenPaths = ["/login", "/register", "/admin", "/403"];
-      return !hiddenPaths.some((p) => path.startsWith(p));
-    }
-  },
-
   methods: {
+    // تهيئة تواريخ العرض
+    initOfferDates() {
+      const savedStartDate = localStorage.getItem('specialOfferStartDate');
+      if (savedStartDate) {
+        this.offerStartDate = parseInt(savedStartDate);
+        // التحقق من انتهاء العرض
+        const now = Date.now();
+        const endDate = this.offerStartDate + (this.offerDurationDays * 24 * 60 * 60 * 1000);
+        if (now >= endDate) {
+          localStorage.removeItem('specialOfferStartDate');
+          this.offerStartDate = null;
+        }
+      } else {
+        // بدء عرض جديد
+        this.offerStartDate = Date.now();
+        localStorage.setItem('specialOfferStartDate', String(this.offerStartDate));
+      }
+    },
+
+    // فتح نافذة العرض الخاص
+    openSpecialOfferModal() {
+      if (this.isOfferActive) {
+        this.showSpecialOfferModal = true;
+      }
+    },
+
+    // إغلاق نافذة العرض الخاص
+    closeSpecialOfferModal() {
+      this.showSpecialOfferModal = false;
+    },
+
+    // الانتقال إلى صفحة الفريق
+    goToTeamPage() {
+      this.showSpecialOfferModal = false;
+      this.$router.push('/team');
+    },
+
     // ✅ تم استبدال onSnapshot بـ getDoc مع فحص دوري لتقليل القراءات
     startBlockCheck(userId) {
       this.stopBlockCheck();
@@ -1045,10 +1206,390 @@ body { font-family: 'Cairo', sans-serif; background: linear-gradient(135deg, #0A
 .modal-enter-active, .modal-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #1A1F2A; }
-::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #F6E27A; }
+/* ==================== أنماط البانر المتحرك ==================== */
+
+/* حركة انزلاق البانر من الأعلى */
+.slideBanner-enter-active {
+  animation: slideDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.slideBanner-leave-active {
+  animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100px) scale(0.8);
+  }
+}
+
+/* البانر المصغر */
+.special-offer-banner {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1A1F2A, #2A2F3A);
+  border: 2px solid #D4AF37;
+  border-radius: 14px;
+  padding: 8px 16px;
+  cursor: pointer;
+  z-index: 9998;
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.25), 0 0 50px rgba(212, 175, 55, 0.1);
+  animation: bannerGlow 2s ease-in-out infinite alternate;
+  max-width: 85%;
+  transition: all 0.3s ease;
+}
+
+.special-offer-banner:hover {
+  transform: translateX(-50%) scale(1.03);
+  box-shadow: 0 0 35px rgba(212, 175, 55, 0.4), 0 0 70px rgba(212, 175, 55, 0.15);
+}
+
+@keyframes bannerGlow {
+  0% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.15), 0 0 30px rgba(212, 175, 55, 0.05); }
+  100% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.4), 0 0 60px rgba(212, 175, 55, 0.15); }
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.banner-icon {
+  font-size: 20px;
+  animation: iconBounce 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.15) rotate(-5deg); }
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.banner-title {
+  font-weight: 700;
+  color: #D4AF37;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.banner-subtitle {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.banner-timer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(212, 175, 55, 0.12);
+  padding: 2px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  flex-shrink: 0;
+}
+
+.banner-timer i {
+  color: #D4AF37;
+  font-size: 10px;
+}
+
+.banner-timer span {
+  font-size: 10px;
+  font-weight: 600;
+  color: #D4AF37;
+}
+
+.banner-arrow {
+  color: #D4AF37;
+  font-size: 12px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* ==================== أنماط نافذة العرض الخاص ==================== */
+
+.special-offer-modal {
+  max-width: 580px;
+  position: relative;
+  overflow: hidden;
+}
+
+.special-offer-header {
+  background: linear-gradient(135deg, #1A1F2A, #2A2F3A);
+  padding: 25px 20px 20px;
+  position: relative;
+  border-bottom: 2px solid #D4AF37;
+  overflow: hidden;
+}
+
+.offer-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.header-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+.offer-icon {
+  font-size: 48px;
+  animation: iconFloat 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.offer-title-text {
+  flex: 1;
+}
+
+.offer-title-text h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #D4AF37;
+  margin: 0 0 8px 0;
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.offer-timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(212, 175, 55, 0.15);
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  font-size: 13px;
+  color: #D4AF37;
+  font-weight: 600;
+}
+
+.offer-timer-badge i {
+  font-size: 14px;
+}
+
+.special-close {
+  background: rgba(255, 255, 255, 0.1);
+  color: #D4AF37;
+  flex-shrink: 0;
+}
+
+.special-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+.special-offer-body {
+  padding: 25px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.offer-message {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.offer-message .greeting {
+  font-size: 16px;
+  font-weight: 600;
+  color: #D4AF37;
+  text-align: center;
+  margin: 0;
+}
+
+.offer-message .info-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.8;
+  margin: 0;
+  text-align: center;
+}
+
+.offer-highlight {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(246, 226, 122, 0.05));
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+.highlight-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.highlight-text strong {
+  display: block;
+  color: #D4AF37;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.highlight-text p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+}
+
+.reward-box {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(246, 226, 122, 0.1));
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #D4AF37;
+}
+
+.reward-amount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.reward-label {
+  font-size: 20px;
+  font-weight: 700;
+  color: #D4AF37;
+}
+
+.reward-arrow {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.reward-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #F6E27A;
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.timer-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(212, 175, 55, 0.05);
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.timer-box i {
+  color: #D4AF37;
+  font-size: 18px;
+}
+
+.timer-box span {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.appreciation-text {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.appreciation-text p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.7;
+}
+
+.appreciation-text .action-text {
+  color: #D4AF37;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.terms-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255, 59, 48, 0.05);
+  border: 1px solid rgba(255, 59, 48, 0.15);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.terms-note i {
+  color: #ff6b6b;
+  font-size: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.terms-note span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.special-offer-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.special-offer-btn {
+  background: linear-gradient(135deg, #D4AF37, #F6E27A, #C5A028);
+  color: #0A0C10;
+  font-size: 17px;
+}
+
+.special-offer-btn i {
+  font-size: 20px;
+}
 
 @media (max-width: 768px) {
   .circle-btn { width: 40px; height: 40px; font-size: 16px; }
@@ -1064,6 +1605,28 @@ body { font-family: 'Cairo', sans-serif; background: linear-gradient(135deg, #0A
   .modal-container { margin: 10px; max-height: 95vh; }
   .vip-grid { grid-template-columns: 1fr; }
   .commission-row { flex-direction: column; gap: 10px; }
+
+  /* البانر المصغر للهواتف */
+  .special-offer-banner {
+    top: 12px;
+    padding: 6px 12px;
+    max-width: 92%;
+    border-radius: 12px;
+  }
+  .banner-title { font-size: 11px; }
+  .banner-subtitle { font-size: 9px; }
+  .banner-icon { font-size: 17px; }
+  .banner-timer span { font-size: 9px; }
+  .banner-timer { padding: 2px 8px; }
+  .banner-timer i { font-size: 9px; }
+  .banner-arrow { font-size: 10px; }
+  .banner-content { gap: 6px; }
+  
+  .special-offer-modal { max-width: 95%; }
+  .offer-title-text h2 { font-size: 17px; }
+  .offer-icon { font-size: 38px; }
+  .reward-label, .reward-value { font-size: 17px; }
+  .special-offer-body { padding: 18px; }
 }
 
 @media (max-width: 480px) {
@@ -1074,5 +1637,31 @@ body { font-family: 'Cairo', sans-serif; background: linear-gradient(135deg, #0A
   .circle-btn { width: 38px; height: 38px; }
   .ad-title { font-size: 18px; }
   .message-content p { font-size: 13px; line-height: 1.8; }
+
+  /* البانر المصغر للهواتف الصغيرة */
+  .special-offer-banner {
+    top: 8px;
+    padding: 5px 10px;
+    max-width: 95%;
+    border-radius: 10px;
+  }
+  .banner-content { gap: 5px; }
+  .banner-title { font-size: 10px; }
+  .banner-subtitle { font-size: 8px; }
+  .banner-icon { font-size: 15px; }
+  .banner-timer span { font-size: 8px; }
+  .banner-timer { padding: 1px 6px; }
+  .banner-timer i { font-size: 8px; }
+  .banner-arrow { font-size: 9px; }
+  
+  .offer-title-text h2 { font-size: 15px; }
+  .offer-icon { font-size: 32px; }
+  .header-content { gap: 10px; }
+  .special-offer-header { padding: 18px 15px; }
+  .special-offer-body { padding: 15px; }
+  .reward-label, .reward-value { font-size: 15px; }
+  .offer-highlight { padding: 12px; }
+  .highlight-text p { font-size: 13px; }
+  .offer-timer-badge { font-size: 11px; padding: 3px 10px; }
 }
 </style>
