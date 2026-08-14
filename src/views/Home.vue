@@ -1044,8 +1044,8 @@ export default {
     },
 
     generateRandomToast() {
-      const types = ['deposit', 'withdraw'];
-      const type = types[Math.floor(Math.random() * types.length)];
+      // فقط إشعارات من نوع deposit (تعبئة رصيد)
+      const type = 'deposit';
       const amount = this.getRandomAmount();
       
       const toast = {
@@ -1055,7 +1055,7 @@ export default {
         amount: amount,
         flag: this.getRandomFlag(),
         timestampEn: this.getCurrentTimeEnglish(),
-        actionLabel: type === 'deposit' ? this.t('deposit') : this.t('withdraw'),
+        actionLabel: this.t('deposit'),
         progress: 100,
         duration: this.getRandomDuration(),
         isHiding: false,
@@ -1346,7 +1346,7 @@ export default {
 .balance-card {
   background: rgba(15, 20, 25, 0.5);
   border-radius: 14px;
-  padding: 12px 6px; /* تم تقليل الـ padding ليعطي مساحة أكبر للعناصر */
+  padding: 12px 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1373,7 +1373,7 @@ export default {
   align-items: center;
   gap: 2px;
   flex: 1;
-  margin: 0 auto; /* توسيط النص بشكل كامل */
+  margin: 0 auto;
 }
 
 .card-title {
@@ -1410,7 +1410,7 @@ export default {
 .card-arrow {
   color: rgba(255, 255, 255, 0.3);
   font-size: 14px;
-  padding: 0 8px; /* تقليل المسافة للسماح للبطاقة بالظهور */
+  padding: 0 8px;
   transition: all 0.2s;
   flex-shrink: 0;
 }
@@ -1428,7 +1428,7 @@ export default {
   justify-content: center;
   font-size: 18px;
   flex-shrink: 0;
-  margin: 0 4px; /* تقريب الأيقونة من النص */
+  margin: 0 4px;
 }
 
 .card-icon-wrapper.withdrawable {
