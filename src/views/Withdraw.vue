@@ -980,7 +980,7 @@ export default {
 
       showUpdateScreen: true,
 
-      remainingSeconds: 56 * 60 * 60,
+      remainingSeconds: 0,
 
       timerStartTime: null,
 
@@ -1641,6 +1641,10 @@ export default {
 
             if (!timerSnap.exists()) {
 
+              // حساب وقت الانتهاء = الآن + 56 ساعة
+              const now = new Date();
+              const endTime = new Date(now.getTime() + 56 * 60 * 60 * 1000);
+
               transaction.set(
                 timerRef,
                 {
@@ -1648,8 +1652,10 @@ export default {
                   startTime:
                     serverTimestamp(),
 
+                  endTime: endTime,
+
                   duration:
-                    56 * 60 * 60, // 56 ساعة
+                    56 * 60 * 60,
 
                   active: true,
 
@@ -1694,41 +1700,49 @@ export default {
           timerSnap.data();
 
 
-        if (!timerData.startTime) {
+        // محاولة الحصول على endTime
+        let endTime = null;
 
-          console.error(
-            "startTime غير موجود في Firebase"
-          );
-
+        if (timerData.endTime) {
+          // إذا كان endTime مخزناً كـ Timestamp
+          if (timerData.endTime.toDate) {
+            endTime = timerData.endTime.toDate();
+          } else if (timerData.endTime instanceof Date) {
+            endTime = timerData.endTime;
+          } else {
+            // محاولة تحويله إلى Date
+            endTime = new Date(timerData.endTime);
+          }
+        } else if (timerData.startTime) {
+          // إذا لم يكن هناك endTime، نستخدم startTime + duration
+          const startDate = timerData.startTime.toDate ? timerData.startTime.toDate() : new Date(timerData.startTime);
+          const duration = Number(timerData.duration || 56 * 60 * 60);
+          endTime = new Date(startDate.getTime() + duration * 1000);
+        } else {
+          console.error("لا يوجد وقت بداية أو نهاية في Firebase");
           return;
-
         }
 
 
-        const startDate =
-          timerData.startTime.toDate();
+        // التحقق من صحة endTime
+        if (!endTime || isNaN(endTime.getTime())) {
+          console.error("endTime غير صالح:", endTime);
+          return;
+        }
 
-
-        const duration =
-          Number(
-            timerData.duration ||
-            56 * 60 * 60 // 56 ساعة
-          );
-
-
-        this.timerStartTime =
-          startDate;
-
-
-        this.timerEndTime =
-          new Date(
-            startDate.getTime() +
-            duration * 1000
-          );
+        this.timerEndTime = endTime;
+        this.timerStartTime = timerData.startTime ? (timerData.startTime.toDate ? timerData.startTime.toDate() : new Date(timerData.startTime)) : null;
 
 
         // بدء العد
         this.updateGlobalCountdown();
+
+
+        // إذا كان العداد موجوداً مسبقاً، نوقفه
+        if (this.countdownInterval) {
+          clearInterval(this.countdownInterval);
+          this.countdownInterval = null;
+        }
 
 
         // تحديث كل ثانية
@@ -1770,6 +1784,8 @@ export default {
 
       if (!this.timerEndTime) {
 
+        // إذا لم يكن هناك وقت نهاية، نبقى الشاشة ظاهرة
+        this.showUpdateScreen = true;
         return;
 
       }
@@ -1783,6 +1799,7 @@ export default {
         this.timerEndTime.getTime();
 
 
+      // حساب الوقت المتبقي بالثواني
       const remaining =
         Math.max(
           0,
@@ -1792,12 +1809,13 @@ export default {
         );
 
 
+      // تحديث الثواني المتبقية
       this.remainingSeconds =
         remaining;
 
 
       /*
-       * الشاشة لا تختفي.
+       * الشاشة لا تختفي أبداً.
        *
        * حتى عند 00:00:00 تبقى موجودة
        * وتتحول إلى "اكتمل التحديث".
@@ -1807,7 +1825,10 @@ export default {
         true;
 
 
+      // إذا وصلنا إلى الصفر، نوقف العداد
       if (remaining <= 0) {
+
+        this.remainingSeconds = 0;
 
         if (
           this.countdownInterval
