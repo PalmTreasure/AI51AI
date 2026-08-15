@@ -11,7 +11,7 @@
         <!-- دائرة التحميل -->
         <div v-if="remainingSeconds > 0" class="loader"></div>
 
-        <!-- بعد انتهاء الـ72 ساعة -->
+        <!-- بعد انتهاء الـ56 ساعة -->
         <div v-else class="completed-icon">
           <i class="fas fa-check"></i>
         </div>
@@ -27,11 +27,6 @@
         <p v-else>
           انتهت مدة التحديث ويمكنك استخدام صفحة السحب
         </p>
-
-        <!-- النص الثابت للوقت المتبقي -->
-        <div class="countdown-label" style="font-size: 14px; color: #fcd535; margin-bottom: 6px; font-weight: 700;">
-          الوقت المتبقي: 72 ساعة
-        </div>
 
         <!-- العداد -->
         <div class="countdown">
@@ -980,12 +975,12 @@ export default {
     return {
 
       // ======================================================
-      // Timer
+      // Timer - 56 hours (56 * 60 * 60 = 201600 seconds)
       // ======================================================
 
       showUpdateScreen: true,
 
-      remainingSeconds: 72 * 60 * 60,
+      remainingSeconds: 56 * 60 * 60,
 
       timerStartTime: null,
 
@@ -1190,7 +1185,7 @@ export default {
 
 
     // ========================================================
-    // Countdown
+    // Countdown - shows HH:MM:SS format
     // ========================================================
 
     remainingTime() {
@@ -1614,7 +1609,7 @@ export default {
 
 
     // ========================================================
-    // إنشاء / قراءة المؤقت العالمي
+    // إنشاء / قراءة المؤقت العالمي - 56 ساعة
     // ========================================================
 
     async initializeGlobalTimer() {
@@ -1654,7 +1649,7 @@ export default {
                     serverTimestamp(),
 
                   duration:
-                    72 * 60 * 60,
+                    56 * 60 * 60, // 56 ساعة
 
                   active: true,
 
@@ -1717,7 +1712,7 @@ export default {
         const duration =
           Number(
             timerData.duration ||
-            72 * 60 * 60
+            56 * 60 * 60 // 56 ساعة
           );
 
 
