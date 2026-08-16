@@ -2,7 +2,7 @@
   <div class="timer-page">
 
     <!-- =====================================================
-         شاشة التحديث العامة
+         شاشة التحديث العامة - مشتركة بين جميع المستخدمين
          ===================================================== -->
     <div class="timer-overlay">
 
@@ -40,7 +40,7 @@
         </span>
 
         <!-- =====================================================
-             جدول التعويضات - نفس شكل الكود القديم
+             جدول التعويضات - نفس الكود القديم تماماً
              ===================================================== -->
         <div class="rewards-table">
           <h4 style="color: #fcd535; font-size: 14px; margin-bottom: 10px;">
@@ -69,7 +69,7 @@
         </div>
 
         <!-- =====================================================
-             معلومات إضافية - نفس شكل الكود القديم
+             معلومات إضافية - نفس الكود القديم
              ===================================================== -->
         <div class="timer-info">
 
@@ -84,18 +84,6 @@
           </div>
 
         </div>
-
-        <!-- =====================================================
-             زر إعادة تعيين (للمطورين فقط)
-             ===================================================== -->
-        <button 
-          v-if="isDeveloper" 
-          class="reset-button"
-          @click="resetTimer"
-        >
-          <i class="fas fa-sync-alt"></i>
-          إعادة تعيين العداد
-        </button>
 
       </div>
 
@@ -129,13 +117,13 @@ export default {
       // Timer - 56 hours (56 * 60 * 60 = 201600 seconds)
       // ======================================================
 
-      remainingSeconds: 0,
+      remainingSeconds: 56 * 60 * 60, // 56 ساعة بشكل افتراضي
 
       timerEndTime: null,
 
       countdownInterval: null,
 
-      isDeveloper: false, // ضع true لتظهر زر إعادة التعيين
+      timerInitialized: false,
 
       // ======================================================
       // Rewards Table - نفس الكود القديم
@@ -332,7 +320,8 @@ export default {
         if (!timerSnap.exists()) {
 
           console.error("Timer document does not exist");
-
+          // استخدام الوقت الافتراضي
+          this.startDefaultTimer();
           return;
 
         }
@@ -363,6 +352,7 @@ export default {
         } else {
 
           console.error("لا يوجد وقت بداية أو نهاية في Firebase");
+          this.startDefaultTimer();
           return;
 
         }
@@ -371,10 +361,12 @@ export default {
         // التحقق من صحة endTime
         if (!endTime || isNaN(endTime.getTime())) {
           console.error("endTime غير صالح:", endTime);
+          this.startDefaultTimer();
           return;
         }
 
         this.timerEndTime = endTime;
+        this.timerInitialized = true;
 
         // تحديث العداد لأول مرة
         this.updateCountdown();
@@ -400,6 +392,8 @@ export default {
       } catch (error) {
 
         console.error("خطأ في المؤقت العالمي:", error);
+        // استخدام الوقت الافتراضي في حالة الخطأ
+        this.startDefaultTimer();
 
       }
 
@@ -407,7 +401,42 @@ export default {
 
 
     // ========================================================
-    // تحديث العداد
+    // بدء عداد افتراضي في حالة عدم وجود Firebase
+    // ========================================================
+
+    startDefaultTimer() {
+
+      console.log("بدء العداد الافتراضي - 56 ساعة");
+      
+      this.remainingSeconds = 56 * 60 * 60;
+      
+      // إيقاف أي interval سابق
+      if (this.countdownInterval) {
+        clearInterval(this.countdownInterval);
+        this.countdownInterval = null;
+      }
+
+      // بدء التحديث كل ثانية
+      this.countdownInterval =
+        setInterval(
+          () => {
+
+            if (this.remainingSeconds > 0) {
+              this.remainingSeconds--;
+            } else {
+              clearInterval(this.countdownInterval);
+              this.countdownInterval = null;
+            }
+
+          },
+          1000
+        );
+
+    },
+
+
+    // ========================================================
+    // تحديث العداد من Firebase
     // ========================================================
 
     updateCountdown() {
@@ -439,71 +468,6 @@ export default {
 
       }
 
-    },
-
-
-    // ========================================================
-    // إعادة تعيين العداد (للمطورين فقط)
-    // ========================================================
-
-    async resetTimer() {
-
-      if (!this.isDeveloper) {
-        return;
-      }
-
-      try {
-
-        const timerRef = doc(db, "system", "withdrawTimer");
-
-        // حساب وقت انتهاء جديد = الآن + 56 ساعة
-        const now = new Date();
-        const endTime = new Date(now.getTime() + 56 * 60 * 60 * 1000);
-
-        await runTransaction(db, async (transaction) => {
-
-          transaction.set(timerRef, {
-
-            startTime: serverTimestamp(),
-
-            endTime: endTime,
-
-            duration: 56 * 60 * 60,
-
-            active: true,
-
-            createdAt: serverTimestamp(),
-
-            type: "global_withdraw_update",
-            
-            resetAt: serverTimestamp()
-
-          });
-
-        });
-
-        // تحديث العداد محلياً
-        this.timerEndTime = endTime;
-        this.updateCountdown();
-
-        // إعادة تشغيل الـ interval
-        if (this.countdownInterval) {
-          clearInterval(this.countdownInterval);
-          this.countdownInterval = null;
-        }
-
-        this.countdownInterval = setInterval(() => {
-          this.updateCountdown();
-        }, 1000);
-
-        console.log("✅ تم إعادة تعيين العداد بنجاح");
-
-      } catch (error) {
-
-        console.error("خطأ في إعادة تعيين العداد:", error);
-
-      }
-
     }
 
   }
@@ -516,7 +480,7 @@ export default {
 <style scoped>
 
 /* ============================================================
-   صفحة العداد
+   الصفحة
    ============================================================ */
 
 .timer-page {
@@ -544,7 +508,7 @@ export default {
 
 
 /* ============================================================
-   شاشة التحديث
+   شاشة التحديث العامة
    ============================================================ */
 
 .timer-overlay {
@@ -1142,79 +1106,6 @@ export default {
 
   color:
     #fcd535;
-
-}
-
-
-/* ============================================================
-   Reset Button (Developer Only)
-   ============================================================ */
-
-.reset-button {
-
-  margin-top:
-    20px;
-
-  padding:
-    10px 20px;
-
-  background:
-    rgba(
-      220,
-      38,
-      38,
-      0.2
-    );
-
-  color:
-    #fca5a5;
-
-  border:
-    1px solid
-    rgba(
-      220,
-      38,
-      38,
-      0.3
-    );
-
-  border-radius:
-    10px;
-
-  font-size:
-    12px;
-
-  cursor:
-    pointer;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  gap:
-    8px;
-
-  transition:
-    all
-    0.3s ease;
-
-}
-
-
-.reset-button:hover {
-
-  background:
-    rgba(
-      220,
-      38,
-      38,
-      0.3
-    );
 
 }
 
