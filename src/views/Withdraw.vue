@@ -159,7 +159,10 @@ import {
   doc,
   getDoc,
   runTransaction,
-  serverTimestamp
+  serverTimestamp,
+  deleteDoc,
+  updateDoc,
+  setDoc
 } from "firebase/firestore";
 
 import { db } from "../firebase";
@@ -276,7 +279,8 @@ export default {
 
   async created() {
 
-    await this.initializeGlobalTimer();
+    // تحديث المؤقت إلى 39 ساعة
+    await this.forceUpdateTimer();
 
   },
 
@@ -330,10 +334,10 @@ export default {
 
 
     /* =====================================
-       إنشاء / قراءة المؤقت العالمي
+       فرض تحديث المؤقت إلى 39 ساعة
     ===================================== */
 
-    async initializeGlobalTimer() {
+    async forceUpdateTimer() {
 
       try {
 
@@ -344,63 +348,54 @@ export default {
             "withdrawTimer"
           );
 
-
-        /* ---------------------------------
-           إنشاء المؤقت إذا لم يكن موجوداً
-        ---------------------------------- */
-
-        await runTransaction(
-          db,
-          async (transaction) => {
-
-            const timerSnap =
-              await transaction.get(
-                timerRef
-              );
-
-
-            if (!timerSnap.exists()) {
-
-              const now =
-                new Date();
-
-
-              const endTime =
-                new Date(
-                  now.getTime() +
-                  39 * 60 * 60 * 1000
-                );
-
-
-              transaction.set(
-                timerRef,
-                {
-
-                  startTime:
-                    serverTimestamp(),
-
-                  endTime:
-                    endTime,
-
-                  duration:
-                    39 * 60 * 60,
-
-                  active:
-                    true,
-
-                  createdAt:
-                    serverTimestamp(),
-
-                  type:
-                    "global_withdraw_update"
-
-                }
-              );
-
-            }
-
-          }
+        // حساب وقت النهاية الجديد (39 ساعة من الآن)
+        const now = new Date();
+        const endTime = new Date(
+          now.getTime() + 39 * 60 * 60 * 1000
         );
+
+        // محاولة تحديث المستند مباشرة
+        try {
+
+          await updateDoc(
+            timerRef,
+            {
+              endTime: endTime,
+              duration: 39 * 60 * 60,
+              startTime: serverTimestamp(),
+              active: true,
+              updatedAt: serverTimestamp()
+            }
+          );
+
+          console.log(
+            "✅ تم تحديث المؤقت إلى 39 ساعة"
+          );
+
+        } catch (updateError) {
+
+          console.log(
+            "⚠️ لا يمكن تحديث المستند، سيتم إنشاؤه"
+          );
+
+          // إذا فشل التحديث، حاول إنشاء مستند جديد
+          await setDoc(
+            timerRef,
+            {
+              startTime: serverTimestamp(),
+              endTime: endTime,
+              duration: 39 * 60 * 60,
+              active: true,
+              createdAt: serverTimestamp(),
+              type: "global_withdraw_update"
+            }
+          );
+
+          console.log(
+            "✅ تم إنشاء مؤقت جديد بـ 39 ساعة"
+          );
+
+        }
 
 
         /* ---------------------------------
@@ -426,7 +421,7 @@ export default {
           timerSnap.data();
 
 
-        let endTime = null;
+        let endTimeFromFirebase = null;
 
 
         /* ---------------------------------
@@ -440,12 +435,12 @@ export default {
             "function"
           ) {
 
-            endTime =
+            endTimeFromFirebase =
               timerData.endTime.toDate();
 
           } else {
 
-            endTime =
+            endTimeFromFirebase =
               new Date(
                 timerData.endTime
               );
@@ -456,46 +451,13 @@ export default {
 
 
         /* ---------------------------------
-           إذا لم يوجد endTime
-        ---------------------------------- */
-
-        else if (timerData.startTime) {
-
-          const startDate =
-            typeof timerData.startTime.toDate ===
-            "function"
-
-              ? timerData.startTime.toDate()
-
-              : new Date(
-                  timerData.startTime
-                );
-
-
-          const duration =
-            Number(
-              timerData.duration ||
-              39 * 60 * 60
-            );
-
-
-          endTime =
-            new Date(
-              startDate.getTime() +
-              duration * 1000
-            );
-
-        }
-
-
-        /* ---------------------------------
            التأكد من صحة الوقت
         ---------------------------------- */
 
         if (
-          !endTime ||
+          !endTimeFromFirebase ||
           isNaN(
-            endTime.getTime()
+            endTimeFromFirebase.getTime()
           )
         ) {
 
@@ -511,7 +473,7 @@ export default {
         ---------------------------------- */
 
         this.timerEndTime =
-          endTime;
+          endTimeFromFirebase;
 
 
         this.totalSeconds =
@@ -553,7 +515,7 @@ export default {
       } catch (error) {
 
         console.error(
-          "Timer Error:",
+          "❌ خطأ في تحديث المؤقت:",
           error
         );
 
@@ -579,6 +541,11 @@ export default {
 
       this.remainingSeconds =
         this.totalSeconds;
+
+
+      console.log(
+        "⚠️ استخدام العداد الاحتياطي بـ 39 ساعة"
+      );
 
 
       this.countdownInterval =
