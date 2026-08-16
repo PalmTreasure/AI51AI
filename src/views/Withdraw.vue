@@ -1,343 +1,147 @@
 <template>
   <div class="timer-page">
 
-    <!-- خلفية زخرفية -->
-    <div class="bg-glow glow-one"></div>
-    <div class="bg-glow glow-two"></div>
+    <div class="timer-card">
 
-    <div class="timer-overlay">
+      <!-- دائرة التحديث -->
+      <div v-if="remainingSeconds > 0" class="loader-wrapper">
+        <div class="loader"></div>
+        <div class="loader-icon">
+          <i class="fas fa-sync-alt"></i>
+        </div>
+      </div>
 
-      <div class="timer-box">
+      <!-- عند انتهاء الوقت -->
+      <div v-else class="completed-icon">
+        <i class="fas fa-check"></i>
+      </div>
 
-        <!-- الشريط العلوي -->
-        <div class="status-badge">
-          <span class="status-dot"></span>
-          نظام التحديث يعمل
+
+      <!-- العنوان -->
+      <h2>
+        {{ remainingSeconds > 0 ? 'جاري التحديث' : 'اكتمل التحديث' }}
+      </h2>
+
+
+      <!-- الوصف -->
+      <p class="description">
+        {{
+          remainingSeconds > 0
+            ? 'يرجى الانتظار حتى انتهاء عملية التحديث'
+            : 'انتهت عملية التحديث ويمكنك استخدام صفحة السحب'
+        }}
+      </p>
+
+
+      <!-- =========================
+           العداد
+      ========================== -->
+
+      <div class="countdown-box">
+
+        <div class="countdown-time">
+          {{ formattedHours }}
+          <span>:</span>
+          {{ formattedMinutes }}
+          <span>:</span>
+          {{ formattedSeconds }}
         </div>
 
-        <!-- أيقونة التحديث -->
-        <div
-          v-if="remainingSeconds > 0"
-          class="update-icon"
-        >
-          <div class="icon-ring ring-one"></div>
-          <div class="icon-ring ring-two"></div>
-
-          <div class="icon-center">
-            <i class="fas fa-sync-alt"></i>
-          </div>
-        </div>
-
-        <!-- عند انتهاء الوقت -->
-        <div
-          v-else
-          class="completed-icon"
-        >
-          <i class="fas fa-check"></i>
-        </div>
-
-        <!-- العنوان -->
-        <h1>
-          {{ remainingSeconds > 0 ? 'جاري تحديث نظام السحب' : 'اكتمل التحديث' }}
-        </h1>
-
-        <p class="description">
-          {{
-            remainingSeconds > 0
-              ? 'نقوم حالياً بإجراء تحديثات وتحسينات على نظام السحب لضمان استقرار وأمان العمليات.'
-              : 'انتهت عملية التحديث ويمكنك الآن استخدام نظام السحب.'
-          }}
-        </p>
+      </div>
 
 
-        <!-- =========================================
-             قسم العداد
-        ========================================== -->
-
-        <div class="countdown-card">
-
-          <div class="countdown-header">
-            <span>
-              <i class="fas fa-clock"></i>
-              الوقت المتبقي
-            </span>
-
-            <span class="live-badge">
-              LIVE
-            </span>
-          </div>
+      <div class="countdown-label">
+        {{ remainingSeconds > 0 ? 'الوقت المتبقي' : 'انتهى الوقت' }}
+      </div>
 
 
-          <div class="countdown">
+      <!-- =========================
+           التعويضات
+      ========================== -->
 
-            <!-- الساعات -->
-            <div class="time-unit">
+      <div class="rewards-card">
 
-              <div class="time-number">
-                {{ formattedHours }}
-              </div>
-
-              <div class="time-label">
-                ساعة
-              </div>
-
-            </div>
+        <h3>
+          🎁 التعويضات عند تأخير السحب لمدة أسبوع
+        </h3>
 
 
-            <div class="time-separator">
-              :
-            </div>
+        <div class="table-container">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>مبلغ الشحن</th>
+                <th>التعويض</th>
+              </tr>
+
+            </thead>
 
 
-            <!-- الدقائق -->
-            <div class="time-unit">
+            <tbody>
 
-              <div class="time-number">
-                {{ formattedMinutes }}
-              </div>
-
-              <div class="time-label">
-                دقيقة
-              </div>
-
-            </div>
-
-
-            <div class="time-separator">
-              :
-            </div>
-
-
-            <!-- الثواني -->
-            <div class="time-unit">
-
-              <div
-                class="time-number seconds-number"
+              <tr
+                v-for="(reward, amount) in rechargeRewards"
+                :key="amount"
               >
-                {{ formattedSeconds }}
-              </div>
 
-              <div class="time-label">
-                ثانية
-              </div>
+                <td>
+                  USDT {{ formatNumber(amount) }}
+                </td>
 
-            </div>
+                <td>
+                  USDT {{ formatNumber(reward) }}
+                </td>
 
-          </div>
+              </tr>
 
+            </tbody>
 
-          <!-- شريط تقدم -->
-          <div class="progress-section">
-
-            <div class="progress-info">
-              <span>التحديث قيد التنفيذ</span>
-
-              <span>
-                {{ progressPercentage }}%
-              </span>
-            </div>
-
-            <div class="progress-track">
-
-              <div
-                class="progress-bar"
-                :style="{ width: progressPercentage + '%' }"
-              ></div>
-
-            </div>
-
-          </div>
+          </table>
 
         </div>
 
 
-        <!-- =========================================
-             رسالة مهمة
-        ========================================== -->
+        <!-- ملاحظة -->
+        <div class="table-note">
 
-        <div class="notice-card">
+          <i class="fas fa-info-circle"></i>
 
-          <div class="notice-icon">
-            <i class="fas fa-shield-alt"></i>
-          </div>
+          <span>
+            يتم تطبيق تأخير أسبوع على السحب مع تعويض حسب مبلغ الشحن
+          </span>
 
-          <div class="notice-content">
+        </div>
 
-            <strong>
-              تحديث آمن
-            </strong>
+      </div>
 
-            <span>
-              يرجى عدم إغلاق الصفحة أثناء عملية التحديث.
-            </span>
 
-          </div>
+      <!-- =========================
+           معلومات النظام
+      ========================== -->
+
+      <div class="system-info">
+
+        <div class="info-item">
+
+          <i class="fas fa-shield-alt"></i>
+
+          <span>
+            تحديث آمن عبر Firebase
+          </span>
 
         </div>
 
 
-        <!-- =========================================
-             جدول التعويضات
-        ========================================== -->
+        <div class="info-item">
 
-        <div class="rewards-section">
+          <i class="fas fa-users"></i>
 
-          <div class="section-title">
-
-            <div class="title-icon">
-              <i class="fas fa-gift"></i>
-            </div>
-
-            <div>
-              <strong>
-                تعويضات تأخير السحب
-              </strong>
-
-              <span>
-                التعويض حسب مبلغ الشحن
-              </span>
-            </div>
-
-          </div>
-
-
-          <div class="table-wrapper">
-
-            <table>
-
-              <thead>
-
-                <tr>
-                  <th>مبلغ الشحن</th>
-                  <th>التعويض</th>
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                <tr
-                  v-for="(reward, amount) in rechargeRewards"
-                  :key="amount"
-                >
-
-                  <td>
-
-                    <span class="amount">
-                      {{ formatNumber(amount) }}
-                    </span>
-
-                    <small>
-                      USDT
-                    </small>
-
-                  </td>
-
-                  <td>
-
-                    <span class="reward">
-                      +{{ formatNumber(reward) }}
-                    </span>
-
-                    <small>
-                      USDT
-                    </small>
-
-                  </td>
-
-                </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-
-          <div class="table-note">
-
-            <i class="fas fa-info-circle"></i>
-
-            <span>
-              يتم تطبيق فترة تأخير أسبوع على السحب مع تعويض حسب مبلغ الشحن.
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <!-- =========================================
-             معلومات النظام
-        ========================================== -->
-
-        <div class="system-info">
-
-          <div class="system-item">
-
-            <div class="system-icon">
-              <i class="fas fa-database"></i>
-            </div>
-
-            <span>
-              Firebase
-            </span>
-
-            <small>
-              متصل
-            </small>
-
-          </div>
-
-
-          <div class="system-line"></div>
-
-
-          <div class="system-item">
-
-            <div class="system-icon">
-              <i class="fas fa-users"></i>
-            </div>
-
-            <span>
-              النظام العالمي
-            </span>
-
-            <small>
-              موحد
-            </small>
-
-          </div>
-
-
-          <div class="system-line"></div>
-
-
-          <div class="system-item">
-
-            <div class="system-icon">
-              <i class="fas fa-lock"></i>
-            </div>
-
-            <span>
-              الحماية
-            </span>
-
-            <small>
-              آمنة
-            </small>
-
-          </div>
-
-        </div>
-
-
-        <!-- Footer -->
-        <div class="footer-text">
-
-          <i class="fas fa-cog"></i>
-
-          يتم تحديث النظام تلقائياً
+          <span>
+            الوقت موحد لجميع المستخدمين
+          </span>
 
         </div>
 
@@ -370,24 +174,23 @@ export default {
 
     return {
 
-      /* =========================================
-         Timer
-      ========================================== */
+      /* =====================================
+         العداد
+      ===================================== */
 
       remainingSeconds: 56 * 60 * 60,
-
-      totalSeconds: 56 * 60 * 60,
 
       timerEndTime: null,
 
       countdownInterval: null,
 
-      timerInitialized: false,
+      /* مدة المؤقت الأصلية */
+      totalSeconds: 56 * 60 * 60,
 
 
-      /* =========================================
-         Rewards
-      ========================================== */
+      /* =====================================
+         جدول التعويضات
+      ===================================== */
 
       rechargeRewards: {
 
@@ -424,9 +227,9 @@ export default {
   },
 
 
-  /* =========================================
+  /* =====================================
      Computed
-  ========================================== */
+  ===================================== */
 
   computed: {
 
@@ -462,51 +265,14 @@ export default {
 
       return String(seconds).padStart(2, "0");
 
-    },
-
-
-    remainingTime() {
-
-      return (
-        this.formattedHours +
-        ":" +
-        this.formattedMinutes +
-        ":" +
-        this.formattedSeconds
-      );
-
-    },
-
-
-    progressPercentage() {
-
-      if (!this.totalSeconds) {
-        return 0;
-      }
-
-      const elapsed =
-        this.totalSeconds -
-        this.remainingSeconds;
-
-      const percentage =
-        (elapsed / this.totalSeconds) * 100;
-
-      return Math.min(
-        100,
-        Math.max(
-          0,
-          Math.round(percentage)
-        )
-      );
-
     }
 
   },
 
 
-  /* =========================================
+  /* =====================================
      Created
-  ========================================== */
+  ===================================== */
 
   async created() {
 
@@ -515,9 +281,9 @@ export default {
   },
 
 
-  /* =========================================
+  /* =====================================
      Before Unmount
-  ========================================== */
+  ===================================== */
 
   beforeUnmount() {
 
@@ -526,28 +292,27 @@ export default {
   },
 
 
-  /* =========================================
+  /* =====================================
      Methods
-  ========================================== */
+  ===================================== */
 
   methods: {
 
 
-    /* =========================================
-       Format Number
-    ========================================== */
+    /* =====================================
+       تنسيق الأرقام
+    ===================================== */
 
     formatNumber(num) {
 
-      return Number(num)
-        .toLocaleString("en-US");
+      return Number(num).toLocaleString("en-US");
 
     },
 
 
-    /* =========================================
-       Stop Timer
-    ========================================== */
+    /* =====================================
+       إيقاف المؤقت
+    ===================================== */
 
     stopTimer() {
 
@@ -564,9 +329,9 @@ export default {
     },
 
 
-    /* =========================================
-       Initialize Global Timer
-    ========================================== */
+    /* =====================================
+       إنشاء / قراءة المؤقت العالمي
+    ===================================== */
 
     async initializeGlobalTimer() {
 
@@ -580,9 +345,9 @@ export default {
           );
 
 
-        /* =====================================
+        /* ---------------------------------
            إنشاء المؤقت إذا لم يكن موجوداً
-        ===================================== */
+        ---------------------------------- */
 
         await runTransaction(
           db,
@@ -603,10 +368,7 @@ export default {
               const endTime =
                 new Date(
                   now.getTime() +
-                  56 *
-                  60 *
-                  60 *
-                  1000
+                  56 * 60 * 60 * 1000
                 );
 
 
@@ -641,9 +403,9 @@ export default {
         );
 
 
-        /* =====================================
+        /* ---------------------------------
            قراءة المؤقت
-        ===================================== */
+        ---------------------------------- */
 
         const timerSnap =
           await getDoc(
@@ -652,10 +414,6 @@ export default {
 
 
         if (!timerSnap.exists()) {
-
-          console.error(
-            "Timer document does not exist"
-          );
 
           this.startDefaultTimer();
 
@@ -671,9 +429,9 @@ export default {
         let endTime = null;
 
 
-        /* =====================================
+        /* ---------------------------------
            استخراج endTime
-        ===================================== */
+        ---------------------------------- */
 
         if (timerData.endTime) {
 
@@ -685,18 +443,7 @@ export default {
             endTime =
               timerData.endTime.toDate();
 
-          }
-
-          else if (
-            timerData.endTime instanceof Date
-          ) {
-
-            endTime =
-              timerData.endTime;
-
-          }
-
-          else {
+          } else {
 
             endTime =
               new Date(
@@ -708,9 +455,9 @@ export default {
         }
 
 
-        /* =====================================
-           في حال عدم وجود endTime
-        ===================================== */
+        /* ---------------------------------
+           إذا لم يوجد endTime
+        ---------------------------------- */
 
         else if (timerData.startTime) {
 
@@ -741,9 +488,9 @@ export default {
         }
 
 
-        /* =====================================
-           فحص الوقت
-        ===================================== */
+        /* ---------------------------------
+           التأكد من صحة الوقت
+        ---------------------------------- */
 
         if (
           !endTime ||
@@ -752,10 +499,6 @@ export default {
           )
         ) {
 
-          console.error(
-            "endTime غير صالح"
-          );
-
           this.startDefaultTimer();
 
           return;
@@ -763,9 +506,9 @@ export default {
         }
 
 
-        /* =====================================
-           حفظ بيانات المؤقت
-        ===================================== */
+        /* ---------------------------------
+           حفظ وقت النهاية
+        ---------------------------------- */
 
         this.timerEndTime =
           endTime;
@@ -778,27 +521,23 @@ export default {
           );
 
 
-        this.timerInitialized =
-          true;
-
-
-        /* =====================================
-           تحديث أولي
-        ===================================== */
+        /* ---------------------------------
+           تحديث فوري
+        ---------------------------------- */
 
         this.updateCountdown();
 
 
-        /* =====================================
-           إيقاف أي Timer قديم
-        ===================================== */
+        /* ---------------------------------
+           إيقاف أي عداد سابق
+        ---------------------------------- */
 
         this.stopTimer();
 
 
-        /* =====================================
-           تشغيل كل ثانية
-        ===================================== */
+        /* ---------------------------------
+           تشغيل العداد كل ثانية
+        ---------------------------------- */
 
         this.countdownInterval =
           setInterval(
@@ -811,15 +550,12 @@ export default {
           );
 
 
-      }
-
-      catch (error) {
+      } catch (error) {
 
         console.error(
-          "خطأ في المؤقت العالمي:",
+          "Timer Error:",
           error
         );
-
 
         this.startDefaultTimer();
 
@@ -828,16 +564,11 @@ export default {
     },
 
 
-    /* =========================================
-       Default Timer
-    ========================================== */
+    /* =====================================
+       عداد احتياطي
+    ===================================== */
 
     startDefaultTimer() {
-
-      console.log(
-        "بدء المؤقت الافتراضي - 56 ساعة"
-      );
-
 
       this.stopTimer();
 
@@ -860,9 +591,7 @@ export default {
 
               this.remainingSeconds--;
 
-            }
-
-            else {
+            } else {
 
               this.stopTimer();
 
@@ -875,9 +604,9 @@ export default {
     },
 
 
-    /* =========================================
-       Update Countdown
-    ========================================== */
+    /* =====================================
+       تحديث الوقت الحقيقي
+    ===================================== */
 
     updateCountdown() {
 
@@ -896,10 +625,18 @@ export default {
         this.timerEndTime.getTime();
 
 
+      /*
+       * الحساب من وقت النهاية الحقيقي
+       * وليس إنقاص رقم فقط.
+       *
+       * لذلك إذا خرج المستخدم ورجع
+       * أو تأخر الجهاز، يعود للوقت الصحيح.
+       */
+
       const remaining =
         Math.max(
           0,
-          Math.floor(
+          Math.ceil(
             (end - now) / 1000
           )
         );
@@ -909,15 +646,16 @@ export default {
         remaining;
 
 
-      /* =====================================
-         انتهى الوقت
-      ===================================== */
+      /* ---------------------------------
+         انتهاء المؤقت
+      ---------------------------------- */
 
-      if (remaining <= 0) {
+      if (
+        remaining <= 0
+      ) {
 
         this.remainingSeconds =
           0;
-
 
         this.stopTimer();
 
@@ -935,7 +673,7 @@ export default {
 <style scoped>
 
 /* ============================================================
-   GLOBAL PAGE
+   الصفحة الرئيسية
 ============================================================ */
 
 .timer-page {
@@ -944,30 +682,23 @@ export default {
 
   width: 100%;
 
-  position: relative;
-
-  overflow: hidden;
+  box-sizing: border-box;
 
   background:
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(252, 213, 53, 0.10),
-      transparent 35%
-    ),
     linear-gradient(
-      145deg,
-      #080b10 0%,
-      #10151c 50%,
-      #080b10 100%
+      180deg,
+      #0d1117 0%,
+      #171b23 45%,
+      #10141b 100%
     );
 
   display: flex;
 
-  align-items: center;
-
   justify-content: center;
 
-  padding: 30px 15px;
+  align-items: flex-start;
+
+  padding: 25px 14px 40px;
 
   direction: rtl;
 
@@ -975,91 +706,26 @@ export default {
 
 
 /* ============================================================
-   BACKGROUND GLOW
+   البطاقة الرئيسية
 ============================================================ */
 
-.bg-glow {
-
-  position: fixed;
-
-  width: 300px;
-
-  height: 300px;
-
-  border-radius: 50%;
-
-  filter: blur(100px);
-
-  pointer-events: none;
-
-  opacity: 0.15;
-
-}
-
-
-.glow-one {
-
-  background: #fcd535;
-
-  top: -150px;
-
-  right: -120px;
-
-}
-
-
-.glow-two {
-
-  background: #2563eb;
-
-  bottom: -180px;
-
-  left: -150px;
-
-}
-
-
-/* ============================================================
-   OVERLAY
-============================================================ */
-
-.timer-overlay {
+.timer-card {
 
   width: 100%;
 
-  display: flex;
+  max-width: 430px;
 
-  justify-content: center;
+  box-sizing: border-box;
 
-  position: relative;
-
-  z-index: 2;
-
-}
-
-
-/* ============================================================
-   MAIN CARD
-============================================================ */
-
-.timer-box {
-
-  width: min(
-    100%,
-    460px
-  );
-
-  position: relative;
-
-  padding: 28px 22px 22px;
+  padding: 30px 18px 24px;
 
   border-radius: 30px;
 
   background:
     linear-gradient(
       145deg,
-      rgba(31, 36, 44, 0.98),
-      rgba(13, 16, 21, 0.98)
+      #1b2029,
+      #151920
     );
 
   border:
@@ -1068,314 +734,124 @@ export default {
       252,
       213,
       53,
-      0.18
+      0.16
     );
 
   box-shadow:
-
-    0 30px 100px
-    rgba(0, 0, 0, 0.75),
-
-    inset 0 1px 0
-    rgba(255,255,255,0.04);
-
-  animation:
-    cardIn
-    0.6s
-    cubic-bezier(.2,.8,.2,1);
-
-}
-
-
-@keyframes cardIn {
-
-  from {
-
-    opacity: 0;
-
-    transform:
-      translateY(30px)
-      scale(.96);
-
-  }
-
-  to {
-
-    opacity: 1;
-
-    transform:
-      translateY(0)
-      scale(1);
-
-  }
+    0 20px 70px
+    rgba(
+      0,
+      0,
+      0,
+      0.55
+    );
 
 }
 
 
 /* ============================================================
-   STATUS BADGE
+   Loader
 ============================================================ */
 
-.status-badge {
+.loader-wrapper {
 
-  width: fit-content;
+  width: 82px;
 
-  margin:
-    0 auto 25px;
+  height: 82px;
 
-  padding:
-    7px 13px;
+  position: relative;
 
-  border-radius: 50px;
+  margin: 0 auto 28px;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+}
+
+
+.loader {
+
+  position: absolute;
+
+  width: 78px;
+
+  height: 78px;
+
+  border-radius: 50%;
+
+  border:
+    5px solid
+    rgba(
+      252,
+      213,
+      53,
+      0.10
+    );
+
+  border-top-color:
+    #fcd535;
+
+  border-right-color:
+    rgba(
+      252,
+      213,
+      53,
+      0.35
+    );
+
+  animation:
+    spin
+    1.1s
+    linear
+    infinite;
+
+}
+
+
+.loader-icon {
+
+  width: 52px;
+
+  height: 52px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  color: #fcd535;
+
+  font-size: 22px;
 
   background:
     rgba(
-      16,
-      185,
-      129,
+      252,
+      213,
+      53,
       0.08
     );
 
-  border:
-    1px solid
-    rgba(
-      16,
-      185,
-      129,
-      0.20
-    );
-
-  color:
-    #9ca3af;
-
-  font-size:
-    11px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    7px;
-
 }
 
 
-.status-dot {
-
-  width:
-    7px;
-
-  height:
-    7px;
-
-  border-radius:
-    50%;
-
-  background:
-    #10b981;
-
-  box-shadow:
-    0 0 10px
-    rgba(
-      16,
-      185,
-      129,
-      0.8
-    );
+.loader-icon i {
 
   animation:
-    pulseDot
-    1.5s
-    infinite;
-
-}
-
-
-@keyframes pulseDot {
-
-  0%,100% {
-    opacity: .5;
-    transform: scale(.8);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-
-}
-
-
-/* ============================================================
-   UPDATE ICON
-============================================================ */
-
-.update-icon {
-
-  width:
-    92px;
-
-  height:
-    92px;
-
-  position:
-    relative;
-
-  margin:
-    0 auto 22px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-}
-
-
-.icon-center {
-
-  width:
-    64px;
-
-  height:
-    64px;
-
-  border-radius:
-    50%;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  background:
-    linear-gradient(
-      145deg,
-      #fcd535,
-      #d9ad16
-    );
-
-  color:
-    #11151b;
-
-  font-size:
-    25px;
-
-  box-shadow:
-    0 0 35px
-    rgba(
-      252,
-      213,
-      53,
-      0.25
-    );
-
-  position:
-    relative;
-
-  z-index:
-    3;
-
-  animation:
-    iconRotate
-    3s
-    linear infinite;
-
-}
-
-
-@keyframes iconRotate {
-
-  to {
-    transform:
-      rotate(360deg);
-  }
-
-}
-
-
-.icon-ring {
-
-  position:
-    absolute;
-
-  border-radius:
-    50%;
-
-  border:
-    1px solid
-    rgba(
-      252,
-      213,
-      53,
-      0.25
-    );
-
-}
-
-
-.ring-one {
-
-  width:
-    78px;
-
-  height:
-    78px;
-
-  animation:
-    ringPulse
+    iconSpin
     2s
+    linear
     infinite;
 
 }
 
 
-.ring-two {
-
-  width:
-    92px;
-
-  height:
-    92px;
-
-  border-style:
-    dashed;
-
-  animation:
-    ringRotate
-    8s
-    linear infinite;
-
-}
-
-
-@keyframes ringPulse {
-
-  0%,100% {
-    transform: scale(.9);
-    opacity: .4;
-  }
-
-  50% {
-    transform: scale(1.05);
-    opacity: 1;
-  }
-
-}
-
-
-@keyframes ringRotate {
+@keyframes spin {
 
   to {
     transform:
@@ -1385,38 +861,39 @@ export default {
 }
 
 
+@keyframes iconSpin {
+
+  to {
+    transform:
+      rotate(-360deg);
+  }
+
+}
+
+
 /* ============================================================
-   COMPLETED ICON
+   Completed
 ============================================================ */
 
 .completed-icon {
 
-  width:
-    92px;
+  width: 78px;
 
-  height:
-    92px;
+  height: 78px;
 
-  margin:
-    0 auto 22px;
+  margin: 0 auto 28px;
 
-  border-radius:
-    50%;
+  border-radius: 50%;
 
-  display:
-    flex;
+  display: flex;
 
-  align-items:
-    center;
+  align-items: center;
 
-  justify-content:
-    center;
+  justify-content: center;
 
-  color:
-    #10b981;
+  color: #10b981;
 
-  font-size:
-    35px;
+  font-size: 30px;
 
   background:
     rgba(
@@ -1435,41 +912,24 @@ export default {
       0.5
     );
 
-  box-shadow:
-    0 0 40px
-    rgba(
-      16,
-      185,
-      129,
-      0.15
-    );
-
 }
 
 
 /* ============================================================
-   TITLE
+   العنوان
 ============================================================ */
 
-.timer-box h1 {
+.timer-card h2 {
 
-  margin:
-    0 0 10px;
+  margin: 0;
 
-  text-align:
-    center;
+  text-align: center;
 
-  color:
-    #f5f5f5;
+  color: #fcd535;
 
-  font-size:
-    22px;
+  font-size: 30px;
 
-  font-weight:
-    800;
-
-  letter-spacing:
-    -.3px;
+  font-weight: 800;
 
 }
 
@@ -1477,53 +937,39 @@ export default {
 .description {
 
   margin:
-    0 auto 24px;
+    12px auto 28px;
 
-  max-width:
-    380px;
+  text-align: center;
 
-  text-align:
-    center;
+  color: #9aa1ab;
 
-  color:
-    #8b949e;
+  font-size: 15px;
 
-  font-size:
-    12px;
-
-  line-height:
-    1.8;
+  line-height: 1.7;
 
 }
 
 
 /* ============================================================
-   COUNTDOWN CARD
+   صندوق العداد
 ============================================================ */
 
-.countdown-card {
+.countdown-box {
 
-  padding:
-    16px;
+  width: 100%;
 
-  border-radius:
-    20px;
+  box-sizing: border-box;
+
+  padding: 22px 10px;
+
+  border-radius: 22px;
 
   background:
-    linear-gradient(
-      145deg,
-      rgba(
-        252,
-        213,
-        53,
-        0.075
-      ),
-      rgba(
-        255,
-        255,
-        255,
-        0.025
-      )
+    rgba(
+      252,
+      213,
+      53,
+      0.055
     );
 
   border:
@@ -1532,15 +978,15 @@ export default {
       252,
       213,
       53,
-      0.16
+      0.28
     );
 
   box-shadow:
-    inset 0 1px 0
+    inset 0 0 25px
     rgba(
-      255,
-      255,
-      255,
+      252,
+      213,
+      53,
       0.025
     );
 
@@ -1548,153 +994,28 @@ export default {
 
 
 /* ============================================================
-   COUNTDOWN HEADER
+   الوقت
 ============================================================ */
 
-.countdown-header {
+.countdown-time {
 
-  display:
-    flex;
+  direction: ltr;
 
-  align-items:
-    center;
+  text-align: center;
 
-  justify-content:
-    space-between;
+  white-space: nowrap;
 
-  color:
-    #8b949e;
-
-  font-size:
-    11px;
-
-  margin-bottom:
-    14px;
-
-}
-
-
-.countdown-header i {
-
-  color:
-    #fcd535;
-
-  margin-left:
-    5px;
-
-}
-
-
-.live-badge {
-
-  font-size:
-    8px;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    1px;
-
-  color:
-    #10b981;
-
-  padding:
-    4px 7px;
-
-  border-radius:
-    5px;
-
-  background:
-    rgba(
-      16,
-      185,
-      129,
-      0.08
-    );
-
-}
-
-
-/* ============================================================
-   COUNTDOWN
-============================================================ */
-
-.countdown {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  direction:
-    ltr;
-
-  gap:
-    8px;
-
-}
-
-
-.time-unit {
-
-  min-width:
-    82px;
-
-  text-align:
-    center;
-
-}
-
-
-.time-number {
-
-  height:
-    65px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border-radius:
-    13px;
-
-  background:
-    #0c1015;
-
-  border:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.07
-    );
-
-  color:
-    #fcd535;
+  color: #fcd535;
 
   font-family:
     "Courier New",
     monospace;
 
-  font-size:
-    31px;
+  font-size: 42px;
 
-  font-weight:
-    900;
+  font-weight: 900;
 
-  letter-spacing:
-    1px;
+  letter-spacing: 3px;
 
   text-shadow:
     0 0 15px
@@ -1702,151 +1023,119 @@ export default {
       252,
       213,
       53,
-      0.25
+      0.18
     );
 
 }
 
 
-.seconds-number {
+.countdown-time span {
 
-  animation:
-    secondsGlow
-    1s
-    infinite;
+  margin:
+    0 3px;
 
-}
-
-
-@keyframes secondsGlow {
-
-  0%,100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: .72;
-  }
-
-}
-
-
-.time-label {
-
-  margin-top:
-    6px;
-
-  color:
-    #66707c;
-
-  font-size:
-    9px;
-
-}
-
-
-.time-separator {
-
-  color:
-    #fcd535;
-
-  font-family:
-    monospace;
-
-  font-size:
-    25px;
-
-  font-weight:
-    900;
-
-  margin-top:
-    -15px;
+  opacity: .75;
 
 }
 
 
 /* ============================================================
-   PROGRESS
+   label
 ============================================================ */
 
-.progress-section {
+.countdown-label {
 
-  margin-top:
-    17px;
+  text-align: center;
 
-}
+  color: #777f8a;
 
+  font-size: 14px;
 
-.progress-info {
-
-  display:
-    flex;
-
-  justify-content:
-    space-between;
-
-  color:
-    #68727e;
-
-  font-size:
-    9px;
-
-  margin-bottom:
-    7px;
+  margin:
+    14px 0 30px;
 
 }
 
 
-.progress-info span:last-child {
+/* ============================================================
+   rewards
+============================================================ */
 
-  color:
-    #fcd535;
+.rewards-card {
 
-  font-weight:
-    700;
+  width: 100%;
 
-}
+  box-sizing: border-box;
 
+  padding: 18px 8px 15px;
 
-.progress-track {
-
-  height:
-    5px;
+  border-radius: 22px;
 
   background:
     rgba(
-      255,
-      255,
-      255,
-      0.06
+      20,
+      24,
+      32,
+      0.95
     );
 
-  border-radius:
-    20px;
-
-  overflow:
-    hidden;
+  border:
+    1px solid
+    rgba(
+      252,
+      213,
+      53,
+      0.18
+    );
 
 }
 
 
-.progress-bar {
+.rewards-card h3 {
 
-  height:
-    100%;
+  margin:
+    0 8px 18px;
 
-  border-radius:
-    inherit;
+  text-align: center;
+
+  color: #fcd535;
+
+  font-size: 18px;
+
+  line-height: 1.7;
+
+}
+
+
+/* ============================================================
+   table
+============================================================ */
+
+.table-container {
+
+  width: 100%;
+
+  max-height: 270px;
+
+  overflow-y: auto;
+
+  overflow-x: hidden;
+
+  border-radius: 15px;
+
+}
+
+
+.table-container::-webkit-scrollbar {
+
+  width: 4px;
+
+}
+
+
+.table-container::-webkit-scrollbar-thumb {
 
   background:
-    linear-gradient(
-      90deg,
-      #b98c00,
-      #fcd535
-    );
-
-  box-shadow:
-    0 0 12px
     rgba(
       252,
       213,
@@ -1854,484 +1143,128 @@ export default {
       0.35
     );
 
-  transition:
-    width
-    .5s
-    ease;
-
-}
-
-
-/* ============================================================
-   NOTICE
-============================================================ */
-
-.notice-card {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    11px;
-
-  margin-top:
-    14px;
-
-  padding:
-    12px;
-
-  border-radius:
-    14px;
-
-  background:
-    rgba(
-      59,
-      130,
-      246,
-      0.055
-    );
-
-  border:
-    1px solid
-    rgba(
-      59,
-      130,
-      246,
-      0.12
-    );
-
-  text-align:
-    right;
-
-}
-
-
-.notice-icon {
-
-  min-width:
-    35px;
-
-  height:
-    35px;
-
-  border-radius:
-    10px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  background:
-    rgba(
-      59,
-      130,
-      246,
-      0.10
-    );
-
-  color:
-    #60a5fa;
-
-}
-
-
-.notice-content {
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    3px;
-
-}
-
-
-.notice-content strong {
-
-  color:
-    #dbe4ef;
-
-  font-size:
-    11px;
-
-}
-
-
-.notice-content span {
-
-  color:
-    #6f7a86;
-
-  font-size:
-    9px;
-
-}
-
-
-/* ============================================================
-   REWARDS
-============================================================ */
-
-.rewards-section {
-
-  margin-top:
-    20px;
-
-  padding-top:
-    18px;
-
-  border-top:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.06
-    );
-
-}
-
-
-.section-title {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    10px;
-
-  margin-bottom:
-    12px;
-
-  text-align:
-    right;
-
-}
-
-
-.title-icon {
-
-  width:
-    36px;
-
-  height:
-    36px;
-
-  border-radius:
-    10px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  color:
-    #fcd535;
-
-  background:
-    rgba(
-      252,
-      213,
-      53,
-      0.08
-    );
-
-}
-
-
-.section-title strong {
-
-  display:
-    block;
-
-  color:
-    #e7e9ec;
-
-  font-size:
-    12px;
-
-}
-
-
-.section-title span {
-
-  display:
-    block;
-
-  color:
-    #656f7b;
-
-  font-size:
-    9px;
-
-  margin-top:
-    3px;
-
-}
-
-
-/* ============================================================
-   TABLE
-============================================================ */
-
-.table-wrapper {
-
-  max-height:
-    190px;
-
-  overflow-y:
-    auto;
-
-  border:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.06
-    );
-
-  border-radius:
-    13px;
-
-}
-
-
-.table-wrapper::-webkit-scrollbar {
-
-  width:
-    4px;
-
-}
-
-
-.table-wrapper::-webkit-scrollbar-thumb {
-
-  background:
-    rgba(
-      252,
-      213,
-      53,
-      0.3
-    );
-
-  border-radius:
-    10px;
+  border-radius: 10px;
 
 }
 
 
 table {
 
-  width:
-    100%;
+  width: 100%;
 
-  border-collapse:
-    collapse;
+  border-collapse: collapse;
 
-  font-size:
-    10px;
+  table-layout: fixed;
 
 }
 
 
-thead {
-
-  position:
-    sticky;
-
-  top:
-    0;
-
-  z-index:
-    2;
-
-}
-
+/* ============================================================
+   header
+============================================================ */
 
 th {
 
-  padding:
-    9px;
+  position: sticky;
 
-  background:
-    #181d24;
+  top: 0;
 
-  color:
-    #fcd535;
+  z-index: 2;
 
-  font-weight:
-    700;
-
-}
-
-
-td {
-
-  padding:
-    8px 9px;
-
-  border-top:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.035
-    );
-
-  text-align:
-    center;
-
-}
-
-
-td:first-child {
-
-  color:
-    #d2d7dd;
-
-}
-
-
-.amount {
-
-  font-weight:
-    700;
-
-}
-
-
-td small {
-
-  color:
-    #69737e;
-
-  font-size:
-    8px;
-
-  margin-right:
-    3px;
-
-}
-
-
-.reward {
-
-  color:
-    #10b981;
-
-  font-weight:
-    800;
-
-}
-
-
-tbody tr {
-
-  transition:
-    background
-    .2s
-    ease;
-
-}
-
-
-tbody tr:hover {
+  padding: 13px 5px;
 
   background:
     rgba(
       252,
       213,
       53,
-      0.035
+      0.10
+    );
+
+  color: #fcd535;
+
+  font-size: 14px;
+
+  font-weight: 800;
+
+}
+
+
+td {
+
+  padding: 13px 4px;
+
+  text-align: center;
+
+  color: #e2e5e9;
+
+  font-size: 14px;
+
+  border-bottom:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.055
     );
 
 }
 
 
+tr:last-child td {
+
+  border-bottom: none;
+
+}
+
+
 /* ============================================================
-   TABLE NOTE
+   note
 ============================================================ */
 
 .table-note {
 
-  display:
-    flex;
+  display: flex;
 
-  align-items:
-    flex-start;
+  align-items: flex-start;
 
-  justify-content:
-    center;
+  justify-content: center;
 
-  gap:
-    6px;
+  gap: 7px;
 
-  margin-top:
-    9px;
+  margin:
+    14px 7px 0;
 
-  color:
-    #626c77;
+  color: #777f8a;
 
-  font-size:
-    9px;
+  font-size: 11px;
 
-  line-height:
-    1.6;
+  line-height: 1.7;
+
+  text-align: center;
 
 }
 
 
 .table-note i {
 
-  color:
-    #fcd535;
+  color: #fcd535;
 
-  margin-top:
-    2px;
+  margin-top: 3px;
 
 }
 
 
 /* ============================================================
-   SYSTEM INFO
+   system information
 ============================================================ */
 
 .system-info {
 
-  display:
-    flex;
+  margin-top: 24px;
 
-  align-items:
-    center;
-
-  justify-content:
-    space-around;
-
-  margin-top:
-    20px;
-
-  padding-top:
-    17px;
+  padding-top: 18px;
 
   border-top:
     1px solid
@@ -2345,145 +1278,28 @@ tbody tr:hover {
 }
 
 
-.system-item {
+.info-item {
 
-  display:
-    flex;
+  display: flex;
 
-  flex-direction:
-    column;
+  align-items: center;
 
-  align-items:
-    center;
+  justify-content: center;
 
-  gap:
-    3px;
+  gap: 8px;
 
-}
+  color: #69727d;
 
+  font-size: 11px;
 
-.system-icon {
-
-  width:
-    29px;
-
-  height:
-    29px;
-
-  border-radius:
-    8px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.035
-    );
-
-  color:
-    #818b96;
-
-  font-size:
-    10px;
-
-  margin-bottom:
-    2px;
+  margin-bottom: 10px;
 
 }
 
 
-.system-item span {
+.info-item i {
 
-  color:
-    #777f89;
-
-  font-size:
-    8px;
-
-}
-
-
-.system-item small {
-
-  color:
-    #10b981;
-
-  font-size:
-    7px;
-
-}
-
-
-.system-line {
-
-  width:
-    1px;
-
-  height:
-    35px;
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.06
-    );
-
-}
-
-
-/* ============================================================
-   FOOTER
-============================================================ */
-
-.footer-text {
-
-  margin-top:
-    17px;
-
-  text-align:
-    center;
-
-  color:
-    #4f5863;
-
-  font-size:
-    8px;
-
-}
-
-
-.footer-text i {
-
-  margin-left:
-    4px;
-
-  animation:
-    footerSpin
-    3s
-    linear
-    infinite;
-
-}
-
-
-@keyframes footerSpin {
-
-  to {
-    transform:
-      rotate(360deg);
-  }
+  color: #fcd535;
 
 }
 
@@ -2492,95 +1308,31 @@ tbody tr:hover {
    MOBILE
 ============================================================ */
 
-@media (max-width: 500px) {
+@media (max-width: 480px) {
 
   .timer-page {
 
     padding:
-      15px 10px;
-
-    align-items:
-      flex-start;
-
-    padding-top:
-      20px;
+      18px 10px 30px;
 
   }
 
 
-  .timer-box {
+  .timer-card {
 
     padding:
-      23px 15px 18px;
+      27px 14px 22px;
 
     border-radius:
-      25px;
+      26px;
 
   }
 
 
-  .status-badge {
-
-    margin-bottom:
-      20px;
-
-  }
-
-
-  .update-icon {
-
-    width:
-      78px;
-
-    height:
-      78px;
-
-    margin-bottom:
-      18px;
-
-  }
-
-
-  .icon-center {
-
-    width:
-      55px;
-
-    height:
-      55px;
+  .timer-card h2 {
 
     font-size:
-      21px;
-
-  }
-
-
-  .ring-one {
-
-    width:
-      68px;
-
-    height:
-      68px;
-
-  }
-
-
-  .ring-two {
-
-    width:
-      78px;
-
-    height:
-      78px;
-
-  }
-
-
-  .timer-box h1 {
-
-    font-size:
-      19px;
+      28px;
 
   }
 
@@ -2588,83 +1340,46 @@ tbody tr:hover {
   .description {
 
     font-size:
-      11px;
+      14px;
 
     margin-bottom:
-      19px;
+      24px;
 
   }
 
 
-  .countdown-card {
+  .countdown-box {
 
     padding:
-      12px;
+      20px 5px;
 
   }
 
 
-  .countdown {
-
-    gap:
-      4px;
-
-  }
-
-
-  .time-unit {
-
-    min-width:
-      65px;
-
-  }
-
-
-  .time-number {
-
-    height:
-      56px;
+  .countdown-time {
 
     font-size:
-      25px;
+      35px;
 
-    border-radius:
-      11px;
+    letter-spacing:
+      2px;
 
   }
 
 
-  .time-separator {
+  .rewards-card h3 {
 
     font-size:
-      20px;
-
-    margin-top:
-      -13px;
-
-  }
-
-
-  .time-label {
-
-    font-size:
-      8px;
-
-  }
-
-
-  .notice-card {
-
-    padding:
-      10px;
-
-  }
-
-
-  .system-info {
-
-    margin-top:
       17px;
+
+  }
+
+
+  th,
+  td {
+
+    font-size:
+      13px;
 
   }
 
@@ -2672,42 +1387,34 @@ tbody tr:hover {
 
 
 /* ============================================================
-   VERY SMALL PHONES
+   شاشات صغيرة جداً
 ============================================================ */
 
 @media (max-width: 360px) {
 
-  .time-unit {
+  .countdown-time {
 
-    min-width:
-      56px;
+    font-size:
+      29px;
+
+    letter-spacing:
+      1px;
 
   }
 
 
-  .time-number {
-
-    height:
-      51px;
+  .timer-card h2 {
 
     font-size:
-      21px;
+      25px;
 
   }
 
 
-  .time-separator {
+  .description {
 
     font-size:
-      17px;
-
-  }
-
-
-  .timer-box h1 {
-
-    font-size:
-      17px;
+      13px;
 
   }
 
