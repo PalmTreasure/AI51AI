@@ -1,87 +1,343 @@
 <template>
   <div class="timer-page">
 
-    <!-- =====================================================
-         شاشة التحديث العامة - مشتركة بين جميع المستخدمين
-         ===================================================== -->
+    <!-- خلفية زخرفية -->
+    <div class="bg-glow glow-one"></div>
+    <div class="bg-glow glow-two"></div>
+
     <div class="timer-overlay">
 
       <div class="timer-box">
 
-        <!-- دائرة التحميل -->
-        <div v-if="remainingSeconds > 0" class="loader"></div>
+        <!-- الشريط العلوي -->
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          نظام التحديث يعمل
+        </div>
 
-        <!-- بعد انتهاء الـ56 ساعة -->
-        <div v-else class="completed-icon">
+        <!-- أيقونة التحديث -->
+        <div
+          v-if="remainingSeconds > 0"
+          class="update-icon"
+        >
+          <div class="icon-ring ring-one"></div>
+          <div class="icon-ring ring-two"></div>
+
+          <div class="icon-center">
+            <i class="fas fa-sync-alt"></i>
+          </div>
+        </div>
+
+        <!-- عند انتهاء الوقت -->
+        <div
+          v-else
+          class="completed-icon"
+        >
           <i class="fas fa-check"></i>
         </div>
 
-        <h3>
-          {{ remainingSeconds > 0 ? 'جاري التحديث' : 'اكتمل التحديث' }}
-        </h3>
+        <!-- العنوان -->
+        <h1>
+          {{ remainingSeconds > 0 ? 'جاري تحديث نظام السحب' : 'اكتمل التحديث' }}
+        </h1>
 
-        <p v-if="remainingSeconds > 0">
-          يرجى الانتظار حتى انتهاء عملية التحديث
+        <p class="description">
+          {{
+            remainingSeconds > 0
+              ? 'نقوم حالياً بإجراء تحديثات وتحسينات على نظام السحب لضمان استقرار وأمان العمليات.'
+              : 'انتهت عملية التحديث ويمكنك الآن استخدام نظام السحب.'
+          }}
         </p>
 
-        <p v-else>
-          انتهت مدة التحديث ويمكنك استخدام صفحة السحب
-        </p>
 
-        <!-- =====================================================
-             العداد التنازلي - HH:MM:SS
-             ===================================================== -->
-        <div class="countdown-display">
-          {{ remainingTime }}
+        <!-- =========================================
+             قسم العداد
+        ========================================== -->
+
+        <div class="countdown-card">
+
+          <div class="countdown-header">
+            <span>
+              <i class="fas fa-clock"></i>
+              الوقت المتبقي
+            </span>
+
+            <span class="live-badge">
+              LIVE
+            </span>
+          </div>
+
+
+          <div class="countdown">
+
+            <!-- الساعات -->
+            <div class="time-unit">
+
+              <div class="time-number">
+                {{ formattedHours }}
+              </div>
+
+              <div class="time-label">
+                ساعة
+              </div>
+
+            </div>
+
+
+            <div class="time-separator">
+              :
+            </div>
+
+
+            <!-- الدقائق -->
+            <div class="time-unit">
+
+              <div class="time-number">
+                {{ formattedMinutes }}
+              </div>
+
+              <div class="time-label">
+                دقيقة
+              </div>
+
+            </div>
+
+
+            <div class="time-separator">
+              :
+            </div>
+
+
+            <!-- الثواني -->
+            <div class="time-unit">
+
+              <div
+                class="time-number seconds-number"
+              >
+                {{ formattedSeconds }}
+              </div>
+
+              <div class="time-label">
+                ثانية
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- شريط تقدم -->
+          <div class="progress-section">
+
+            <div class="progress-info">
+              <span>التحديث قيد التنفيذ</span>
+
+              <span>
+                {{ progressPercentage }}%
+              </span>
+            </div>
+
+            <div class="progress-track">
+
+              <div
+                class="progress-bar"
+                :style="{ width: progressPercentage + '%' }"
+              ></div>
+
+            </div>
+
+          </div>
+
         </div>
 
-        <span class="countdown-label">
-          {{ remainingSeconds > 0 ? 'الوقت المتبقي' : 'انتهى الوقت' }}
-        </span>
 
-        <!-- =====================================================
-             جدول التعويضات - نفس الكود القديم تماماً
-             ===================================================== -->
-        <div class="rewards-table">
-          <h4 style="color: #fcd535; font-size: 14px; margin-bottom: 10px;">
-            🎁 التعويضات عند تأخير السحب لمدة أسبوع
-          </h4>
-          <div class="table-scroll">
+        <!-- =========================================
+             رسالة مهمة
+        ========================================== -->
+
+        <div class="notice-card">
+
+          <div class="notice-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+
+          <div class="notice-content">
+
+            <strong>
+              تحديث آمن
+            </strong>
+
+            <span>
+              يرجى عدم إغلاق الصفحة أثناء عملية التحديث.
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <!-- =========================================
+             جدول التعويضات
+        ========================================== -->
+
+        <div class="rewards-section">
+
+          <div class="section-title">
+
+            <div class="title-icon">
+              <i class="fas fa-gift"></i>
+            </div>
+
+            <div>
+              <strong>
+                تعويضات تأخير السحب
+              </strong>
+
+              <span>
+                التعويض حسب مبلغ الشحن
+              </span>
+            </div>
+
+          </div>
+
+
+          <div class="table-wrapper">
+
             <table>
+
               <thead>
+
                 <tr>
                   <th>مبلغ الشحن</th>
                   <th>التعويض</th>
                 </tr>
+
               </thead>
+
               <tbody>
-                <tr v-for="(reward, amount) in rechargeRewards" :key="amount">
-                  <td>{{ formatNumber(amount) }} USDT</td>
-                  <td>{{ formatNumber(reward) }} USDT</td>
+
+                <tr
+                  v-for="(reward, amount) in rechargeRewards"
+                  :key="amount"
+                >
+
+                  <td>
+
+                    <span class="amount">
+                      {{ formatNumber(amount) }}
+                    </span>
+
+                    <small>
+                      USDT
+                    </small>
+
+                  </td>
+
+                  <td>
+
+                    <span class="reward">
+                      +{{ formatNumber(reward) }}
+                    </span>
+
+                    <small>
+                      USDT
+                    </small>
+
+                  </td>
+
                 </tr>
+
               </tbody>
+
             </table>
+
           </div>
+
+
           <div class="table-note">
+
             <i class="fas fa-info-circle"></i>
-            يتم تطبيق تأخير أسبوع على السحب مع تعويض حسب مبلغ الشحن
+
+            <span>
+              يتم تطبيق فترة تأخير أسبوع على السحب مع تعويض حسب مبلغ الشحن.
+            </span>
+
           </div>
+
         </div>
 
-        <!-- =====================================================
-             معلومات إضافية - نفس الكود القديم
-             ===================================================== -->
-        <div class="timer-info">
 
-          <div class="info-row">
-            <i class="fas fa-shield-alt"></i>
-            <span>تحديث آمن عبر Firebase</span>
+        <!-- =========================================
+             معلومات النظام
+        ========================================== -->
+
+        <div class="system-info">
+
+          <div class="system-item">
+
+            <div class="system-icon">
+              <i class="fas fa-database"></i>
+            </div>
+
+            <span>
+              Firebase
+            </span>
+
+            <small>
+              متصل
+            </small>
+
           </div>
 
-          <div class="info-row">
-            <i class="fas fa-users"></i>
-            <span>الوقت موحد لجميع المستخدمين</span>
+
+          <div class="system-line"></div>
+
+
+          <div class="system-item">
+
+            <div class="system-icon">
+              <i class="fas fa-users"></i>
+            </div>
+
+            <span>
+              النظام العالمي
+            </span>
+
+            <small>
+              موحد
+            </small>
+
           </div>
+
+
+          <div class="system-line"></div>
+
+
+          <div class="system-item">
+
+            <div class="system-icon">
+              <i class="fas fa-lock"></i>
+            </div>
+
+            <span>
+              الحماية
+            </span>
+
+            <small>
+              آمنة
+            </small>
+
+          </div>
+
+        </div>
+
+
+        <!-- Footer -->
+        <div class="footer-text">
+
+          <i class="fas fa-cog"></i>
+
+          يتم تحديث النظام تلقائياً
 
         </div>
 
@@ -95,11 +351,11 @@
 
 <script>
 
-import { 
-  doc, 
-  getDoc, 
-  runTransaction, 
-  serverTimestamp 
+import {
+  doc,
+  getDoc,
+  runTransaction,
+  serverTimestamp
 } from "firebase/firestore";
 
 import { db } from "../firebase";
@@ -109,15 +365,18 @@ export default {
 
   name: "TimerPage",
 
+
   data() {
 
     return {
 
-      // ======================================================
-      // Timer - 56 hours (56 * 60 * 60 = 201600 seconds)
-      // ======================================================
+      /* =========================================
+         Timer
+      ========================================== */
 
-      remainingSeconds: 56 * 60 * 60, // 56 ساعة بشكل افتراضي
+      remainingSeconds: 56 * 60 * 60,
+
+      totalSeconds: 56 * 60 * 60,
 
       timerEndTime: null,
 
@@ -125,24 +384,37 @@ export default {
 
       timerInitialized: false,
 
-      // ======================================================
-      // Rewards Table - نفس الكود القديم
-      // ======================================================
+
+      /* =========================================
+         Rewards
+      ========================================== */
 
       rechargeRewards: {
 
         50: 5,
+
         100: 10,
+
         300: 30,
+
         900: 90,
+
         1350: 135,
+
         1800: 180,
+
         3600: 260,
+
         7200: 720,
+
         14400: 1440,
+
         18800: 1880,
+
         37600: 3760,
+
         75200: 7520,
+
         150400: 15040
 
       }
@@ -152,52 +424,79 @@ export default {
   },
 
 
-  // ==========================================================
-  // Computed
-  // ==========================================================
+  /* =========================================
+     Computed
+  ========================================== */
 
   computed: {
 
-    // ========================================================
-    // Countdown - shows HH:MM:SS format
-    // ========================================================
 
-    remainingTime() {
-
-      const seconds =
-        Math.max(
-          0,
-          this.remainingSeconds
-        );
+    formattedHours() {
 
       const hours =
         Math.floor(
-          seconds / 3600
+          this.remainingSeconds / 3600
         );
+
+      return String(hours).padStart(2, "0");
+
+    },
+
+
+    formattedMinutes() {
 
       const minutes =
         Math.floor(
-          (seconds % 3600) / 60
+          (this.remainingSeconds % 3600) / 60
         );
 
-      const secs =
-        seconds % 60;
+      return String(minutes).padStart(2, "0");
+
+    },
+
+
+    formattedSeconds() {
+
+      const seconds =
+        this.remainingSeconds % 60;
+
+      return String(seconds).padStart(2, "0");
+
+    },
+
+
+    remainingTime() {
 
       return (
+        this.formattedHours +
+        ":" +
+        this.formattedMinutes +
+        ":" +
+        this.formattedSeconds
+      );
 
-        String(hours)
-          .padStart(2, "0")
+    },
 
-        + ":" +
 
-        String(minutes)
-          .padStart(2, "0")
+    progressPercentage() {
 
-        + ":" +
+      if (!this.totalSeconds) {
+        return 0;
+      }
 
-        String(secs)
-          .padStart(2, "0")
+      const elapsed =
+        this.totalSeconds -
+        this.remainingSeconds;
 
+      const percentage =
+        (elapsed / this.totalSeconds) * 100;
+
+      return Math.min(
+        100,
+        Math.max(
+          0,
+          Math.round(percentage)
+        )
       );
 
     }
@@ -205,58 +504,69 @@ export default {
   },
 
 
-  // ==========================================================
-  // Created
-  // ==========================================================
+  /* =========================================
+     Created
+  ========================================== */
 
   async created() {
 
-    // تشغيل العداد العالمي من Firebase
     await this.initializeGlobalTimer();
 
   },
 
 
-  // ==========================================================
-  // Before unmount
-  // ==========================================================
+  /* =========================================
+     Before Unmount
+  ========================================== */
 
   beforeUnmount() {
 
-    if (this.countdownInterval) {
-
-      clearInterval(this.countdownInterval);
-
-      this.countdownInterval = null;
-
-    }
+    this.stopTimer();
 
   },
 
 
-  // ==========================================================
-  // Methods
-  // ==========================================================
+  /* =========================================
+     Methods
+  ========================================== */
 
   methods: {
 
-    // ========================================================
-    // Format number with commas - نفس الكود القديم
-    // ========================================================
+
+    /* =========================================
+       Format Number
+    ========================================== */
 
     formatNumber(num) {
 
-      if (num >= 1000) {
-        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-      }
-      return num.toString();
+      return Number(num)
+        .toLocaleString("en-US");
 
     },
 
 
-    // ========================================================
-    // إنشاء / قراءة المؤقت العالمي - 56 ساعة
-    // ========================================================
+    /* =========================================
+       Stop Timer
+    ========================================== */
+
+    stopTimer() {
+
+      if (this.countdownInterval) {
+
+        clearInterval(
+          this.countdownInterval
+        );
+
+        this.countdownInterval = null;
+
+      }
+
+    },
+
+
+    /* =========================================
+       Initialize Global Timer
+    ========================================== */
 
     async initializeGlobalTimer() {
 
@@ -270,7 +580,10 @@ export default {
           );
 
 
-        // إنشاء المؤقت إذا لم يكن موجوداً
+        /* =====================================
+           إنشاء المؤقت إذا لم يكن موجوداً
+        ===================================== */
+
         await runTransaction(
           db,
           async (transaction) => {
@@ -280,27 +593,44 @@ export default {
                 timerRef
               );
 
+
             if (!timerSnap.exists()) {
 
-              // حساب وقت الانتهاء = الآن + 56 ساعة
-              const now = new Date();
-              const endTime = new Date(now.getTime() + 56 * 60 * 60 * 1000);
+              const now =
+                new Date();
+
+
+              const endTime =
+                new Date(
+                  now.getTime() +
+                  56 *
+                  60 *
+                  60 *
+                  1000
+                );
+
 
               transaction.set(
                 timerRef,
                 {
 
-                  startTime: serverTimestamp(),
+                  startTime:
+                    serverTimestamp(),
 
-                  endTime: endTime,
+                  endTime:
+                    endTime,
 
-                  duration: 56 * 60 * 60,
+                  duration:
+                    56 * 60 * 60,
 
-                  active: true,
+                  active:
+                    true,
 
-                  createdAt: serverTimestamp(),
+                  createdAt:
+                    serverTimestamp(),
 
-                  type: "global_withdraw_update"
+                  type:
+                    "global_withdraw_update"
 
                 }
               );
@@ -311,17 +641,24 @@ export default {
         );
 
 
-        // قراءة المؤقت من Firebase
+        /* =====================================
+           قراءة المؤقت
+        ===================================== */
+
         const timerSnap =
           await getDoc(
             timerRef
           );
 
+
         if (!timerSnap.exists()) {
 
-          console.error("Timer document does not exist");
-          // استخدام الوقت الافتراضي
+          console.error(
+            "Timer document does not exist"
+          );
+
           this.startDefaultTimer();
+
           return;
 
         }
@@ -330,54 +667,139 @@ export default {
         const timerData =
           timerSnap.data();
 
+
         let endTime = null;
 
-        // استخراج وقت الانتهاء
+
+        /* =====================================
+           استخراج endTime
+        ===================================== */
+
         if (timerData.endTime) {
 
-          if (timerData.endTime.toDate) {
-            endTime = timerData.endTime.toDate();
-          } else if (timerData.endTime instanceof Date) {
-            endTime = timerData.endTime;
-          } else {
-            endTime = new Date(timerData.endTime);
+          if (
+            typeof timerData.endTime.toDate ===
+            "function"
+          ) {
+
+            endTime =
+              timerData.endTime.toDate();
+
           }
 
-        } else if (timerData.startTime) {
+          else if (
+            timerData.endTime instanceof Date
+          ) {
 
-          const startDate = timerData.startTime.toDate ? timerData.startTime.toDate() : new Date(timerData.startTime);
-          const duration = Number(timerData.duration || 56 * 60 * 60);
-          endTime = new Date(startDate.getTime() + duration * 1000);
+            endTime =
+              timerData.endTime;
 
-        } else {
+          }
 
-          console.error("لا يوجد وقت بداية أو نهاية في Firebase");
+          else {
+
+            endTime =
+              new Date(
+                timerData.endTime
+              );
+
+          }
+
+        }
+
+
+        /* =====================================
+           في حال عدم وجود endTime
+        ===================================== */
+
+        else if (timerData.startTime) {
+
+          const startDate =
+            typeof timerData.startTime.toDate ===
+            "function"
+
+              ? timerData.startTime.toDate()
+
+              : new Date(
+                  timerData.startTime
+                );
+
+
+          const duration =
+            Number(
+              timerData.duration ||
+              56 * 60 * 60
+            );
+
+
+          endTime =
+            new Date(
+              startDate.getTime() +
+              duration * 1000
+            );
+
+        }
+
+
+        /* =====================================
+           فحص الوقت
+        ===================================== */
+
+        if (
+          !endTime ||
+          isNaN(
+            endTime.getTime()
+          )
+        ) {
+
+          console.error(
+            "endTime غير صالح"
+          );
+
           this.startDefaultTimer();
+
           return;
 
         }
 
 
-        // التحقق من صحة endTime
-        if (!endTime || isNaN(endTime.getTime())) {
-          console.error("endTime غير صالح:", endTime);
-          this.startDefaultTimer();
-          return;
-        }
+        /* =====================================
+           حفظ بيانات المؤقت
+        ===================================== */
 
-        this.timerEndTime = endTime;
-        this.timerInitialized = true;
+        this.timerEndTime =
+          endTime;
 
-        // تحديث العداد لأول مرة
+
+        this.totalSeconds =
+          Number(
+            timerData.duration ||
+            56 * 60 * 60
+          );
+
+
+        this.timerInitialized =
+          true;
+
+
+        /* =====================================
+           تحديث أولي
+        ===================================== */
+
         this.updateCountdown();
 
-        // إيقاف أي interval سابق
-        if (this.countdownInterval) {
-          clearInterval(this.countdownInterval);
-          this.countdownInterval = null;
-        }
 
-        // بدء التحديث كل ثانية
+        /* =====================================
+           إيقاف أي Timer قديم
+        ===================================== */
+
+        this.stopTimer();
+
+
+        /* =====================================
+           تشغيل كل ثانية
+        ===================================== */
+
         this.countdownInterval =
           setInterval(
             () => {
@@ -389,10 +811,16 @@ export default {
           );
 
 
-      } catch (error) {
+      }
 
-        console.error("خطأ في المؤقت العالمي:", error);
-        // استخدام الوقت الافتراضي في حالة الخطأ
+      catch (error) {
+
+        console.error(
+          "خطأ في المؤقت العالمي:",
+          error
+        );
+
+
         this.startDefaultTimer();
 
       }
@@ -400,32 +828,44 @@ export default {
     },
 
 
-    // ========================================================
-    // بدء عداد افتراضي في حالة عدم وجود Firebase
-    // ========================================================
+    /* =========================================
+       Default Timer
+    ========================================== */
 
     startDefaultTimer() {
 
-      console.log("بدء العداد الافتراضي - 56 ساعة");
-      
-      this.remainingSeconds = 56 * 60 * 60;
-      
-      // إيقاف أي interval سابق
-      if (this.countdownInterval) {
-        clearInterval(this.countdownInterval);
-        this.countdownInterval = null;
-      }
+      console.log(
+        "بدء المؤقت الافتراضي - 56 ساعة"
+      );
 
-      // بدء التحديث كل ثانية
+
+      this.stopTimer();
+
+
+      this.totalSeconds =
+        56 * 60 * 60;
+
+
+      this.remainingSeconds =
+        this.totalSeconds;
+
+
       this.countdownInterval =
         setInterval(
           () => {
 
-            if (this.remainingSeconds > 0) {
+            if (
+              this.remainingSeconds > 0
+            ) {
+
               this.remainingSeconds--;
-            } else {
-              clearInterval(this.countdownInterval);
-              this.countdownInterval = null;
+
+            }
+
+            else {
+
+              this.stopTimer();
+
             }
 
           },
@@ -435,36 +875,51 @@ export default {
     },
 
 
-    // ========================================================
-    // تحديث العداد من Firebase
-    // ========================================================
+    /* =========================================
+       Update Countdown
+    ========================================== */
 
     updateCountdown() {
 
       if (!this.timerEndTime) {
+
         return;
+
       }
 
-      const now = Date.now();
-      const end = this.timerEndTime.getTime();
 
-      // حساب الوقت المتبقي بالثواني
-      const remaining = Math.max(0, Math.floor((end - now) / 1000));
+      const now =
+        Date.now();
 
-      this.remainingSeconds = remaining;
 
-      // إذا وصلنا إلى الصفر، نوقف العداد
+      const end =
+        this.timerEndTime.getTime();
+
+
+      const remaining =
+        Math.max(
+          0,
+          Math.floor(
+            (end - now) / 1000
+          )
+        );
+
+
+      this.remainingSeconds =
+        remaining;
+
+
+      /* =====================================
+         انتهى الوقت
+      ===================================== */
+
       if (remaining <= 0) {
 
-        this.remainingSeconds = 0;
+        this.remainingSeconds =
+          0;
 
-        if (this.countdownInterval) {
 
-          clearInterval(this.countdownInterval);
-
-          this.countdownInterval = null;
-
-        }
+        this.stopTimer();
 
       }
 
@@ -480,18 +935,30 @@ export default {
 <style scoped>
 
 /* ============================================================
-   الصفحة
-   ============================================================ */
+   GLOBAL PAGE
+============================================================ */
 
 .timer-page {
 
   min-height: 100vh;
 
+  width: 100%;
+
+  position: relative;
+
+  overflow: hidden;
+
   background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(252, 213, 53, 0.10),
+      transparent 35%
+    ),
     linear-gradient(
-      135deg,
-      #0f1419 0%,
-      #1a1f2e 100%
+      145deg,
+      #080b10 0%,
+      #10151c 50%,
+      #080b10 100%
     );
 
   display: flex;
@@ -500,7 +967,7 @@ export default {
 
   justify-content: center;
 
-  padding: 20px;
+  padding: 30px 15px;
 
   direction: rtl;
 
@@ -508,8 +975,53 @@ export default {
 
 
 /* ============================================================
-   شاشة التحديث العامة
-   ============================================================ */
+   BACKGROUND GLOW
+============================================================ */
+
+.bg-glow {
+
+  position: fixed;
+
+  width: 300px;
+
+  height: 300px;
+
+  border-radius: 50%;
+
+  filter: blur(100px);
+
+  pointer-events: none;
+
+  opacity: 0.15;
+
+}
+
+
+.glow-one {
+
+  background: #fcd535;
+
+  top: -150px;
+
+  right: -120px;
+
+}
+
+
+.glow-two {
+
+  background: #2563eb;
+
+  bottom: -180px;
+
+  left: -150px;
+
+}
+
+
+/* ============================================================
+   OVERLAY
+============================================================ */
 
 .timer-overlay {
 
@@ -517,35 +1029,289 @@ export default {
 
   display: flex;
 
-  align-items: center;
-
   justify-content: center;
+
+  position: relative;
+
+  z-index: 2;
 
 }
 
 
 /* ============================================================
-   صندوق التحديث - نفس الكود القديم
-   ============================================================ */
+   MAIN CARD
+============================================================ */
 
 .timer-box {
 
   width: min(
-    90%,
-    420px
+    100%,
+    460px
   );
 
-  padding:
-    38px 25px;
+  position: relative;
 
-  text-align: center;
+  padding: 28px 22px 22px;
+
+  border-radius: 30px;
 
   background:
     linear-gradient(
       145deg,
-      #20252d,
-      #14171c
+      rgba(31, 36, 44, 0.98),
+      rgba(13, 16, 21, 0.98)
     );
+
+  border:
+    1px solid
+    rgba(
+      252,
+      213,
+      53,
+      0.18
+    );
+
+  box-shadow:
+
+    0 30px 100px
+    rgba(0, 0, 0, 0.75),
+
+    inset 0 1px 0
+    rgba(255,255,255,0.04);
+
+  animation:
+    cardIn
+    0.6s
+    cubic-bezier(.2,.8,.2,1);
+
+}
+
+
+@keyframes cardIn {
+
+  from {
+
+    opacity: 0;
+
+    transform:
+      translateY(30px)
+      scale(.96);
+
+  }
+
+  to {
+
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+
+  }
+
+}
+
+
+/* ============================================================
+   STATUS BADGE
+============================================================ */
+
+.status-badge {
+
+  width: fit-content;
+
+  margin:
+    0 auto 25px;
+
+  padding:
+    7px 13px;
+
+  border-radius: 50px;
+
+  background:
+    rgba(
+      16,
+      185,
+      129,
+      0.08
+    );
+
+  border:
+    1px solid
+    rgba(
+      16,
+      185,
+      129,
+      0.20
+    );
+
+  color:
+    #9ca3af;
+
+  font-size:
+    11px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    7px;
+
+}
+
+
+.status-dot {
+
+  width:
+    7px;
+
+  height:
+    7px;
+
+  border-radius:
+    50%;
+
+  background:
+    #10b981;
+
+  box-shadow:
+    0 0 10px
+    rgba(
+      16,
+      185,
+      129,
+      0.8
+    );
+
+  animation:
+    pulseDot
+    1.5s
+    infinite;
+
+}
+
+
+@keyframes pulseDot {
+
+  0%,100% {
+    opacity: .5;
+    transform: scale(.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+}
+
+
+/* ============================================================
+   UPDATE ICON
+============================================================ */
+
+.update-icon {
+
+  width:
+    92px;
+
+  height:
+    92px;
+
+  position:
+    relative;
+
+  margin:
+    0 auto 22px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+}
+
+
+.icon-center {
+
+  width:
+    64px;
+
+  height:
+    64px;
+
+  border-radius:
+    50%;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  background:
+    linear-gradient(
+      145deg,
+      #fcd535,
+      #d9ad16
+    );
+
+  color:
+    #11151b;
+
+  font-size:
+    25px;
+
+  box-shadow:
+    0 0 35px
+    rgba(
+      252,
+      213,
+      53,
+      0.25
+    );
+
+  position:
+    relative;
+
+  z-index:
+    3;
+
+  animation:
+    iconRotate
+    3s
+    linear infinite;
+
+}
+
+
+@keyframes iconRotate {
+
+  to {
+    transform:
+      rotate(360deg);
+  }
+
+}
+
+
+.icon-ring {
+
+  position:
+    absolute;
+
+  border-radius:
+    50%;
 
   border:
     1px solid
@@ -556,161 +1322,121 @@ export default {
       0.25
     );
 
-  border-radius: 26px;
+}
 
-  box-shadow:
 
-    0 25px 80px
-    rgba(
-      0,
-      0,
-      0,
-      0.70
-    ),
+.ring-one {
 
-    0 0 45px
-    rgba(
-      252,
-      213,
-      53,
-      0.08
-    );
+  width:
+    78px;
+
+  height:
+    78px;
 
   animation:
-    timerBoxIn
-    0.5s ease;
+    ringPulse
+    2s
+    infinite;
 
 }
 
 
-@keyframes timerBoxIn {
+.ring-two {
 
-  from {
+  width:
+    92px;
 
-    opacity: 0;
+  height:
+    92px;
 
-    transform:
-      scale(0.92)
-      translateY(20px);
+  border-style:
+    dashed;
 
+  animation:
+    ringRotate
+    8s
+    linear infinite;
+
+}
+
+
+@keyframes ringPulse {
+
+  0%,100% {
+    transform: scale(.9);
+    opacity: .4;
   }
 
-  to {
-
+  50% {
+    transform: scale(1.05);
     opacity: 1;
-
-    transform:
-      scale(1)
-      translateY(0);
-
   }
 
 }
 
 
-/* ============================================================
-   Loader - نفس الكود القديم
-   ============================================================ */
-
-.loader {
-
-  width: 70px;
-
-  height: 70px;
-
-  margin:
-    0 auto 25px;
-
-  border-radius: 50%;
-
-  border:
-    5px solid
-    rgba(
-      252,
-      213,
-      53,
-      0.10
-    );
-
-  border-top-color:
-    #fcd535;
-
-  border-right-color:
-    rgba(
-      252,
-      213,
-      53,
-      0.55
-    );
-
-  animation:
-    spin
-    0.9s linear infinite;
-
-  box-shadow:
-    0 0 25px
-    rgba(
-      252,
-      213,
-      53,
-      0.15
-    );
-
-}
-
-
-@keyframes spin {
+@keyframes ringRotate {
 
   to {
-
     transform:
       rotate(360deg);
-
   }
 
 }
 
 
 /* ============================================================
-   Completed - نفس الكود القديم
-   ============================================================ */
+   COMPLETED ICON
+============================================================ */
 
 .completed-icon {
 
-  width: 70px;
+  width:
+    92px;
 
-  height: 70px;
+  height:
+    92px;
 
   margin:
-    0 auto 25px;
+    0 auto 22px;
 
-  border-radius: 50%;
+  border-radius:
+    50%;
 
-  display: flex;
+  display:
+    flex;
 
-  align-items: center;
+  align-items:
+    center;
 
-  justify-content: center;
+  justify-content:
+    center;
+
+  color:
+    #10b981;
+
+  font-size:
+    35px;
 
   background:
     rgba(
       16,
       185,
       129,
-      0.12
+      0.10
     );
 
   border:
     2px solid
-    #10b981;
-
-  color:
-    #10b981;
-
-  font-size: 30px;
+    rgba(
+      16,
+      185,
+      129,
+      0.5
+    );
 
   box-shadow:
-    0 0 30px
+    0 0 40px
     rgba(
       16,
       185,
@@ -722,74 +1448,82 @@ export default {
 
 
 /* ============================================================
-   Title - نفس الكود القديم
-   ============================================================ */
+   TITLE
+============================================================ */
 
-.timer-box h3 {
-
-  color:
-    #fcd535;
-
-  font-size:
-    23px;
-
-  font-weight:
-    800;
+.timer-box h1 {
 
   margin:
     0 0 10px;
 
+  text-align:
+    center;
+
+  color:
+    #f5f5f5;
+
+  font-size:
+    22px;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    -.3px;
+
 }
 
 
-.timer-box p {
-
-  color:
-    #9aa3af;
-
-  font-size:
-    13px;
+.description {
 
   margin:
-    0 0 25px;
+    0 auto 24px;
+
+  max-width:
+    380px;
+
+  text-align:
+    center;
+
+  color:
+    #8b949e;
+
+  font-size:
+    12px;
 
   line-height:
-    1.7;
+    1.8;
 
 }
 
 
 /* ============================================================
-   Countdown Display - HH:MM:SS
-   ============================================================ */
+   COUNTDOWN CARD
+============================================================ */
 
-.countdown-display {
+.countdown-card {
 
-  font-family:
-    "Courier New",
-    monospace;
+  padding:
+    16px;
 
-  font-size:
-    40px;
-
-  font-weight:
-    900;
-
-  color:
-    #fcd535;
-
-  letter-spacing:
-    3px;
-
-  direction:
-    ltr;
+  border-radius:
+    20px;
 
   background:
-    rgba(
-      252,
-      213,
-      53,
-      0.07
+    linear-gradient(
+      145deg,
+      rgba(
+        252,
+        213,
+        53,
+        0.075
+      ),
+      rgba(
+        255,
+        255,
+        255,
+        0.025
+      )
     );
 
   border:
@@ -798,46 +1532,435 @@ export default {
       252,
       213,
       53,
-      0.20
+      0.16
     );
 
-  border-radius:
-    16px;
-
-  padding:
-    16px 10px;
-
   box-shadow:
-
-    inset 0 0 25px
+    inset 0 1px 0
     rgba(
-      252,
-      213,
-      53,
-      0.04
-    ),
-
-    0 0 25px
-    rgba(
-      252,
-      213,
-      53,
-      0.05
+      255,
+      255,
+      255,
+      0.025
     );
 
 }
 
 
-.countdown-label {
+/* ============================================================
+   COUNTDOWN HEADER
+============================================================ */
+
+.countdown-header {
 
   display:
-    block;
+    flex;
 
-  margin-top:
-    10px;
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
 
   color:
-    #737b87;
+    #8b949e;
+
+  font-size:
+    11px;
+
+  margin-bottom:
+    14px;
+
+}
+
+
+.countdown-header i {
+
+  color:
+    #fcd535;
+
+  margin-left:
+    5px;
+
+}
+
+
+.live-badge {
+
+  font-size:
+    8px;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    1px;
+
+  color:
+    #10b981;
+
+  padding:
+    4px 7px;
+
+  border-radius:
+    5px;
+
+  background:
+    rgba(
+      16,
+      185,
+      129,
+      0.08
+    );
+
+}
+
+
+/* ============================================================
+   COUNTDOWN
+============================================================ */
+
+.countdown {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  direction:
+    ltr;
+
+  gap:
+    8px;
+
+}
+
+
+.time-unit {
+
+  min-width:
+    82px;
+
+  text-align:
+    center;
+
+}
+
+
+.time-number {
+
+  height:
+    65px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  border-radius:
+    13px;
+
+  background:
+    #0c1015;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.07
+    );
+
+  color:
+    #fcd535;
+
+  font-family:
+    "Courier New",
+    monospace;
+
+  font-size:
+    31px;
+
+  font-weight:
+    900;
+
+  letter-spacing:
+    1px;
+
+  text-shadow:
+    0 0 15px
+    rgba(
+      252,
+      213,
+      53,
+      0.25
+    );
+
+}
+
+
+.seconds-number {
+
+  animation:
+    secondsGlow
+    1s
+    infinite;
+
+}
+
+
+@keyframes secondsGlow {
+
+  0%,100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .72;
+  }
+
+}
+
+
+.time-label {
+
+  margin-top:
+    6px;
+
+  color:
+    #66707c;
+
+  font-size:
+    9px;
+
+}
+
+
+.time-separator {
+
+  color:
+    #fcd535;
+
+  font-family:
+    monospace;
+
+  font-size:
+    25px;
+
+  font-weight:
+    900;
+
+  margin-top:
+    -15px;
+
+}
+
+
+/* ============================================================
+   PROGRESS
+============================================================ */
+
+.progress-section {
+
+  margin-top:
+    17px;
+
+}
+
+
+.progress-info {
+
+  display:
+    flex;
+
+  justify-content:
+    space-between;
+
+  color:
+    #68727e;
+
+  font-size:
+    9px;
+
+  margin-bottom:
+    7px;
+
+}
+
+
+.progress-info span:last-child {
+
+  color:
+    #fcd535;
+
+  font-weight:
+    700;
+
+}
+
+
+.progress-track {
+
+  height:
+    5px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.06
+    );
+
+  border-radius:
+    20px;
+
+  overflow:
+    hidden;
+
+}
+
+
+.progress-bar {
+
+  height:
+    100%;
+
+  border-radius:
+    inherit;
+
+  background:
+    linear-gradient(
+      90deg,
+      #b98c00,
+      #fcd535
+    );
+
+  box-shadow:
+    0 0 12px
+    rgba(
+      252,
+      213,
+      53,
+      0.35
+    );
+
+  transition:
+    width
+    .5s
+    ease;
+
+}
+
+
+/* ============================================================
+   NOTICE
+============================================================ */
+
+.notice-card {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    11px;
+
+  margin-top:
+    14px;
+
+  padding:
+    12px;
+
+  border-radius:
+    14px;
+
+  background:
+    rgba(
+      59,
+      130,
+      246,
+      0.055
+    );
+
+  border:
+    1px solid
+    rgba(
+      59,
+      130,
+      246,
+      0.12
+    );
+
+  text-align:
+    right;
+
+}
+
+
+.notice-icon {
+
+  min-width:
+    35px;
+
+  height:
+    35px;
+
+  border-radius:
+    10px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  background:
+    rgba(
+      59,
+      130,
+      246,
+      0.10
+    );
+
+  color:
+    #60a5fa;
+
+}
+
+
+.notice-content {
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    3px;
+
+}
+
+
+.notice-content strong {
+
+  color:
+    #dbe4ef;
 
   font-size:
     11px;
@@ -845,11 +1968,22 @@ export default {
 }
 
 
-/* ============================================================
-   Rewards Table - نفس الكود القديم تماماً
-   ============================================================ */
+.notice-content span {
 
-.rewards-table {
+  color:
+    #6f7a86;
+
+  font-size:
+    9px;
+
+}
+
+
+/* ============================================================
+   REWARDS
+============================================================ */
+
+.rewards-section {
 
   margin-top:
     20px;
@@ -869,30 +2003,119 @@ export default {
 }
 
 
-.table-scroll {
+.section-title {
 
-  max-height:
-    200px;
+  display:
+    flex;
 
-  overflow-y:
-    auto;
+  align-items:
+    center;
+
+  gap:
+    10px;
+
+  margin-bottom:
+    12px;
+
+  text-align:
+    right;
+
+}
+
+
+.title-icon {
+
+  width:
+    36px;
+
+  height:
+    36px;
 
   border-radius:
     10px;
 
-  border:
-    1px solid
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  color:
+    #fcd535;
+
+  background:
     rgba(
       252,
       213,
       53,
-      0.15
+      0.08
     );
 
 }
 
 
-.table-scroll::-webkit-scrollbar {
+.section-title strong {
+
+  display:
+    block;
+
+  color:
+    #e7e9ec;
+
+  font-size:
+    12px;
+
+}
+
+
+.section-title span {
+
+  display:
+    block;
+
+  color:
+    #656f7b;
+
+  font-size:
+    9px;
+
+  margin-top:
+    3px;
+
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.table-wrapper {
+
+  max-height:
+    190px;
+
+  overflow-y:
+    auto;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.06
+    );
+
+  border-radius:
+    13px;
+
+}
+
+
+.table-wrapper::-webkit-scrollbar {
 
   width:
     4px;
@@ -900,23 +2123,7 @@ export default {
 }
 
 
-.table-scroll::-webkit-scrollbar-track {
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.05
-    );
-
-  border-radius:
-    10px;
-
-}
-
-
-.table-scroll::-webkit-scrollbar-thumb {
+.table-wrapper::-webkit-scrollbar-thumb {
 
   background:
     rgba(
@@ -932,7 +2139,7 @@ export default {
 }
 
 
-.rewards-table table {
+table {
 
   width:
     100%;
@@ -941,29 +2148,12 @@ export default {
     collapse;
 
   font-size:
-    12px;
+    10px;
 
 }
 
 
-.rewards-table th {
-
-  background:
-    rgba(
-      252,
-      213,
-      53,
-      0.1
-    );
-
-  color:
-    #fcd535;
-
-  padding:
-    8px 10px;
-
-  font-weight:
-    700;
+thead {
 
   position:
     sticky;
@@ -977,69 +2167,136 @@ export default {
 }
 
 
-.rewards-table td {
-
-  color:
-    #eaecef;
+th {
 
   padding:
-    6px 10px;
+    9px;
 
-  border-bottom:
+  background:
+    #181d24;
+
+  color:
+    #fcd535;
+
+  font-weight:
+    700;
+
+}
+
+
+td {
+
+  padding:
+    8px 9px;
+
+  border-top:
     1px solid
     rgba(
       255,
       255,
       255,
-      0.05
+      0.035
     );
+
+  text-align:
+    center;
 
 }
 
 
-.rewards-table tr:hover td {
+td:first-child {
+
+  color:
+    #d2d7dd;
+
+}
+
+
+.amount {
+
+  font-weight:
+    700;
+
+}
+
+
+td small {
+
+  color:
+    #69737e;
+
+  font-size:
+    8px;
+
+  margin-right:
+    3px;
+
+}
+
+
+.reward {
+
+  color:
+    #10b981;
+
+  font-weight:
+    800;
+
+}
+
+
+tbody tr {
+
+  transition:
+    background
+    .2s
+    ease;
+
+}
+
+
+tbody tr:hover {
 
   background:
     rgba(
       252,
       213,
       53,
-      0.05
+      0.035
     );
 
 }
 
 
-.rewards-table tr:last-child td {
-
-  border-bottom:
-    none;
-
-}
-
+/* ============================================================
+   TABLE NOTE
+============================================================ */
 
 .table-note {
-
-  margin-top:
-    10px;
-
-  color:
-    #737b87;
-
-  font-size:
-    11px;
 
   display:
     flex;
 
   align-items:
-    center;
+    flex-start;
 
   justify-content:
     center;
 
   gap:
     6px;
+
+  margin-top:
+    9px;
+
+  color:
+    #626c77;
+
+  font-size:
+    9px;
+
+  line-height:
+    1.6;
 
 }
 
@@ -1049,20 +2306,32 @@ export default {
   color:
     #fcd535;
 
+  margin-top:
+    2px;
+
 }
 
 
 /* ============================================================
-   Timer Info - نفس الكود القديم
-   ============================================================ */
+   SYSTEM INFO
+============================================================ */
 
-.timer-info {
+.system-info {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-around;
 
   margin-top:
     20px;
 
   padding-top:
-    18px;
+    17px;
 
   border-top:
     1px solid
@@ -1076,7 +2345,33 @@ export default {
 }
 
 
-.info-row {
+.system-item {
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    center;
+
+  gap:
+    3px;
+
+}
+
+
+.system-icon {
+
+  width:
+    29px;
+
+  height:
+    29px;
+
+  border-radius:
+    8px;
 
   display:
     flex;
@@ -1087,50 +2382,332 @@ export default {
   justify-content:
     center;
 
-  gap:
-    8px;
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    );
 
   color:
-    #737b87;
+    #818b96;
 
   font-size:
-    11px;
+    10px;
 
   margin-bottom:
+    2px;
+
+}
+
+
+.system-item span {
+
+  color:
+    #777f89;
+
+  font-size:
     8px;
 
 }
 
 
-.info-row i {
+.system-item small {
 
   color:
-    #fcd535;
+    #10b981;
+
+  font-size:
+    7px;
+
+}
+
+
+.system-line {
+
+  width:
+    1px;
+
+  height:
+    35px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.06
+    );
 
 }
 
 
 /* ============================================================
-   Mobile
-   ============================================================ */
+   FOOTER
+============================================================ */
+
+.footer-text {
+
+  margin-top:
+    17px;
+
+  text-align:
+    center;
+
+  color:
+    #4f5863;
+
+  font-size:
+    8px;
+
+}
+
+
+.footer-text i {
+
+  margin-left:
+    4px;
+
+  animation:
+    footerSpin
+    3s
+    linear
+    infinite;
+
+}
+
+
+@keyframes footerSpin {
+
+  to {
+    transform:
+      rotate(360deg);
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
 
 @media (max-width: 500px) {
 
-  .timer-box {
+  .timer-page {
 
     padding:
-      30px 20px;
+      15px 10px;
+
+    align-items:
+      flex-start;
+
+    padding-top:
+      20px;
 
   }
 
 
-  .countdown-display {
+  .timer-box {
+
+    padding:
+      23px 15px 18px;
+
+    border-radius:
+      25px;
+
+  }
+
+
+  .status-badge {
+
+    margin-bottom:
+      20px;
+
+  }
+
+
+  .update-icon {
+
+    width:
+      78px;
+
+    height:
+      78px;
+
+    margin-bottom:
+      18px;
+
+  }
+
+
+  .icon-center {
+
+    width:
+      55px;
+
+    height:
+      55px;
 
     font-size:
-      31px;
+      21px;
 
-    letter-spacing:
-      2px;
+  }
+
+
+  .ring-one {
+
+    width:
+      68px;
+
+    height:
+      68px;
+
+  }
+
+
+  .ring-two {
+
+    width:
+      78px;
+
+    height:
+      78px;
+
+  }
+
+
+  .timer-box h1 {
+
+    font-size:
+      19px;
+
+  }
+
+
+  .description {
+
+    font-size:
+      11px;
+
+    margin-bottom:
+      19px;
+
+  }
+
+
+  .countdown-card {
+
+    padding:
+      12px;
+
+  }
+
+
+  .countdown {
+
+    gap:
+      4px;
+
+  }
+
+
+  .time-unit {
+
+    min-width:
+      65px;
+
+  }
+
+
+  .time-number {
+
+    height:
+      56px;
+
+    font-size:
+      25px;
+
+    border-radius:
+      11px;
+
+  }
+
+
+  .time-separator {
+
+    font-size:
+      20px;
+
+    margin-top:
+      -13px;
+
+  }
+
+
+  .time-label {
+
+    font-size:
+      8px;
+
+  }
+
+
+  .notice-card {
+
+    padding:
+      10px;
+
+  }
+
+
+  .system-info {
+
+    margin-top:
+      17px;
+
+  }
+
+}
+
+
+/* ============================================================
+   VERY SMALL PHONES
+============================================================ */
+
+@media (max-width: 360px) {
+
+  .time-unit {
+
+    min-width:
+      56px;
+
+  }
+
+
+  .time-number {
+
+    height:
+      51px;
+
+    font-size:
+      21px;
+
+  }
+
+
+  .time-separator {
+
+    font-size:
+      17px;
+
+  }
+
+
+  .timer-box h1 {
+
+    font-size:
+      17px;
 
   }
 
