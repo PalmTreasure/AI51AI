@@ -1,158 +1,3 @@
-<template>
-  <div class="timer-page">
-
-    <div class="timer-card">
-
-      <!-- دائرة التحديث -->
-      <div v-if="remainingSeconds > 0" class="loader-wrapper">
-        <div class="loader"></div>
-        <div class="loader-icon">
-          <i class="fas fa-sync-alt"></i>
-        </div>
-      </div>
-
-      <!-- عند انتهاء الوقت -->
-      <div v-else class="completed-icon">
-        <i class="fas fa-check"></i>
-      </div>
-
-
-      <!-- العنوان -->
-      <h2>
-        {{ remainingSeconds > 0 ? 'جاري التحديث' : 'اكتمل التحديث' }}
-      </h2>
-
-
-      <!-- الوصف -->
-      <p class="description">
-        {{
-          remainingSeconds > 0
-            ? 'يرجى الانتظار حتى انتهاء عملية التحديث'
-            : 'انتهت عملية التحديث ويمكنك استخدام صفحة السحب'
-        }}
-      </p>
-
-
-      <!-- =========================
-           العداد
-      ========================== -->
-
-      <div class="countdown-box">
-
-        <div class="countdown-time">
-          {{ formattedHours }}
-          <span>:</span>
-          {{ formattedMinutes }}
-          <span>:</span>
-          {{ formattedSeconds }}
-        </div>
-
-      </div>
-
-
-      <div class="countdown-label">
-        {{ remainingSeconds > 0 ? 'الوقت المتبقي' : 'انتهى الوقت' }}
-      </div>
-
-
-      <!-- =========================
-           التعويضات
-      ========================== -->
-
-      <div class="rewards-card">
-
-        <h3>
-          🎁 التعويضات عند تأخير السحب لمدة أسبوع
-        </h3>
-
-
-        <div class="table-container">
-
-          <table>
-
-            <thead>
-
-              <tr>
-                <th>مبلغ الشحن</th>
-                <th>التعويض</th>
-              </tr>
-
-            </thead>
-
-
-            <tbody>
-
-              <tr
-                v-for="(reward, amount) in rechargeRewards"
-                :key="amount"
-              >
-
-                <td>
-                  USDT {{ formatNumber(amount) }}
-                </td>
-
-                <td>
-                  USDT {{ formatNumber(reward) }}
-                </td>
-
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-
-        <!-- ملاحظة -->
-        <div class="table-note">
-
-          <i class="fas fa-info-circle"></i>
-
-          <span>
-            يتم تطبيق تأخير أسبوع على السحب مع تعويض حسب مبلغ الشحن
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <!-- =========================
-           معلومات النظام
-      ========================== -->
-
-      <div class="system-info">
-
-        <div class="info-item">
-
-          <i class="fas fa-shield-alt"></i>
-
-          <span>
-            تحديث آمن عبر Firebase
-          </span>
-
-        </div>
-
-
-        <div class="info-item">
-
-          <i class="fas fa-users"></i>
-
-          <span>
-            الوقت موحد لجميع المستخدمين
-          </span>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-</template>
-
-
 <script>
 
 import {
@@ -174,50 +19,46 @@ export default {
 
     return {
 
-      /* =====================================
-         العداد
-      ===================================== */
+      /* =========================================
+         الوقت المتبقي
+      ========================================= */
 
-      remainingSeconds: 56 * 60 * 60,
+      remainingSeconds: 0,
 
+      /* وقت النهاية العالمي */
       timerEndTime: null,
-
-      countdownInterval: null,
 
       /* مدة المؤقت الأصلية */
       totalSeconds: 56 * 60 * 60,
 
+      /* Interval */
+      countdownInterval: null,
 
-      /* =====================================
+      /* حالة التحميل */
+      timerLoading: true,
+
+      /* خطأ Firebase */
+      timerError: false,
+
+
+      /* =========================================
          جدول التعويضات
-      ===================================== */
+      ========================================= */
 
       rechargeRewards: {
 
         50: 5,
-
         100: 10,
-
         300: 30,
-
         900: 90,
-
         1350: 135,
-
         1800: 180,
-
         3600: 260,
-
         7200: 720,
-
         14400: 1440,
-
         18800: 1880,
-
         37600: 3760,
-
         75200: 7520,
-
         150400: 15040
 
       }
@@ -227,12 +68,11 @@ export default {
   },
 
 
-  /* =====================================
+  /* =========================================
      Computed
-  ===================================== */
+  ========================================= */
 
   computed: {
-
 
     formattedHours() {
 
@@ -270,9 +110,9 @@ export default {
   },
 
 
-  /* =====================================
+  /* =========================================
      Created
-  ===================================== */
+  ========================================= */
 
   async created() {
 
@@ -281,9 +121,9 @@ export default {
   },
 
 
-  /* =====================================
+  /* =========================================
      Before Unmount
-  ===================================== */
+  ========================================= */
 
   beforeUnmount() {
 
@@ -292,16 +132,16 @@ export default {
   },
 
 
-  /* =====================================
+  /* =========================================
      Methods
-  ===================================== */
+  ========================================= */
 
   methods: {
 
 
-    /* =====================================
+    /* =========================================
        تنسيق الأرقام
-    ===================================== */
+    ========================================= */
 
     formatNumber(num) {
 
@@ -310,9 +150,9 @@ export default {
     },
 
 
-    /* =====================================
-       إيقاف المؤقت
-    ===================================== */
+    /* =========================================
+       إيقاف العداد
+    ========================================= */
 
     stopTimer() {
 
@@ -329,11 +169,42 @@ export default {
     },
 
 
-    /* =====================================
-       إنشاء / قراءة المؤقت العالمي
-    ===================================== */
+    /* =========================================
+       تشغيل العداد
+    ========================================= */
+
+    startInterval() {
+
+      this.stopTimer();
+
+
+      this.countdownInterval =
+        setInterval(
+          () => {
+
+            this.updateCountdown();
+
+          },
+          1000
+        );
+
+    },
+
+
+    /* =========================================
+       إنشاء أو قراءة المؤقت العالمي
+       
+       مهم جداً:
+       لا يتم إنشاء مؤقت جديد عند تحديث الصفحة.
+       يتم الإنشاء فقط إذا كان المستند غير موجود.
+    ========================================= */
 
     async initializeGlobalTimer() {
+
+      this.timerLoading = true;
+
+      this.timerError = false;
+
 
       try {
 
@@ -345,79 +216,116 @@ export default {
           );
 
 
-        /* ---------------------------------
-           إنشاء المؤقت إذا لم يكن موجوداً
-        ---------------------------------- */
+        /* =====================================
+           أولاً: قراءة المستند الموجود
+           
+           إذا كان موجوداً:
+           لا نغيره إطلاقاً.
+        ===================================== */
 
-        await runTransaction(
-          db,
-          async (transaction) => {
-
-            const timerSnap =
-              await transaction.get(
-                timerRef
-              );
-
-
-            if (!timerSnap.exists()) {
-
-              const now =
-                new Date();
-
-
-              const endTime =
-                new Date(
-                  now.getTime() +
-                  56 * 60 * 60 * 1000
-                );
-
-
-              transaction.set(
-                timerRef,
-                {
-
-                  startTime:
-                    serverTimestamp(),
-
-                  endTime:
-                    endTime,
-
-                  duration:
-                    56 * 60 * 60,
-
-                  active:
-                    true,
-
-                  createdAt:
-                    serverTimestamp(),
-
-                  type:
-                    "global_withdraw_update"
-
-                }
-              );
-
-            }
-
-          }
-        );
-
-
-        /* ---------------------------------
-           قراءة المؤقت
-        ---------------------------------- */
-
-        const timerSnap =
+        let timerSnap =
           await getDoc(
             timerRef
           );
 
 
+        /* =====================================
+           إذا لم يكن موجوداً فقط
+           ننشئ مؤقت 56 ساعة
+        ===================================== */
+
         if (!timerSnap.exists()) {
 
-          this.startDefaultTimer();
+          console.log(
+            "إنشاء المؤقت العالمي لأول مرة..."
+          );
 
-          return;
+
+          await runTransaction(
+            db,
+            async (transaction) => {
+
+              const snap =
+                await transaction.get(
+                  timerRef
+                );
+
+
+              /*
+               * مهم:
+               * نتحقق مرة ثانية داخل transaction
+               * حتى لا يقوم مستخدمان بإنشاء مؤقتين.
+               */
+
+              if (!snap.exists()) {
+
+                const duration =
+                  56 * 60 * 60;
+
+
+                /*
+                 * هذا الوقت يتم حفظه مرة واحدة فقط.
+                 */
+
+                const endTime =
+                  new Date(
+                    Date.now() +
+                    duration * 1000
+                  );
+
+
+                transaction.set(
+                  timerRef,
+                  {
+
+                    startTime:
+                      serverTimestamp(),
+
+                    endTime:
+                      endTime,
+
+                    duration:
+                      duration,
+
+                    active:
+                      true,
+
+                    createdAt:
+                      serverTimestamp(),
+
+                    type:
+                      "global_withdraw_update"
+
+                  }
+                );
+
+              }
+
+            }
+          );
+
+
+          /*
+           * بعد الإنشاء نقرأ المستند مرة أخرى
+           */
+
+          timerSnap =
+            await getDoc(
+              timerRef
+            );
+
+        }
+
+
+        /* =====================================
+           إذا لم يوجد المستند بعد الإنشاء
+        ===================================== */
+
+        if (!timerSnap.exists()) {
+
+          throw new Error(
+            "لم يتم العثور على مؤقت Firebase"
+          );
 
         }
 
@@ -426,14 +334,24 @@ export default {
           timerSnap.data();
 
 
+        console.log(
+          "Global Timer:",
+          timerData
+        );
+
+
+        /* =====================================
+           استخراج وقت النهاية
+        ===================================== */
+
         let endTime = null;
 
 
-        /* ---------------------------------
-           استخراج endTime
-        ---------------------------------- */
-
         if (timerData.endTime) {
+
+          /*
+           * Firebase Timestamp
+           */
 
           if (
             typeof timerData.endTime.toDate ===
@@ -443,7 +361,26 @@ export default {
             endTime =
               timerData.endTime.toDate();
 
-          } else {
+          }
+
+          /*
+           * Date
+           */
+
+          else if (
+            timerData.endTime instanceof Date
+          ) {
+
+            endTime =
+              timerData.endTime;
+
+          }
+
+          /*
+           * String / number
+           */
+
+          else {
 
             endTime =
               new Date(
@@ -455,21 +392,34 @@ export default {
         }
 
 
-        /* ---------------------------------
+        /* =====================================
            إذا لم يوجد endTime
-        ---------------------------------- */
+           نستخدم startTime القديم
+        ===================================== */
 
         else if (timerData.startTime) {
 
-          const startDate =
+          let startTime;
+
+
+          if (
             typeof timerData.startTime.toDate ===
             "function"
+          ) {
 
-              ? timerData.startTime.toDate()
+            startTime =
+              timerData.startTime.toDate();
 
-              : new Date(
-                  timerData.startTime
-                );
+          }
+
+          else {
+
+            startTime =
+              new Date(
+                timerData.startTime
+              );
+
+          }
 
 
           const duration =
@@ -481,16 +431,16 @@ export default {
 
           endTime =
             new Date(
-              startDate.getTime() +
+              startTime.getTime() +
               duration * 1000
             );
 
         }
 
 
-        /* ---------------------------------
-           التأكد من صحة الوقت
-        ---------------------------------- */
+        /* =====================================
+           التحقق
+        ===================================== */
 
         if (
           !endTime ||
@@ -499,16 +449,16 @@ export default {
           )
         ) {
 
-          this.startDefaultTimer();
-
-          return;
+          throw new Error(
+            "وقت نهاية المؤقت غير صالح في Firebase"
+          );
 
         }
 
 
-        /* ---------------------------------
-           حفظ وقت النهاية
-        ---------------------------------- */
+        /* =====================================
+           حفظ المؤقت العالمي
+        ===================================== */
 
         this.timerEndTime =
           endTime;
@@ -521,92 +471,76 @@ export default {
           );
 
 
-        /* ---------------------------------
-           تحديث فوري
-        ---------------------------------- */
+        /* =====================================
+           حساب الوقت فوراً
+        ===================================== */
 
         this.updateCountdown();
 
 
-        /* ---------------------------------
-           إيقاف أي عداد سابق
-        ---------------------------------- */
+        /* =====================================
+           تشغيل العداد
+        ===================================== */
 
-        this.stopTimer();
-
-
-        /* ---------------------------------
-           تشغيل العداد كل ثانية
-        ---------------------------------- */
-
-        this.countdownInterval =
-          setInterval(
-            () => {
-
-              this.updateCountdown();
-
-            },
-            1000
-          );
+        this.startInterval();
 
 
-      } catch (error) {
+        this.timerLoading =
+          false;
+
+
+        console.log(
+          "وقت النهاية العالمي:",
+          this.timerEndTime
+        );
+
+
+      }
+
+      catch (error) {
 
         console.error(
-          "Timer Error:",
+          "خطأ في المؤقت العالمي:",
           error
         );
 
-        this.startDefaultTimer();
+
+        /*
+         * مهم جداً:
+         *
+         * لا نعيد المؤقت إلى 56 ساعة.
+         *
+         * لأن هذا كان سبب المشكلة.
+         */
+
+        this.timerLoading =
+          false;
+
+        this.timerError =
+          true;
+
+
+        this.stopTimer();
 
       }
 
     },
 
 
-    /* =====================================
-       عداد احتياطي
-    ===================================== */
-
-    startDefaultTimer() {
-
-      this.stopTimer();
-
-
-      this.totalSeconds =
-        56 * 60 * 60;
-
-
-      this.remainingSeconds =
-        this.totalSeconds;
-
-
-      this.countdownInterval =
-        setInterval(
-          () => {
-
-            if (
-              this.remainingSeconds > 0
-            ) {
-
-              this.remainingSeconds--;
-
-            } else {
-
-              this.stopTimer();
-
-            }
-
-          },
-          1000
-        );
-
-    },
-
-
-    /* =====================================
-       تحديث الوقت الحقيقي
-    ===================================== */
+    /* =========================================
+       تحديث العداد
+       
+       دائماً نحسب:
+       
+       endTime - الآن
+       
+       وليس:
+       
+       remainingSeconds--
+       
+       لذلك عند تحديث الصفحة
+       يعود للوقت الحقيقي.
+    ========================================= */
 
     updateCountdown() {
 
@@ -626,11 +560,11 @@ export default {
 
 
       /*
-       * الحساب من وقت النهاية الحقيقي
-       * وليس إنقاص رقم فقط.
+       * ceil حتى لا يظهر مثلاً:
        *
-       * لذلك إذا خرج المستخدم ورجع
-       * أو تأخر الجهاز، يعود للوقت الصحيح.
+       * 55:59:58
+       *
+       * بشكل أسرع من اللازم.
        */
 
       const remaining =
@@ -646,9 +580,9 @@ export default {
         remaining;
 
 
-      /* ---------------------------------
-         انتهاء المؤقت
-      ---------------------------------- */
+      /* =====================================
+         انتهى الوقت
+      ===================================== */
 
       if (
         remaining <= 0
@@ -668,756 +602,3 @@ export default {
 };
 
 </script>
-
-
-<style scoped>
-
-/* ============================================================
-   الصفحة الرئيسية
-============================================================ */
-
-.timer-page {
-
-  min-height: 100vh;
-
-  width: 100%;
-
-  box-sizing: border-box;
-
-  background:
-    linear-gradient(
-      180deg,
-      #0d1117 0%,
-      #171b23 45%,
-      #10141b 100%
-    );
-
-  display: flex;
-
-  justify-content: center;
-
-  align-items: flex-start;
-
-  padding: 25px 14px 40px;
-
-  direction: rtl;
-
-}
-
-
-/* ============================================================
-   البطاقة الرئيسية
-============================================================ */
-
-.timer-card {
-
-  width: 100%;
-
-  max-width: 430px;
-
-  box-sizing: border-box;
-
-  padding: 30px 18px 24px;
-
-  border-radius: 30px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #1b2029,
-      #151920
-    );
-
-  border:
-    1px solid
-    rgba(
-      252,
-      213,
-      53,
-      0.16
-    );
-
-  box-shadow:
-    0 20px 70px
-    rgba(
-      0,
-      0,
-      0,
-      0.55
-    );
-
-}
-
-
-/* ============================================================
-   Loader
-============================================================ */
-
-.loader-wrapper {
-
-  width: 82px;
-
-  height: 82px;
-
-  position: relative;
-
-  margin: 0 auto 28px;
-
-  display: flex;
-
-  justify-content: center;
-
-  align-items: center;
-
-}
-
-
-.loader {
-
-  position: absolute;
-
-  width: 78px;
-
-  height: 78px;
-
-  border-radius: 50%;
-
-  border:
-    5px solid
-    rgba(
-      252,
-      213,
-      53,
-      0.10
-    );
-
-  border-top-color:
-    #fcd535;
-
-  border-right-color:
-    rgba(
-      252,
-      213,
-      53,
-      0.35
-    );
-
-  animation:
-    spin
-    1.1s
-    linear
-    infinite;
-
-}
-
-
-.loader-icon {
-
-  width: 52px;
-
-  height: 52px;
-
-  border-radius: 50%;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  color: #fcd535;
-
-  font-size: 22px;
-
-  background:
-    rgba(
-      252,
-      213,
-      53,
-      0.08
-    );
-
-}
-
-
-.loader-icon i {
-
-  animation:
-    iconSpin
-    2s
-    linear
-    infinite;
-
-}
-
-
-@keyframes spin {
-
-  to {
-    transform:
-      rotate(360deg);
-  }
-
-}
-
-
-@keyframes iconSpin {
-
-  to {
-    transform:
-      rotate(-360deg);
-  }
-
-}
-
-
-/* ============================================================
-   Completed
-============================================================ */
-
-.completed-icon {
-
-  width: 78px;
-
-  height: 78px;
-
-  margin: 0 auto 28px;
-
-  border-radius: 50%;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  color: #10b981;
-
-  font-size: 30px;
-
-  background:
-    rgba(
-      16,
-      185,
-      129,
-      0.10
-    );
-
-  border:
-    2px solid
-    rgba(
-      16,
-      185,
-      129,
-      0.5
-    );
-
-}
-
-
-/* ============================================================
-   العنوان
-============================================================ */
-
-.timer-card h2 {
-
-  margin: 0;
-
-  text-align: center;
-
-  color: #fcd535;
-
-  font-size: 30px;
-
-  font-weight: 800;
-
-}
-
-
-.description {
-
-  margin:
-    12px auto 28px;
-
-  text-align: center;
-
-  color: #9aa1ab;
-
-  font-size: 15px;
-
-  line-height: 1.7;
-
-}
-
-
-/* ============================================================
-   صندوق العداد
-============================================================ */
-
-.countdown-box {
-
-  width: 100%;
-
-  box-sizing: border-box;
-
-  padding: 22px 10px;
-
-  border-radius: 22px;
-
-  background:
-    rgba(
-      252,
-      213,
-      53,
-      0.055
-    );
-
-  border:
-    1px solid
-    rgba(
-      252,
-      213,
-      53,
-      0.28
-    );
-
-  box-shadow:
-    inset 0 0 25px
-    rgba(
-      252,
-      213,
-      53,
-      0.025
-    );
-
-}
-
-
-/* ============================================================
-   الوقت
-============================================================ */
-
-.countdown-time {
-
-  direction: ltr;
-
-  text-align: center;
-
-  white-space: nowrap;
-
-  color: #fcd535;
-
-  font-family:
-    "Courier New",
-    monospace;
-
-  font-size: 42px;
-
-  font-weight: 900;
-
-  letter-spacing: 3px;
-
-  text-shadow:
-    0 0 15px
-    rgba(
-      252,
-      213,
-      53,
-      0.18
-    );
-
-}
-
-
-.countdown-time span {
-
-  margin:
-    0 3px;
-
-  opacity: .75;
-
-}
-
-
-/* ============================================================
-   label
-============================================================ */
-
-.countdown-label {
-
-  text-align: center;
-
-  color: #777f8a;
-
-  font-size: 14px;
-
-  margin:
-    14px 0 30px;
-
-}
-
-
-/* ============================================================
-   rewards
-============================================================ */
-
-.rewards-card {
-
-  width: 100%;
-
-  box-sizing: border-box;
-
-  padding: 18px 8px 15px;
-
-  border-radius: 22px;
-
-  background:
-    rgba(
-      20,
-      24,
-      32,
-      0.95
-    );
-
-  border:
-    1px solid
-    rgba(
-      252,
-      213,
-      53,
-      0.18
-    );
-
-}
-
-
-.rewards-card h3 {
-
-  margin:
-    0 8px 18px;
-
-  text-align: center;
-
-  color: #fcd535;
-
-  font-size: 18px;
-
-  line-height: 1.7;
-
-}
-
-
-/* ============================================================
-   table
-============================================================ */
-
-.table-container {
-
-  width: 100%;
-
-  max-height: 270px;
-
-  overflow-y: auto;
-
-  overflow-x: hidden;
-
-  border-radius: 15px;
-
-}
-
-
-.table-container::-webkit-scrollbar {
-
-  width: 4px;
-
-}
-
-
-.table-container::-webkit-scrollbar-thumb {
-
-  background:
-    rgba(
-      252,
-      213,
-      53,
-      0.35
-    );
-
-  border-radius: 10px;
-
-}
-
-
-table {
-
-  width: 100%;
-
-  border-collapse: collapse;
-
-  table-layout: fixed;
-
-}
-
-
-/* ============================================================
-   header
-============================================================ */
-
-th {
-
-  position: sticky;
-
-  top: 0;
-
-  z-index: 2;
-
-  padding: 13px 5px;
-
-  background:
-    rgba(
-      252,
-      213,
-      53,
-      0.10
-    );
-
-  color: #fcd535;
-
-  font-size: 14px;
-
-  font-weight: 800;
-
-}
-
-
-td {
-
-  padding: 13px 4px;
-
-  text-align: center;
-
-  color: #e2e5e9;
-
-  font-size: 14px;
-
-  border-bottom:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.055
-    );
-
-}
-
-
-tr:last-child td {
-
-  border-bottom: none;
-
-}
-
-
-/* ============================================================
-   note
-============================================================ */
-
-.table-note {
-
-  display: flex;
-
-  align-items: flex-start;
-
-  justify-content: center;
-
-  gap: 7px;
-
-  margin:
-    14px 7px 0;
-
-  color: #777f8a;
-
-  font-size: 11px;
-
-  line-height: 1.7;
-
-  text-align: center;
-
-}
-
-
-.table-note i {
-
-  color: #fcd535;
-
-  margin-top: 3px;
-
-}
-
-
-/* ============================================================
-   system information
-============================================================ */
-
-.system-info {
-
-  margin-top: 24px;
-
-  padding-top: 18px;
-
-  border-top:
-    1px solid
-    rgba(
-      255,
-      255,
-      255,
-      0.06
-    );
-
-}
-
-
-.info-item {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 8px;
-
-  color: #69727d;
-
-  font-size: 11px;
-
-  margin-bottom: 10px;
-
-}
-
-
-.info-item i {
-
-  color: #fcd535;
-
-}
-
-
-/* ============================================================
-   MOBILE
-============================================================ */
-
-@media (max-width: 480px) {
-
-  .timer-page {
-
-    padding:
-      18px 10px 30px;
-
-  }
-
-
-  .timer-card {
-
-    padding:
-      27px 14px 22px;
-
-    border-radius:
-      26px;
-
-  }
-
-
-  .timer-card h2 {
-
-    font-size:
-      28px;
-
-  }
-
-
-  .description {
-
-    font-size:
-      14px;
-
-    margin-bottom:
-      24px;
-
-  }
-
-
-  .countdown-box {
-
-    padding:
-      20px 5px;
-
-  }
-
-
-  .countdown-time {
-
-    font-size:
-      35px;
-
-    letter-spacing:
-      2px;
-
-  }
-
-
-  .rewards-card h3 {
-
-    font-size:
-      17px;
-
-  }
-
-
-  th,
-  td {
-
-    font-size:
-      13px;
-
-  }
-
-}
-
-
-/* ============================================================
-   شاشات صغيرة جداً
-============================================================ */
-
-@media (max-width: 360px) {
-
-  .countdown-time {
-
-    font-size:
-      29px;
-
-    letter-spacing:
-      1px;
-
-  }
-
-
-  .timer-card h2 {
-
-    font-size:
-      25px;
-
-  }
-
-
-  .description {
-
-    font-size:
-      13px;
-
-  }
-
-}
-
-</style>
