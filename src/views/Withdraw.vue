@@ -178,14 +178,14 @@ export default {
          العداد
       ===================================== */
 
-      remainingSeconds: 56 * 60 * 60,
+      remainingSeconds: 39 * 60 * 60,
 
       timerEndTime: null,
 
       countdownInterval: null,
 
       /* مدة المؤقت الأصلية */
-      totalSeconds: 56 * 60 * 60,
+      totalSeconds: 39 * 60 * 60,
 
 
       /* =====================================
@@ -368,7 +368,7 @@ export default {
               const endTime =
                 new Date(
                   now.getTime() +
-                  56 * 60 * 60 * 1000
+                  39 * 60 * 60 * 1000
                 );
 
 
@@ -383,7 +383,7 @@ export default {
                     endTime,
 
                   duration:
-                    56 * 60 * 60,
+                    39 * 60 * 60,
 
                   active:
                     true,
@@ -475,7 +475,7 @@ export default {
           const duration =
             Number(
               timerData.duration ||
-              56 * 60 * 60
+              39 * 60 * 60
             );
 
 
@@ -517,7 +517,7 @@ export default {
         this.totalSeconds =
           Number(
             timerData.duration ||
-            56 * 60 * 60
+            39 * 60 * 60
           );
 
 
@@ -574,7 +574,7 @@ export default {
 
 
       this.totalSeconds =
-        56 * 60 * 60;
+        39 * 60 * 60;
 
 
       this.remainingSeconds =
